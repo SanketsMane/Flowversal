@@ -1,0 +1,218 @@
+/**
+ * Marketing Campaigns Project Template
+ * Complete marketing automation system for campaigns and social media
+ */
+
+import { ProjectTemplate } from '../types/projectTemplate.types';
+
+export const marketingCampaignsTemplate: ProjectTemplate = {
+  id: 'marketing-campaigns-v1',
+  name: 'Marketing Campaign Manager',
+  description: 'End-to-end marketing automation for email campaigns, social media, and analytics',
+  industry: ['Marketing', 'Agency', 'SaaS'],
+  category: 'marketing',
+  icon: 'Megaphone',
+  coverImage: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800',
+  difficulty: 'beginner',
+  estimatedSetupTime: '8 minutes',
+  
+  boards: [
+    {
+      id: 'email-campaigns',
+      name: 'Email Campaigns',
+      description: 'Automated email marketing workflows',
+      icon: 'Mail',
+      color: '#00C6FF',
+      tasks: [
+        {
+          id: 'newsletter-automation',
+          title: 'Set up weekly newsletter',
+          description: 'Automate weekly newsletter distribution',
+          status: 'todo',
+          priority: 'high',
+          tags: ['email', 'newsletter'],
+          workflowId: 'weekly-newsletter',
+          dueDate: '+1d',
+        },
+        {
+          id: 'drip-campaign',
+          title: 'Create nurture drip campaign',
+          description: '7-day email nurture sequence for leads',
+          status: 'todo',
+          priority: 'high',
+          tags: ['email', 'nurture'],
+          workflowId: 'lead-nurture-sequence',
+          dueDate: '+2d',
+        },
+        {
+          id: 'segment-audiences',
+          title: 'Set up audience segmentation',
+          description: 'Segment subscribers based on behavior',
+          status: 'todo',
+          priority: 'medium',
+          tags: ['segmentation', 'targeting'],
+          dueDate: '+3d',
+        },
+      ],
+    },
+    {
+      id: 'social-media',
+      name: 'Social Media',
+      description: 'Social media posting and monitoring',
+      icon: 'Globe',
+      color: '#9D50BB',
+      tasks: [
+        {
+          id: 'schedule-posts',
+          title: 'Automate social media posts',
+          description: 'Schedule posts across Twitter, LinkedIn, Facebook',
+          status: 'todo',
+          priority: 'high',
+          tags: ['social', 'automation'],
+          workflowId: 'social-media-scheduler',
+          dueDate: '+2d',
+        },
+        {
+          id: 'brand-monitoring',
+          title: 'Set up brand mention alerts',
+          description: 'Get notified when brand is mentioned',
+          status: 'todo',
+          priority: 'medium',
+          tags: ['monitoring', 'alerts'],
+          workflowId: 'brand-mention-tracker',
+          dueDate: '+4d',
+        },
+        {
+          id: 'engagement-tracking',
+          title: 'Track social engagement',
+          description: 'Monitor likes, shares, and comments',
+          status: 'todo',
+          priority: 'low',
+          tags: ['analytics', 'engagement'],
+          dueDate: '+5d',
+        },
+      ],
+    },
+    {
+      id: 'content-creation',
+      name: 'Content Creation',
+      description: 'AI-powered content generation',
+      icon: 'PenTool',
+      color: '#F59E0B',
+      tasks: [
+        {
+          id: 'blog-ideas',
+          title: 'Generate blog post ideas',
+          description: 'Use AI to create blog topic ideas',
+          status: 'todo',
+          priority: 'medium',
+          tags: ['content', 'ai'],
+          workflowId: 'ai-blog-generator',
+          dueDate: '+3d',
+        },
+        {
+          id: 'social-captions',
+          title: 'Create social media captions',
+          description: 'AI-generated captions for posts',
+          status: 'todo',
+          priority: 'medium',
+          tags: ['content', 'ai', 'social'],
+          workflowId: 'social-caption-generator',
+          dueDate: '+3d',
+        },
+      ],
+    },
+    {
+      id: 'analytics',
+      name: 'Analytics & Reports',
+      description: 'Campaign performance tracking',
+      icon: 'BarChart',
+      color: '#6EE7B7',
+      tasks: [
+        {
+          id: 'campaign-report',
+          title: 'Weekly campaign performance report',
+          description: 'Automated weekly marketing reports',
+          status: 'todo',
+          priority: 'high',
+          tags: ['reporting', 'analytics'],
+          workflowId: 'weekly-marketing-report',
+          dueDate: '+2d',
+        },
+        {
+          id: 'roi-tracking',
+          title: 'Set up ROI tracking',
+          description: 'Track campaign ROI and conversions',
+          status: 'todo',
+          priority: 'high',
+          tags: ['roi', 'analytics'],
+          dueDate: '+3d',
+        },
+      ],
+    },
+  ],
+  
+  workflows: [],
+  
+  requiredIntegrations: ['SendGrid', 'Twitter', 'LinkedIn', 'Google Analytics'],
+  requiredApiKeys: [
+    {
+      key: 'SENDGRID_API_KEY',
+      label: 'SendGrid API Key',
+      description: 'For sending marketing emails',
+      placeholder: 'SG...',
+      required: true,
+    },
+    {
+      key: 'TWITTER_API_KEY',
+      label: 'Twitter API Key',
+      description: 'For posting to Twitter',
+      placeholder: '',
+      required: false,
+    },
+    {
+      key: 'LINKEDIN_API_KEY',
+      label: 'LinkedIn API Key',
+      description: 'For posting to LinkedIn',
+      placeholder: '',
+      required: false,
+    },
+    {
+      key: 'OPENAI_API_KEY',
+      label: 'OpenAI API Key',
+      description: 'For AI content generation',
+      placeholder: 'sk-...',
+      required: false,
+    },
+  ],
+  
+  configurationSteps: [
+    'Connect email service provider',
+    'Link social media accounts',
+    'Set up AI content generation (optional)',
+    'Configure analytics tracking',
+    'Activate campaigns',
+  ],
+  
+  tags: ['marketing', 'email', 'social-media', 'automation', 'analytics'],
+  useCases: [
+    'Automate email marketing campaigns',
+    'Schedule social media posts in advance',
+    'Generate content ideas with AI',
+    'Track campaign performance',
+    'Monitor brand mentions',
+  ],
+  benefits: [
+    'Save 15+ hours per week on marketing tasks',
+    'Increase email open rates by 40%',
+    'Maintain consistent social media presence',
+    'Generate unlimited content ideas',
+    'Make data-driven marketing decisions',
+  ],
+  
+  author: 'Flowversal Team',
+  featured: true,
+  usageCount: 189,
+  createdAt: new Date('2024-01-20').toISOString(),
+  updatedAt: new Date('2024-01-20').toISOString(),
+};

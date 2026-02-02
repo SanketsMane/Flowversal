@@ -1,0 +1,63 @@
+import { FastifyRequest, FastifyReply } from 'fastify';
+import { workflowService } from '../../services/workflow.service';
+import { userService } from '../../../users/services/user.service';
+import { workflowValidationService } from '../../services/workflow-validation.service';
+import { UpdateWorkflowBody } from '../types/workflow-routes.types';
+
+export async function updateWorkflowHandler(
+  request: FastifyRequest<{ Params: { id: string }; Body: UpdateWorkflowBody }>,
+  reply: FastifyReply
+): Promise<void> {
+  if (!request.user) {
+    return reply.code(401).send({
+      error: 'Unauthorized',
+      message: 'User not authenticated',
+    });
+  }
+
+  try {
+    const workflowData = request.body;
+
+    // Validate workflow update
+    const validation = workflowValidationService.validateWorkflowUpdate(workflowData);
+    workflowValidationService.logValidationResult(validation);
+
+    if (!validation.valid) {
+      return reply.code(400).send({
+        success: false,
+        error: 'Validation Error',
+        message: 'Workflow validation failed',
+        details: {
+          errors: validation.errors,
+          warnings: validation.warnings,
+        },
+      });
+    }
+
+    const dbUser = await userService.getOrCreateUserFromSupabase(request.user.id);
+    const workflow = await workflowService.updateWorkflow(
+      request.params.id,
+      dbUser._id.toString(),
+      workflowData
+    );
+
+    if (!workflow) {
+      return reply.code(404).send({
+        error: 'Not Found',
+        message: 'Workflow not found or you do not have permission to update it',
+      });
+    }
+
+    return reply.send({
+      success: true,
+      data: workflow,
+      warnings: validation.warnings.length > 0 ? validation.warnings : undefined,
+    });
+  } catch (error: any) {
+    request.log.error('Error updating workflow', error);
+    return reply.code(500).send({
+      error: 'Internal Server Error',
+      message: 'Failed to update workflow',
+    });
+  }
+}

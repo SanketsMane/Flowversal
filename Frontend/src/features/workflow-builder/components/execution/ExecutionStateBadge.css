@@ -1,0 +1,150 @@
+/* Execution State Animations */
+
+/* Spinning animation for running state */
+@keyframes execution-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.execution-spin {
+  animation: execution-spin 1s linear infinite;
+}
+
+/* Pulsing animation for pending state */
+@keyframes execution-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(0.95);
+  }
+}
+
+.execution-pulse {
+  animation: execution-pulse 1.5s ease-in-out infinite;
+}
+
+/* Pop animation for success state */
+@keyframes execution-success-pop {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.execution-success-pop {
+  animation: execution-success-pop 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Shake animation for error state */
+@keyframes execution-error-shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-2px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(2px);
+  }
+}
+
+.execution-error-shake {
+  animation: execution-error-shake 0.5s;
+}
+
+/* Glow animation for running state badge */
+@keyframes execution-glow {
+  0%, 100% {
+    box-shadow: 0 0 8px currentColor;
+  }
+  50% {
+    box-shadow: 0 0 16px currentColor;
+  }
+}
+
+.execution-glow {
+  animation: execution-glow 2s ease-in-out infinite;
+}
+
+/* Node execution highlight */
+@keyframes node-execution-highlight {
+  0% {
+    box-shadow: 0 0 0 0 currentColor;
+  }
+  50% {
+    box-shadow: 0 0 20px 4px currentColor;
+  }
+  100% {
+    box-shadow: 0 0 0 0 currentColor;
+  }
+}
+
+.node-executing {
+  animation: node-execution-highlight 2s ease-in-out infinite;
+}
+
+/* Success particle effect */
+@keyframes success-particle {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--tx), var(--ty)) scale(0);
+    opacity: 0;
+  }
+}
+
+/* Connection path glow on hover */
+@keyframes connection-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 2px currentColor);
+  }
+  50% {
+    filter: drop-shadow(0 0 8px currentColor);
+  }
+}
+
+.connection-hover {
+  animation: connection-glow 1.5s ease-in-out infinite;
+  cursor: pointer;
+}
+
+/* Loading dots animation */
+@keyframes loading-dots {
+  0%, 20% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.loading-dot {
+  animation: loading-dots 1.4s infinite;
+}
+
+.loading-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.loading-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}

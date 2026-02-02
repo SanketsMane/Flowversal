@@ -1,0 +1,53 @@
+name: Dependency Updates
+
+on:
+  schedule:
+    - cron: '0 0 * * 1' # Weekly on Mondays
+  workflow_dispatch:
+
+jobs:
+  update-deps:
+    name: Update Dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Update Backend Dependencies
+        working-directory: App/Backend
+        run: |
+          npm update --save
+          npm audit fix || true
+
+      - name: Update Frontend Dependencies
+        working-directory: App/Frontend
+        run: |
+          npm update --save
+          npm audit fix || true
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: automated/dependency-updates
+          title: 'chore: update dependencies'
+          body: |
+            Automated dependency updates
+
+            - Updated backend dependencies
+            - Updated frontend dependencies
+            - Fixed security vulnerabilities
+
+            Please review and test before merging.
+          commit-message: 'chore: update dependencies'
+          labels: |
+            dependencies
+            automated
+

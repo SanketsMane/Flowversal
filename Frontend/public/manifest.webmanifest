@@ -1,0 +1,11 @@
+{
+  "name": "FloversalAI",
+  "short_name": "FloversalAI",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0ea5e9",
+  "orientation": "portrait",
+  "icons": []
+}
+
