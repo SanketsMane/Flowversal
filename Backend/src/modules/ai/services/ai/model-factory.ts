@@ -3,6 +3,7 @@ import { ChatOpenAI } from '@langchain/openai';
 import { aiConfig } from '../../../../core/config/ai.config';
 import { directApiConfigs, DirectApiProvider } from '../../../../core/config/direct-apis.config';
 import { openRouterConfig } from '../../../../core/config/openrouter.config';
+import { FlowversalChatModel } from './flowversal-ai.adapter';
 
 export type ModelProvider = 'vllm' | 'openrouter' | DirectApiProvider;
 
@@ -26,12 +27,10 @@ export class ModelFactory {
       throw new Error('vLLM is not enabled');
     }
 
-    return new ChatOpenAI({
+    return new FlowversalChatModel({
+      baseUrl: aiConfig.vllm.baseUrl,
+      apiKey: aiConfig.vllm.apiKey,
       modelName: options.modelName || aiConfig.vllm.modelName,
-      openAIApiKey: aiConfig.vllm.apiKey || 'not-required',
-      configuration: {
-        baseURL: aiConfig.vllm.baseUrl,
-      },
       temperature: options.temperature ?? 0.7,
       maxTokens: options.maxTokens ?? 2048,
     }) as unknown as BaseChatModel;

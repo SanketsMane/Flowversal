@@ -66,6 +66,17 @@ const authPlugin: FastifyPluginAsync<AuthPluginOptions> = async (fastify, option
 
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
+    // SPECIAL HANDLING FOR DEMO TOKENS (Development only)
+    if (isDevelopment && token.startsWith('demo-')) {
+      request.user = {
+        id: 'demo-user-123',
+        email: 'demo@flowversal.com',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      return; // Skip Supabase/JWT verification
+    }
+
     try {
         // Verify token with Supabase for production/real tokens
       const {
