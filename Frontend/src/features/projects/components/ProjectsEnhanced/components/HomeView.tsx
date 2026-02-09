@@ -3,7 +3,6 @@ import { Task, Project } from '@/core/stores/projectStore';
 import { RenderIconByName } from '@/shared/components/ui/SimpleIconPicker';
 import { useState, useEffect, useRef } from 'react';
 import { useModal } from '@/core/stores/ModalContext';
-
 interface ThemeTokens {
   bgCard: string;
   bgPanel: string;
@@ -12,7 +11,6 @@ interface ThemeTokens {
   borderColor: string;
   hoverBg: string;
 }
-
 interface BoardSummary {
   id: string;
   name: string;
@@ -22,7 +20,6 @@ interface BoardSummary {
   active: number;
   completed: number;
 }
-
 interface HomeViewProps extends ThemeTokens {
   selectedProjectName?: string;
   selectedProjectId?: string;
@@ -43,7 +40,6 @@ interface HomeViewProps extends ThemeTokens {
   onEditBoard: (boardId: string) => void;
   onDeleteBoard: (boardId: string) => void;
 }
-
 export function HomeView({
   selectedProjectName,
   selectedProjectId,
@@ -71,19 +67,15 @@ export function HomeView({
   hoverBg,
 }: HomeViewProps) {
   const { showError } = useModal();
-
-  console.log('[HomeView] Projects available:', projects?.length || 0, projects);
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
   const [boardToDelete, setBoardToDelete] = useState<string | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [boardDeleteConfirmation, setBoardDeleteConfirmation] = useState('');
   const [showProjectMenu, setShowProjectMenu] = useState<string | null>(null);
   const [showBoardMenu, setShowBoardMenu] = useState<string | null>(null);
-
   // Refs for click outside detection (per item to avoid stale refs)
   const projectMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const boardMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
-
   // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
@@ -102,7 +94,6 @@ export function HomeView({
         }
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('touchstart', handleClickOutside);
     return () => {
@@ -110,42 +101,30 @@ export function HomeView({
       document.removeEventListener('touchstart', handleClickOutside);
     };
   }, [showProjectMenu, showBoardMenu]);
-
   const handleProjectDelete = async (projectId: string) => {
-    console.log('[HomeView] handleProjectDelete called with:', projectId);
     const project = projects.find(p => p.id === projectId);
     if (!project) {
-      console.log('[HomeView] Project not found:', projectId);
       return;
     }
-
     if (deleteConfirmation !== project.name) {
-      console.log('[HomeView] Confirmation failed:', deleteConfirmation, '!==', project.name);
       showError('Confirmation Required', 'Please type the project name to confirm deletion');
       return;
     }
-
-    console.log('[HomeView] Confirmation passed, calling onDeleteProject');
     try {
       await onDeleteProject(projectId);
-      console.log('[HomeView] onDeleteProject completed');
       setProjectToDelete(null);
       setDeleteConfirmation('');
     } catch (error) {
-      console.log('[HomeView] onDeleteProject failed:', error);
       showError('Delete Failed', 'Failed to delete project. Please try again.');
     }
   };
-
   const handleBoardDelete = async (boardId: string) => {
     const board = projectBoards.find(b => b.id === boardId);
     if (!board) return;
-
     if (boardDeleteConfirmation !== board.name) {
       showError('Confirmation Required', 'Please type the board name to confirm deletion');
       return;
     }
-
     try {
       await onDeleteBoard(boardId);
       setBoardToDelete(null);
@@ -154,7 +133,6 @@ export function HomeView({
       showError('Delete Failed', 'Failed to delete board. Please try again.');
     }
   };
-
   return (
     <>
       <div className="p-8 space-y-8">
@@ -193,7 +171,6 @@ export function HomeView({
             </div>
           ))}
         </div>
-
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Projects List */}
@@ -263,7 +240,6 @@ export function HomeView({
                           <div className={`absolute right-0 top-full mt-1 ${bgCard} border ${borderColor} rounded-lg shadow-lg z-10 min-w-32`}>
                             <button
                               onClick={() => {
-                                console.log('[HomeView] Edit project clicked for:', project.id);
                                 onEditProject(project.id);
                                 setShowProjectMenu(null);
                               }}
@@ -291,7 +267,6 @@ export function HomeView({
               })}
             </div>
           </div>
-
           {/* Boards List */}
           <div className={`${bgCard} rounded-xl border ${borderColor} p-6`}>
             <div className="flex items-center justify-between mb-4">
@@ -324,7 +299,6 @@ export function HomeView({
                 const isSelected = board.id === selectedBoardId;
                 const completionRate =
                   board.taskCount > 0 ? Math.round((board.completed / board.taskCount) * 100) : 0;
-
                 return (
                   <div
                     key={board.id}
@@ -430,7 +404,6 @@ export function HomeView({
               )}
             </div>
           </div>
-
           {/* Quick Actions */}
           <div className={`${bgCard} rounded-xl border ${borderColor} p-6`}>
             <h3 className={`text-xl ${textPrimary} mb-4`}>Quick Actions</h3>
@@ -468,7 +441,6 @@ export function HomeView({
           </div>
         </div>
       </div>
-
       {/* Project Delete Confirmation Modal */}
       {projectToDelete && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -509,7 +481,6 @@ export function HomeView({
           </div>
         </div>
       )}
-
       {/* Board Delete Confirmation Modal */}
       {boardToDelete && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -553,4 +524,3 @@ export function HomeView({
     </>
   );
 }
-

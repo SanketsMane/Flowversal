@@ -18,7 +18,6 @@ import metricsPlugin from './core/monitoring/metrics.plugin';
 import observabilityPlugin from './core/observability/observability.plugin';
 import { registerRoutes } from './routes';
 import { setLogger } from './shared/utils/logger.util';
-
 async function buildServer() {
   const fastify = Fastify({
     logger: {
@@ -36,39 +35,32 @@ async function buildServer() {
       }),
     },
   });
-
   // ============================================================================
   // CRITICAL: CORS MUST BE REGISTERED FIRST
   // ============================================================================
   // Register CORS plugin FIRST, before ANY other plugins
   // This ensures CORS headers are ALWAYS present, even on errors
   await fastify.register(corsPlugin);
-
   // ============================================================================
   // SECURITY PLUGINS
   // ============================================================================
   // Register enhanced security plugin (includes Helmet with CSP)
   await fastify.register(securityPlugin);
-
   // Register rate limiting (basic rate limit plugin)
   await fastify.register(rateLimit, {
     max: 100, // Maximum number of requests
     timeWindow: '1 minute',
   });
-
   // Register multipart for file uploads
   await fastify.register(multipart, {
     limits: {
       fileSize: 10 * 1024 * 1024, // 10MB
     },
   });
-
   // Initialize structured logger
   setLogger(fastify.log);
-
   // Initialize error tracking (Sentry)
   initializeErrorTracking();
-
   // Initialize comprehensive observability (tracing, metrics, logging)
   await fastify.register(observabilityPlugin, {
     serviceName: 'flowversal-backend',
@@ -81,11 +73,9 @@ async function buildServer() {
     logLevel: (process.env.LOG_LEVEL as any) || 'info',
     redactFields: ['password', 'token', 'apiKey', 'secret', 'authorization'],
   });
-
   // Initialize tool ecosystem with built-in tools
   const { toolEcosystemService } = await import('./modules/tools/services/tool-ecosystem.service');
   await toolEcosystemService.loadBuiltInTools();
-
   // Initialize production-ready API deployment features
   await fastify.register(apiDeploymentPlugin, {
     enableCompression: false, // Temporarily disabled due to Fastify version compatibility
@@ -108,22 +98,16 @@ async function buildServer() {
     supportedVersions: (process.env.API_SUPPORTED_VERSIONS || 'v1,v2').split(','),
     compressionThreshold: parseInt(process.env.API_COMPRESSION_THRESHOLD || '1024'),
   });
-
   // Register request ID plugin (must be before other plugins)
   await fastify.register(requestIdPlugin);
-
   // Cache-Control headers for GET responses
   await fastify.register(cacheControlPlugin);
-
   // Response cache (Redis-backed). Safe to register even if Redis not set.
   await fastify.register(responseCachePlugin, { ttlSeconds: 30 });
-
   // Metrics hooks (HTTP durations, counters)
   await fastify.register(metricsPlugin);
-
   // Register rate limiting (after request ID, before auth)
   await fastify.register(rateLimitPlugin);
-
   // API Key guard (optional; only activates if allowlist is set)
   await fastify.register(require('./core/middleware/plugins/api-key.plugin').default, {
     skip: [
@@ -137,12 +121,9 @@ async function buildServer() {
       '/api/v1/auth/refresh',
     ],
   });
-
   // Register error handler
   await fastify.register(errorHandlerPlugin);
-
   // Register auth plugin FIRST (before routes, so hooks apply to all routes)
-  console.log('[Server] Registering auth plugin...');
   await fastify.register(authPlugin, {
     skipAuth: [
       '/health',
@@ -155,14 +136,10 @@ async function buildServer() {
       '/api/v1/auth/refresh',
     ],
   });
-  console.log('[Server] Auth plugin registered successfully');
-
   // Register Swagger/OpenAPI documentation
   await fastify.register(require('./core/api/swagger').default);
-
   // Register routes (after auth plugin so hooks apply)
   await fastify.register(registerRoutes);
-
   // Health check endpoint at root
   fastify.get('/', async (_request, reply) => {
     return reply.send({
@@ -172,19 +149,15 @@ async function buildServer() {
       timestamp: new Date().toISOString(),
     });
   });
-
   return fastify;
 }
-
 async function start() {
   try {
     // Import logger after server is built
     const { logger } = await import('./shared/utils/logger.util');
-    
     // Connect to databases
     logger.info('🔄 Connecting to databases...');
     await connectMongoDB();
-    
     // Connect to Pinecone (non-blocking - server will start even if this fails)
     try {
       await connectPinecone();
@@ -196,29 +169,21 @@ async function start() {
       logger.warn('⚠️ Vector search features will be unavailable until Pinecone is connected.');
       // Don't throw - allow server to start without Pinecone
     }
-
     // Build and start server
     const server = await buildServer();
-
     await server.listen({
       port: env.PORT,
       host: '0.0.0.0',
     });
-
     logger.info('🚀 Server started successfully', {
       port: env.PORT,
       apiVersion: env.API_VERSION,
       environment: env.NODE_ENV,
       url: `http://localhost:${env.PORT}`,
     });
-
     // ⚠️ SECURITY WARNING: Display temporary fixes warning in development
     // Development mode info
     if (env.NODE_ENV === 'development') {
-      console.log('\n');
-      console.log('✅ Development mode active');
-      console.log('🔒 Security bypasses have been removed. Auth is required.');
-      console.log('\n');
     }
   } catch (error) {
     const { logger } = await import('./shared/utils/logger.util');
@@ -226,18 +191,14 @@ async function start() {
     process.exit(1);
   }
 }
-
 // Handle unhandled promise rejections
 process.on('unhandledRejection', async (error) => {
   const { logger } = await import('./shared/utils/logger.util');
   logger.fatal('Unhandled promise rejection', error);
   process.exit(1);
 });
-
 // Start the server
 if (require.main === module) {
   start();
 }
-
 export { buildServer, start };
-

@@ -2,7 +2,6 @@
  * Conditional Node Card Component
  * Enhanced If/Switch node with visual branching
  */
-
 import { 
   GitBranch, 
   MoreVertical, 
@@ -43,7 +42,6 @@ import { NodeRegistry } from '../../registries';
 import { TriggerRegistry } from '../../registries';
 import { ToolRegistry } from '../../registries';
 import { ConfigureConditionsModal } from '../modals/ConfigureConditionsModal';
-
 interface ConditionalNodeCardProps {
   node: WorkflowNode;
   containerIndex: number;
@@ -51,7 +49,6 @@ interface ConditionalNodeCardProps {
   isSelected: boolean;
   onMove: (containerIndex: number, fromIndex: number, toIndex: number) => void;
 }
-
 export function ConditionalNodeCard({ 
   node, 
   containerIndex, 
@@ -65,9 +62,7 @@ export function ConditionalNodeCard({
   const [isExpanded, setIsExpanded] = useState(true);
   const [activeTab, setActiveTab] = useState<'true' | 'false'>('true');
   const [showConfigureModal, setShowConfigureModal] = useState(false);
-
   const Icon = GitBranch;
-  
   // Theme colors
   const bgColor = theme === 'dark' ? 'bg-[#1A1A2E]' : 'bg-white';
   const borderColor = theme === 'dark' ? 'border-[#2A2A3E]' : 'border-gray-200';
@@ -75,12 +70,10 @@ export function ConditionalNodeCard({
   const textSecondary = theme === 'dark' ? 'text-[#CFCFE8]' : 'text-gray-600';
   const hoverBg = theme === 'dark' ? 'hover:bg-[#2A2A3E]' : 'hover:bg-gray-100';
   const tabActiveBg = theme === 'dark' ? 'bg-[#2A2A3E]' : 'bg-gray-200';
-
   // Get condition groups and branches
   const conditionGroups: ConditionGroup[] = node.config.conditionGroups || [];
   const trueNodes = node.config.trueNodes || [];
   const falseNodes = node.config.falseNodes || [];
-
   // Drop zone for dragging nodes/tools/triggers from sidebar to branches
   const [{ isOver: isTrueOver, canDrop: canTrueDrop }, trueDrop] = useDrop(() => ({
     accept: ['SIDEBAR_NODE', 'SIDEBAR_TOOL', 'SIDEBAR_TRIGGER'],
@@ -92,7 +85,6 @@ export function ConditionalNodeCard({
       canDrop: monitor.canDrop(),
     }),
   }));
-
   const [{ isOver: isFalseOver, canDrop: canFalseDrop }, falseDrop] = useDrop(() => ({
     accept: ['SIDEBAR_NODE', 'SIDEBAR_TOOL', 'SIDEBAR_TRIGGER'],
     drop: (item: any) => {
@@ -103,11 +95,9 @@ export function ConditionalNodeCard({
       canDrop: monitor.canDrop(),
     }),
   }));
-
   // Handler for dropping items on branches
   const handleDropOnBranch = (branch: 'true' | 'false', item: any) => {
     const container = containers[containerIndex];
-    
     if (item.nodeType) {
       // Adding a node from sidebar
       const nodeDef = NodeRegistry.get(item.nodeType);
@@ -158,7 +148,6 @@ export function ConditionalNodeCard({
       }
     }
   };
-
   // Handler for adding node from quick add menu
   const handleAddNodeFromMenu = (branch: 'true' | 'false', nodeType: string) => {
     const container = containers[containerIndex];
@@ -175,7 +164,6 @@ export function ConditionalNodeCard({
       addConditionalNode(container.id, node.id, branch, conditionalNode);
     }
   };
-
   // Quick add node options
   const quickAddNodes = [
     { type: 'prompt_builder', label: 'Prompt Builder', category: 'ai' },
@@ -184,7 +172,6 @@ export function ConditionalNodeCard({
     { type: 'delay', label: 'Delay', category: 'flow' },
     { type: 'transform_data', label: 'Transform Data', category: 'data' },
   ];
-
   // Drag and drop
   const [{ isDragging }, drag, preview] = useDrag(() => ({
     type: 'NODE',
@@ -193,7 +180,6 @@ export function ConditionalNodeCard({
       isDragging: monitor.isDragging(),
     }),
   }));
-
   const [, drop] = useDrop(() => ({
     accept: 'NODE',
     hover: (item: { containerIndex: number; nodeIndex: number }) => {
@@ -203,12 +189,10 @@ export function ConditionalNodeCard({
       }
     },
   }));
-
   const handleSettingsClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     selectNode(containerIndex, nodeIndex);
   };
-
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (confirm('Are you sure you want to delete this conditional node?')) {
@@ -216,42 +200,33 @@ export function ConditionalNodeCard({
       deleteNode(container.id, node.id);
     }
   };
-
   const handleToggle = () => {
     const container = containers[containerIndex];
     toggleNode(container.id, node.id);
   };
-
   // Generate condition summary text
   const getConditionSummary = () => {
     if (!conditionGroups || conditionGroups.length === 0) {
       return 'No conditions configured';
     }
-
     const firstGroup = conditionGroups[0];
     if (firstGroup.conditions.length === 0) {
       return 'No conditions configured';
     }
-
     const firstCondition = firstGroup.conditions[0];
     const operator = OPERATORS.find(op => op.value === firstCondition.operator);
-    
     let summary = `${firstCondition.leftOperand || 'value'} ${operator?.label || 'equals'}`;
     if (operator?.requiresRightOperand) {
       summary += ` ${firstCondition.rightOperand || 'value'}`;
     }
-
     if (firstGroup.conditions.length > 1) {
       summary += ` +${firstGroup.conditions.length - 1} more`;
     }
-
     if (conditionGroups.length > 1) {
       summary += ` | ${conditionGroups.length} groups`;
     }
-
     return summary;
   };
-
   return (
     <div
       ref={(el) => preview(drop(el))}
@@ -274,12 +249,10 @@ export function ConditionalNodeCard({
         >
           <GripVertical className="w-4 h-4" />
         </div>
-
         {/* Icon */}
         <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-[#FFB75E] to-[#ED8F03] flex items-center justify-center">
           <Icon className="w-5 h-5 text-white" />
         </div>
-
         {/* Title */}
         <div className="flex-1 min-w-0">
           <div className={`${textPrimary} truncate font-medium`}>
@@ -289,7 +262,6 @@ export function ConditionalNodeCard({
             {getConditionSummary()}
           </div>
         </div>
-
         {/* Actions */}
         <div className="flex items-center gap-2">
           {/* Enable/Disable Toggle */}
@@ -298,7 +270,6 @@ export function ConditionalNodeCard({
             onCheckedChange={handleToggle}
             onClick={(e) => e.stopPropagation()}
           />
-
           {/* Expand/Collapse */}
           <button
             onClick={(e) => {
@@ -314,7 +285,6 @@ export function ConditionalNodeCard({
               <ChevronDown className="w-4 h-4 text-gray-400" />
             )}
           </button>
-
           {/* 3-dot Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -346,7 +316,6 @@ export function ConditionalNodeCard({
           </DropdownMenu>
         </div>
       </div>
-
       {/* Branches */}
       {isExpanded && (
         <div className="p-4 space-y-4">
@@ -361,7 +330,6 @@ export function ConditionalNodeCard({
             <Settings className="w-4 h-4" />
             Configure Conditions
           </button>
-
           {/* Tab Selector */}
           <div className={`flex gap-2 p-1 rounded-lg ${bgColor} border ${borderColor}`}>
             <button
@@ -393,7 +361,6 @@ export function ConditionalNodeCard({
               False ({falseNodes.length})
             </button>
           </div>
-
           {/* Branch Nodes */}
           <div 
             ref={activeTab === 'true' ? trueDrop : falseDrop}
@@ -410,25 +377,21 @@ export function ConditionalNodeCard({
                 <p className="text-[#00C6FF]">Drop to add to {activeTab} branch</p>
               </div>
             )}
-            
             {activeTab === 'true' && trueNodes.length === 0 && !isTrueOver && (
               <div className={`text-center py-6 ${textSecondary} text-xs border-2 border-dashed ${borderColor} rounded-lg`}>
                 <p>No nodes in true branch</p>
                 <p className="mt-1">Drag from sidebar or click below to add</p>
               </div>
             )}
-
             {activeTab === 'false' && falseNodes.length === 0 && !isFalseOver && (
               <div className={`text-center py-6 ${textSecondary} text-xs border-2 border-dashed ${borderColor} rounded-lg`}>
                 <p>No nodes in false branch</p>
                 <p className="mt-1">Drag from sidebar or click below to add</p>
               </div>
             )}
-
             {/* Display Branch Nodes */}
             {(activeTab === 'true' ? trueNodes : falseNodes).map((branchNode: any, idx: number) => {
               const branchColor = activeTab === 'true' ? 'green' : 'red';
-
               return (
                 <BranchNodeItem
                   key={idx}
@@ -441,7 +404,6 @@ export function ConditionalNodeCard({
                 />
               );
             })}
-            
             {/* Add Node Button */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -492,7 +454,6 @@ export function ConditionalNodeCard({
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-
             {/* Redirect/Next Step Dropdown */}
             <div className="space-y-1.5">
               <label className={`text-xs ${textSecondary} px-1`}>
@@ -503,7 +464,6 @@ export function ConditionalNodeCard({
                 onChange={(e) => {
                   e.stopPropagation();
                   // TODO: Handle redirect change
-                  console.log('Redirect to:', e.target.value);
                 }}
                 className={`w-full px-3 py-2 rounded-lg border ${borderColor} ${bgColor} ${textPrimary} text-xs focus:outline-none focus:border-[#00C6FF] focus:ring-1 focus:ring-[#00C6FF]/30`}
               >
@@ -523,7 +483,6 @@ export function ConditionalNodeCard({
               </select>
             </div>
           </div>
-
           {/* Connection Points */}
           <div className="flex items-center gap-2 pt-2">
             <div 
@@ -538,7 +497,6 @@ export function ConditionalNodeCard({
           </div>
         </div>
       )}
-
       {/* Disabled Overlay */}
       {node.enabled === false && (
         <div className="absolute inset-0 bg-black/60 rounded-xl flex flex-col items-center justify-center gap-3 backdrop-blur-sm">
@@ -557,7 +515,6 @@ export function ConditionalNodeCard({
           </button>
         </div>
       )}
-
       {/* Configure Conditions Modal */}
       <ConfigureConditionsModal
         isOpen={showConfigureModal}
@@ -565,7 +522,6 @@ export function ConditionalNodeCard({
         currentConditions={[]}
         onSave={(conditions) => {
           // TODO: Save conditions to node config
-          console.log('Saved conditions:', conditions);
         }}
         theme={theme}
       />

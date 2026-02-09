@@ -29,7 +29,6 @@ import {
   X
 } from 'lucide-react';
 import { useState } from 'react';
-
 interface DriveFile {
   id: string;
   name: string;
@@ -44,7 +43,6 @@ interface DriveFile {
   url?: string;
   parentId?: string | null;
 }
-
 export function Drive() {
   const { theme } = useTheme();
   const [selectedSection, setSelectedSection] = useState('My Drive');
@@ -59,7 +57,6 @@ export function Drive() {
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [copiedLink, setCopiedLink] = useState(false);
-
   const bgMain = theme === 'dark' ? 'bg-[#0E0E1F]' : 'bg-gray-50';
   const bgCard = theme === 'dark' ? 'bg-[#1A1A2E]' : 'bg-white';
   const bgPanel = theme === 'dark' ? 'bg-[#252540]' : 'bg-gray-100';
@@ -67,7 +64,6 @@ export function Drive() {
   const textSecondary = theme === 'dark' ? 'text-[#CFCFE8]' : 'text-gray-600';
   const borderColor = theme === 'dark' ? 'border-white/5' : 'border-gray-200';
   const hoverBg = theme === 'dark' ? 'hover:bg-white/5' : 'hover:bg-gray-100';
-
   const [files, setFiles] = useState<DriveFile[]>([
     { 
       id: '1', 
@@ -188,7 +184,6 @@ export function Drive() {
       shared: false
     }
   ]);
-
   const getFileIcon = (file: DriveFile) => {
     const iconClass = "w-5 h-5";
     switch (file.type) {
@@ -214,28 +209,22 @@ export function Drive() {
         return <File className={`${iconClass} ${textSecondary}`} />;
     }
   };
-
   const getStoragePercentage = () => {
     return 77; // 77% full
   };
-
   const formatFileSize = (size: string) => {
     if (size === '—') return size;
     return size;
   };
-
   const formatDate = (date: Date) => {
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - date.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
     if (diffDays === 0) return 'Today';
     if (diffDays === 1) return 'Yesterday';
     if (diffDays < 7) return `${diffDays} days ago`;
-    
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
-
   const toggleFileSelection = (fileId: string) => {
     setSelectedFiles(prev =>
       prev.includes(fileId)
@@ -243,7 +232,6 @@ export function Drive() {
         : [...prev, fileId]
     );
   };
-
   const handleFileOpen = (file: DriveFile) => {
     if (file.type === 'folder') {
       // Navigate into folder
@@ -251,7 +239,6 @@ export function Drive() {
       setBreadcrumb([...breadcrumb, { id: file.id, name: file.name }]);
     } else {
       // Open or download file
-      console.log('Opening file:', file.name);
       if (file.url) {
         window.open(file.url, '_blank');
       } else {
@@ -259,13 +246,11 @@ export function Drive() {
       }
     }
   };
-
   const handleBreadcrumbClick = (index: number) => {
     const newBreadcrumb = breadcrumb.slice(0, index + 1);
     setBreadcrumb(newBreadcrumb);
     setCurrentFolderId(newBreadcrumb[newBreadcrumb.length - 1].id);
   };
-
   const handleCreateFolder = () => {
     if (newFolderName.trim()) {
       const newFolder: DriveFile = {
@@ -285,7 +270,6 @@ export function Drive() {
       setShowNewFolderModal(false);
     }
   };
-
   const handleFileUpload = () => {
     // Simulate file upload
     const fileInput = document.createElement('input');
@@ -310,21 +294,17 @@ export function Drive() {
     };
     fileInput.click();
   };
-
   const toggleStarred = (fileId: string) => {
     setFiles(files.map(file =>
       file.id === fileId ? { ...file, starred: !file.starred } : file
     ));
   };
-
   const generateShareLink = (fileId: string) => {
     const file = files.find(f => f.id === fileId);
     if (!file) return '';
-    
     const randomId = Math.random().toString(36).substring(7);
     return `https://drive.flowversal.com/share/${randomId}`;
   };
-
   const handleShare = (fileId: string) => {
     const shareLink = generateShareLink(fileId);
     setFiles(files.map(file =>
@@ -332,7 +312,6 @@ export function Drive() {
     ));
     setShowShareModal(fileId);
   };
-
   const copyShareLink = (link: string) => {
     // Try modern clipboard API first
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -350,7 +329,6 @@ export function Drive() {
       fallbackCopyToClipboard(link);
     }
   };
-
   const fallbackCopyToClipboard = (text: string) => {
     const textArea = document.createElement('textarea');
     textArea.value = text;
@@ -369,16 +347,13 @@ export function Drive() {
     }
     document.body.removeChild(textArea);
   };
-
   const handleDelete = () => {
     setFiles(files.filter(file => !selectedFiles.includes(file.id)));
     setSelectedFiles([]);
   };
-
   // Filter files based on selected section, search query, and current folder
   const getFilteredFiles = () => {
     let filtered = [...files];
-
     // Filter by section or folder structure
     if (searchQuery.trim()) {
        // When searching, show all matching files regardless of folder structure
@@ -389,7 +364,6 @@ export function Drive() {
          filtered = filtered.filter(f => f.parentId === currentFolderId || (!f.parentId && currentFolderId === null));
       }
     }
-
     // Filter by section specific logic (merging with folder logic)
     if (selectedSection === 'Starred') {
       filtered = files.filter(f => f.starred); // Ignore folder structure for Starred
@@ -400,7 +374,6 @@ export function Drive() {
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       filtered = files.filter(f => f.dateModified >= sevenDaysAgo); // Ignore folder structure
     }
-
     // Filter by search query
     if (searchQuery.trim()) {
       filtered = files.filter(file =>
@@ -409,10 +382,8 @@ export function Drive() {
         file.owner.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
-
     return filtered;
   };
-
   const sortedFiles = getFilteredFiles().sort((a, b) => {
     switch (sortBy) {
       case 'name':
@@ -427,12 +398,9 @@ export function Drive() {
         return 0;
     }
   });
-
   const starredCount = files.filter(f => f.starred).length;
-
   return (
     <div className={`flex h-screen ${bgMain} transition-colors duration-300`}>
-      
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Bar */}
@@ -447,7 +415,6 @@ export function Drive() {
               <Plus className="w-4 h-4" />
               <span>New</span>
             </button>
-
             {/* Search Bar */}
             <div className={`flex-1 max-w-2xl flex items-center gap-3 px-4 py-2.5 rounded-lg border ${borderColor} ${hoverBg} transition-all`}>
               <Search className={`w-5 h-5 ${textSecondary}`} />
@@ -464,7 +431,6 @@ export function Drive() {
                 </button>
               )}
             </div>
-
             {/* Storage Bar */}
             <div className="flex-1 flex items-center justify-end px-4">
                <div className="w-full max-w-[200px]">
@@ -480,7 +446,6 @@ export function Drive() {
                   </div>
                </div>
             </div>
-
             {/* Right Actions */}
             <div className="flex items-center gap-3 ml-6">
               {/* Sort */}
@@ -493,7 +458,6 @@ export function Drive() {
                   <SortAsc className={`w-5 h-5 ${textSecondary}`} />
                 </button>
               </div>
-              
               {/* View Toggle */}
               <div className={`flex items-center gap-1 p-1 rounded-lg border ${borderColor}`}>
                 <button
@@ -511,7 +475,6 @@ export function Drive() {
               </div>
             </div>
           </div>
-
           {/* Current View Title - Removed per request */}
           <div className="flex items-center justify-between">
             <span className={`text-sm ${textSecondary}`}>
@@ -519,7 +482,6 @@ export function Drive() {
             </span>
           </div>
         </div>
-
             {/* Breadcrumbs */}
             {selectedSection === 'My Drive' && !searchQuery && (
               <div className="flex items-center gap-2 mb-4 px-6 pt-4 text-sm">
@@ -540,7 +502,6 @@ export function Drive() {
                 ))}
               </div>
             )}
-
             {/* File List */}
             <div className="flex-1 overflow-y-auto px-6 py-4">
           {/* Selected Files Actions */}
@@ -580,7 +541,6 @@ export function Drive() {
               </div>
             </div>
           )}
-
           {/* No Results */}
           {sortedFiles.length === 0 && (
             <div className={`flex flex-col items-center justify-center py-16 ${textSecondary}`}>
@@ -591,7 +551,6 @@ export function Drive() {
               )}
             </div>
           )}
-
           {viewMode === 'list' && sortedFiles.length > 0 ? (
             <div>
               {/* Table Header */}
@@ -610,7 +569,6 @@ export function Drive() {
                   <ArrowUpDown className="w-4 h-4 cursor-pointer" onClick={() => setSortBy('size')} />
                 </div>
               </div>
-
               {/* File Rows */}
               {sortedFiles.map((file) => (
                 <div
@@ -720,7 +678,6 @@ export function Drive() {
                     onClick={(e) => e.stopPropagation()}
                     className="absolute top-3 left-3 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10 cursor-pointer"
                   />
-                  
                   {/* File Icon */}
                   <div className="flex items-center justify-between mb-3">
                     <div className={`w-12 h-12 rounded-lg ${file.type === 'folder' ? '' : bgPanel} flex items-center justify-center`}>
@@ -751,12 +708,10 @@ export function Drive() {
                       </button>
                     </div>
                   </div>
-                  
                   {/* File Name */}
                   <h4 className={`${textPrimary} text-sm mb-2 truncate`} title={file.name}>
                     {file.name}
                   </h4>
-                  
                   {/* File Info */}
                   <div className={`${textSecondary} text-xs flex items-center gap-2`}>
                     <span>{formatDate(file.dateModified)}</span>
@@ -767,7 +722,6 @@ export function Drive() {
                       </>
                     )}
                   </div>
-                  
                   {/* Tags */}
                   <div className="mt-2 flex items-center gap-1">
                     {file.starred && (
@@ -783,7 +737,6 @@ export function Drive() {
           ) : null}
         </div>
       </div>
-
       {/* Upload Modal */}
       {showUploadModal && (
         <div 
@@ -800,7 +753,6 @@ export function Drive() {
                 <X className={`w-5 h-5 ${textSecondary}`} />
               </button>
             </div>
-            
             <div className="space-y-3">
               <button 
                 onClick={() => {
@@ -827,7 +779,6 @@ export function Drive() {
           </div>
         </div>
       )}
-
       {/* New Folder Modal */}
       {showNewFolderModal && (
         <div 
@@ -844,7 +795,6 @@ export function Drive() {
                 <X className={`w-5 h-5 ${textSecondary}`} />
               </button>
             </div>
-            
             <input
               type="text"
               value={newFolderName}
@@ -858,7 +808,6 @@ export function Drive() {
                 }
               }}
             />
-            
             <div className="flex gap-3">
               <button
                 onClick={() => {
@@ -884,7 +833,6 @@ export function Drive() {
           </div>
         </div>
       )}
-
       {/* Share Modal */}
       {showShareModal && (
         <div 
@@ -901,11 +849,9 @@ export function Drive() {
                 <X className={`w-5 h-5 ${textSecondary}`} />
               </button>
             </div>
-            
             {(() => {
               const file = files.find(f => f.id === showShareModal);
               if (!file) return null;
-              
               return (
                 <>
                   <div className="flex items-center gap-3 mb-6">
@@ -915,7 +861,6 @@ export function Drive() {
                       <p className={`${textSecondary} text-sm`}>{file.type}</p>
                     </div>
                   </div>
-
                   {file.shareLink && (
                     <div className="mb-6">
                       <label className={`block text-sm ${textSecondary} mb-2`}>Public Link</label>
@@ -946,7 +891,6 @@ export function Drive() {
                       </div>
                     </div>
                   )}
-
                   <div className="space-y-3">
                     <div>
                       <label className={`block text-sm ${textSecondary} mb-2`}>Share with people</label>
@@ -956,7 +900,6 @@ export function Drive() {
                         className={`w-full px-4 py-3 rounded-lg border ${borderColor} ${bgMain} ${textPrimary} outline-none`}
                       />
                     </div>
-                    
                     <div className="flex items-center justify-between">
                       <span className={`text-sm ${textSecondary}`}>Anyone with the link can view</span>
                       <button className="text-sm text-blue-500 hover:underline">
@@ -964,7 +907,6 @@ export function Drive() {
                       </button>
                     </div>
                   </div>
-
                   <div className="flex gap-3 mt-6">
                     <button
                       onClick={() => setShowShareModal(null)}

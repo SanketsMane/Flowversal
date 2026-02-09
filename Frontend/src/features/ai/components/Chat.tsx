@@ -3,34 +3,33 @@
  * Mode-based tool/workflow selection with Flowversal branding
  * Modes: Auto, Agent (tools), Plan, Debug, Ask (workflows)
  */
-
 import { useAuth } from '@/core/auth/AuthContext';
 import { useTheme } from '@/core/theme/ThemeContext';
 import { supabase } from '@/shared/lib/supabase';
 import {
-  Bot,
-  Brain,
-  Bug,
-  CheckCircle2,
-  ChevronDown,
-  ChevronRight,
-  Code,
-  Database,
-  Download, Eye,
-  FileText,
-  GitBranch,
-  HelpCircle,
-  Image,
-  Lightbulb,
-  Mic,
-  Paperclip,
-  Plus,
-  Search,
-  Send,
-  Sparkles,
-  Wrench,
-  X,
-  XCircle
+    Bot,
+    Brain,
+    Bug,
+    CheckCircle2,
+    ChevronDown,
+    ChevronRight,
+    Code,
+    Database,
+    Download, Eye,
+    FileText,
+    GitBranch,
+    HelpCircle,
+    Image,
+    Lightbulb,
+    Mic,
+    Paperclip,
+    Plus,
+    Search,
+    Send,
+    Sparkles,
+    Wrench,
+    X,
+    XCircle
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -40,10 +39,8 @@ import { ChatConversation, ChatSidebar } from './ChatSidebar';
 import { ChatToolsPicker, SelectedTool } from './ChatToolsPicker';
 import { MemoriesModal } from './MemoriesModal';
 import { PromptLibrary } from './PromptLibrary';
-
 // Chat Modes
 type ChatMode = 'agent' | 'plan' | 'debug' | 'ask';
-
 interface ModeConfig {
   id: ChatMode;
   label: string;
@@ -51,25 +48,20 @@ interface ModeConfig {
   description: string;
   color: string;
 }
-
 const chatModes: ModeConfig[] = [
   { id: 'agent', label: 'Agent', icon: Bot, description: 'Use tools and execute actions', color: 'from-[#9D50BB] to-[#6E45E2]' },
   { id: 'plan', label: 'Plan', icon: Lightbulb, description: 'Create step-by-step plans', color: 'from-amber-400 to-amber-600' },
   { id: 'debug', label: 'Debug', icon: Bug, description: 'Debug and troubleshoot', color: 'from-red-400 to-red-600' },
   { id: 'ask', label: 'Ask', icon: HelpCircle, description: 'Ask questions about workflows', color: 'from-[#00C6FF] to-[#9D50BB]' },
 ];
-
 // AI Models
 type AIModel = 'Auto' | 'Flowversal' | 'Chat GPT' | 'Gemini' | 'Grok';
 const aiModels: AIModel[] = ['Auto', 'Flowversal', 'Chat GPT', 'Gemini', 'Grok'];
-
-
 interface AgentReasoning {
   thoughts?: Array<{ content: string; timestamp: Date; confidence?: number }>;
   toolCalls?: Array<{ toolName: string; arguments: any; result?: any; success: boolean; duration?: number }>;
   decisions?: Array<{ decisionPoint: string; reasoning: string; selectedOption: any; confidence?: number }>;
 }
-
 interface Message {
   id: string;
   text: string;
@@ -81,7 +73,6 @@ interface Message {
   configTool?: string;
   agentReasoning?: AgentReasoning;
 }
-
 export function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -95,37 +86,29 @@ export function Chat() {
   const [conversationId, setConversationId] = useState<string>('');
   const [useRealAI, setUseRealAI] = useState(true); // Use real AI by default
   const [lastRequestTime, setLastRequestTime] = useState<number>(0);
-  
   // Tool Configuration State
   const [emailConfigured, setEmailConfigured] = useState(false);
   const [configValues, setConfigValues] = useState<Record<string, string>>({});
-  
   // Sidebar state
-  const [conversations, setConversations] = useState<ChatConversation[]>([
-    { id: '1', title: 'Email: Today\'s Delhi Weather', preview: 'Weather update...', timestamp: new Date(Date.now() - 86400000) },
-  ]);
+  const [conversations, setConversations] = useState<ChatConversation[]>([]);
+  // TODO: Load real conversations from backend API
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  
   // Tools picker state
   const [showToolsPicker, setShowToolsPicker] = useState(false);
   const [showPromptLibrary, setShowPromptLibrary] = useState(false);
   const [showMemories, setShowMemories] = useState(false);
   const [selectedTools, setSelectedTools] = useState<SelectedTool[]>([]);
   const [showOptionsDropdown, setShowOptionsDropdown] = useState(false);
-  
   // Debug: Log when showToolsPicker changes
   useEffect(() => {
-    console.log('[Chat] showToolsPicker changed:', showToolsPicker);
   }, [showToolsPicker]);
-  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { theme } = useTheme();
   const { isAuthenticated, user } = useAuth();
   const [accessToken, setAccessToken] = useState<string | null>(null);
-
   // Flowversal theme colors
   const bgColor = theme === 'dark' ? 'bg-[#0E0E1F]' : 'bg-white';
   const bgCard = theme === 'dark' ? 'bg-[#1A1A2E]' : 'bg-gray-50';
@@ -133,10 +116,8 @@ export function Chat() {
   const textPrimary = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const textSecondary = theme === 'dark' ? 'text-[#CFCFE8]' : 'text-gray-600';
   const inputBg = theme === 'dark' ? 'bg-[#1A1A2E]' : 'bg-gray-50';
-
   // Get current mode config
   const currentMode = chatModes.find(m => m.id === selectedMode) || chatModes[0];
-
   const workflowOptions = [
     { icon: Image, label: 'Image Creation', color: 'text-purple-400' },
     { icon: Search, label: 'Deep Search', color: 'text-blue-400' },
@@ -144,23 +125,14 @@ export function Chat() {
     { icon: Code, label: 'Code Generator', color: 'text-orange-400' },
     { icon: Database, label: 'Data Analysis', color: 'text-cyan-400' },
   ];
-
-  const suggestionChips = [
-    { icon: '✨', label: 'Create a workflow for email automation' },
-    { icon: '🤖', label: 'Generate a customer onboarding workflow' },
-    { label: 'Build a data processing pipeline' },
-    { label: 'Create an AI content generator' },
-    { label: 'Automate social media posting' },
-  ];
-
+  const suggestionChips: Array<{ icon?: string; label: string }> = [];
+  // TODO: Load real suggestions from user's workflow history or AI recommendations
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
-
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
   // Get access token
   useEffect(() => {
     const getToken = async () => {
@@ -176,7 +148,6 @@ export function Chat() {
       } catch (error) {
         console.error('[Chat] Error getting token:', error);
       }
-
       if (isAuthenticated && supabase) {
         try {
           const { data: { session } } = await supabase.auth.getSession();
@@ -187,7 +158,6 @@ export function Chat() {
           console.error('[Chat] Error getting Supabase token:', error);
         }
       }
-      
       // Don't set a fake token - let authentication handle it properly
       if (!accessToken) {
         console.warn('[Chat] No access token available');
@@ -195,7 +165,6 @@ export function Chat() {
     };
     getToken();
   }, [isAuthenticated]);
-
   // Close dropdowns on click outside
   useEffect(() => {
     const handleClickOutside = () => {
@@ -203,16 +172,13 @@ export function Chat() {
       setShowOptionsDropdown(false);
       setShowModelDropdown(false);
     };
-
     if (showModeDropdown || showOptionsDropdown || showModelDropdown) {
       document.addEventListener('click', handleClickOutside);
     }
-
     return () => {
       document.removeEventListener('click', handleClickOutside);
     };
   }, [showModeDropdown, showOptionsDropdown, showModelDropdown]);
-
   // Sidebar handlers
   const handleNewChat = () => {
     const newConversation: ChatConversation = {
@@ -226,11 +192,9 @@ export function Chat() {
     setMessages([]);
     setConversationId('');
   };
-
   const handleSelectConversation = (id: string) => {
     setActiveConversationId(id);
   };
-
   const handleDeleteConversation = (id: string) => {
     setConversations(prev => prev.filter(c => c.id !== id));
     if (activeConversationId === id) {
@@ -239,25 +203,20 @@ export function Chat() {
     }
     toast.success('Chat deleted');
   };
-
   const handleRenameConversation = (id: string, newTitle: string) => {
     setConversations(prev =>
       prev.map(c => (c.id === id ? { ...c, title: newTitle } : c))
     );
     toast.success('Chat renamed');
   };
-
   // Open tools picker
   const handleOpenTools = (e?: React.MouseEvent) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
-    console.log('[Chat] Opening tools picker');
     setShowToolsPicker(true);
-    console.log('[Chat] showToolsPicker set to true');
   };
-
   const handleSelectTool = (tool: SelectedTool) => {
     setSelectedTools(prev => {
       const exists = prev.some(t => t.type === tool.type);
@@ -267,18 +226,15 @@ export function Chat() {
       return [...prev, tool];
     });
   };
-
   const removeTool = (type: string) => {
     setSelectedTools(prev => prev.filter(t => t.type !== type));
   };
-
   const callRealAI = async (userMessage: string) => {
     // Prevent duplicate calls if already processing
     if (isTyping) {
       console.warn('[Chat] Already processing a request, ignoring duplicate call');
       return;
     }
-
     // Prevent rapid successive calls (minimum 500ms between requests)
     const now = Date.now();
     if (now - lastRequestTime < 500) {
@@ -286,20 +242,16 @@ export function Chat() {
       return;
     }
     setLastRequestTime(now);
-
     setIsTyping(true);
-
     try {
       if (!isAuthenticated || !accessToken) {
         throw new Error('Please log in to use AI features');
       }
-
       // Parse action intent
       const intent = actionExecutorService.parseActionIntent(
         userMessage,
         selectedTools.map(t => t.type)
       );
-
       // Execute action if intent is actionable
       if (intent && intent.type !== 'query' && intent.confidence && intent.confidence > 0.6) {
         const actionResult = await actionExecutorService.executeAction(
@@ -310,7 +262,6 @@ export function Chat() {
             selectedTools: selectedTools.map(t => t.type),
           }
         );
-
         if (actionResult.success) {
           // Handle successful action execution
           if (actionResult.actionType === 'workflow' && actionResult.workflowNode) {
@@ -332,7 +283,6 @@ export function Chat() {
             const toolResultText = actionResult.result 
               ? `Tool "${intent.toolName}" executed successfully. Result: ${typeof actionResult.result === 'string' ? actionResult.result : JSON.stringify(actionResult.result, null, 2)}`
               : `Tool "${intent.toolName}" executed successfully.`;
-            
             // Continue with chat to get AI interpretation
             userMessage = `${userMessage}\n\n[Tool Result: ${toolResultText}]`;
           }
@@ -342,7 +292,6 @@ export function Chat() {
           userMessage = `${userMessage}\n\n[Note: Action execution failed - ${actionResult.error}]`;
         }
       }
-
       // Send chat message using chat service
       const chatResponse = await chatService.sendMessage({
         message: userMessage,
@@ -362,13 +311,11 @@ export function Chat() {
           'Automatically decide the best approach.'
         }`,
       });
-
       if (chatResponse.success && chatResponse.response) {
         // Update conversation ID if provided
         if (chatResponse.conversationId) {
           setConversationId(chatResponse.conversationId);
         }
-
         const aiMessage: Message = {
           id: Date.now().toString(),
           text: chatResponse.response,
@@ -379,14 +326,11 @@ export function Chat() {
             ? selectedTools.filter(t => chatResponse.toolsUsed?.includes(t.type))
             : undefined,
         };
-
         setMessages(prev => [...prev, aiMessage]);
-
         // Show tool usage notification
         if (chatResponse.toolsUsed && chatResponse.toolsUsed.length > 0) {
           toast.success(`Used ${chatResponse.toolsUsed.length} tool(s): ${chatResponse.toolsUsed.join(', ')}`);
         }
-
         // Update conversation title if first message
         if (activeConversationId && messages.length === 0) {
           const title = userMessage.slice(0, 50) + (userMessage.length > 50 ? '...' : '');
@@ -397,7 +341,6 @@ export function Chat() {
       }
     } catch (error: any) {
       console.error('[Chat] AI Error:', error);
-      
       // Don't set component error for API errors, just show in chat
       const errorMessage: Message = {
         id: Date.now().toString(),
@@ -406,9 +349,7 @@ export function Chat() {
         timestamp: new Date(),
         type: 'error'
       };
-
       setMessages(prev => [...prev, errorMessage]);
-
       if (!useRealAI && !error.message.includes('log in')) {
         setTimeout(() => simulateAIResponse(userMessage), 1000);
       } else {
@@ -418,12 +359,10 @@ export function Chat() {
       setIsTyping(false);
     }
   };
-
   const handleConfigSave = (toolId: string, values: Record<string, string>) => {
     if (toolId === 'email') {
       setEmailConfigured(true);
       setConfigValues(prev => ({ ...prev, ...values }));
-      
       const successMessage: Message = {
         id: Date.now().toString(),
         text: "✅ Email configured successfully! I'll proceed with sending the email now.",
@@ -432,7 +371,6 @@ export function Chat() {
         type: 'text'
       };
       setMessages(prev => [...prev, successMessage]);
-      
       setTimeout(() => {
         const actionMessage: Message = {
           id: (Date.now() + 1).toString(),
@@ -445,14 +383,11 @@ export function Chat() {
       }, 1000);
     }
   };
-
   const simulateAIResponse = (userMessage: string) => {
     setIsTyping(true);
-    
     setTimeout(() => {
       let aiResponse = '';
       const lowerMessage = userMessage.toLowerCase();
-
       // Check for email intent
       if (lowerMessage.includes('email') || lowerMessage.includes('send') || lowerMessage.includes('gmail')) {
         // Check if email tool is configured
@@ -470,7 +405,6 @@ export function Chat() {
           return;
         }
       }
-
       if (lowerMessage.includes('workflow') || lowerMessage.includes('automation')) {
         aiResponse = `I can help you set up a workflow in ${selectedMode} mode!\n\n${
           selectedTools.length > 0 
@@ -480,22 +414,18 @@ export function Chat() {
       } else {
         aiResponse = `I understand you're asking about "${userMessage}" in ${currentMode.label} mode.\n\nI can help with that! Would you like me to:\n\n1. Set up an automated workflow for this task?\n2. Provide step-by-step guidance?\n3. Generate the results directly?`;
       }
-
       const aiMessage: Message = {
         id: Date.now().toString(),
         text: aiResponse,
         isUser: false,
         timestamp: new Date(),
       };
-
       setMessages(prev => [...prev, aiMessage]);
       setIsTyping(false);
     }, 1500);
   };
-
   const handleSend = () => {
     if (!inputValue.trim()) return;
-
     const userMessage: Message = {
       id: Date.now().toString(),
       text: inputValue,
@@ -503,39 +433,31 @@ export function Chat() {
       timestamp: new Date(),
       tools: selectedTools.length > 0 ? [...selectedTools] : undefined,
     };
-
     setMessages(prev => [...prev, userMessage]);
-    
     // Update conversation title if first message
     if (activeConversationId && messages.length === 0) {
       const title = inputValue.slice(0, 50) + (inputValue.length > 50 ? '...' : '');
       handleRenameConversation(activeConversationId, title);
     }
-
     setInputValue('');
-    
     if (useRealAI) {
       callRealAI(inputValue);
     } else {
       simulateAIResponse(inputValue);
     }
   };
-
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
-
   const handleSuggestionClick = (suggestion: string) => {
     setInputValue(suggestion);
   };
-
   const handleFileAttachment = () => {
     fileInputRef.current?.click();
   };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
@@ -544,11 +466,9 @@ export function Chat() {
       toast.success(`${newFiles.length} file(s) attached`);
     }
   };
-
   const removeFile = (index: number) => {
     setAttachedFiles(prev => prev.filter((_, i) => i !== index));
   };
-
   const handleVoiceRecording = async () => {
     if (isRecording) {
       if (recognitionRef.current) {
@@ -557,42 +477,33 @@ export function Chat() {
       setIsRecording(false);
       return;
     }
-
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    
     if (!SpeechRecognition) {
       toast.error('Speech recognition not supported');
       return;
     }
-
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach(track => track.stop());
-      
       setIsRecording(true);
       toast.info('🎤 Listening...');
-      
       const recognition = new SpeechRecognition();
       recognition.continuous = false;
       recognition.interimResults = false;
       recognition.lang = 'en-US';
-      
       recognition.onresult = (event: any) => {
         const transcript = event.results[0][0].transcript;
         setInputValue(prev => prev ? `${prev} ${transcript}` : transcript);
         setIsRecording(false);
         toast.success('Voice recorded!');
       };
-      
       recognition.onerror = () => {
         setIsRecording(false);
         toast.error('Voice recording failed');
       };
-      
       recognition.onend = () => {
         setIsRecording(false);
       };
-      
       recognitionRef.current = recognition;
       recognition.start();
     } catch (error) {
@@ -600,7 +511,6 @@ export function Chat() {
       toast.error('Microphone access denied');
     }
   };
-
   return (
     <div className={`h-screen ${bgColor} flex overflow-hidden`}>
       {/* Sidebar */}
@@ -617,7 +527,6 @@ export function Chat() {
         isCollapsed={isSidebarCollapsed}
         selectedToolsCount={selectedTools.length}
       />
-
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
         <div className="flex-1 max-w-4xl mx-auto w-full px-6 py-8 flex flex-col">
@@ -632,7 +541,6 @@ export function Chat() {
               </h1>
             </div>
           )}
-
           {/* Messages Container */}
           {messages.length > 0 && (
             <div className="flex-1 mb-6 space-y-6 overflow-y-auto max-h-[60vh] pr-4">
@@ -656,7 +564,6 @@ export function Chat() {
                         </span>
                       </div>
                     )}
-                    
                     {/* Show tools used if any */}
                     {message.tools && message.tools.length > 0 && (
                       <div className="flex flex-wrap gap-1 mb-2">
@@ -674,7 +581,6 @@ export function Chat() {
                         })}
                       </div>
                     )}
-
                     {/* Agent Reasoning Visualization (Bhindi-style) */}
                     {message.agentReasoning && (
                       <div className="mt-3 mb-2 space-y-2">
@@ -707,7 +613,6 @@ export function Chat() {
                             </div>
                           </details>
                         )}
-
                         {/* Tool Calls */}
                         {message.agentReasoning.toolCalls && message.agentReasoning.toolCalls.length > 0 && (
                           <details className="group">
@@ -742,7 +647,6 @@ export function Chat() {
                             </div>
                           </details>
                         )}
-
                         {/* Decisions */}
                         {message.agentReasoning.decisions && message.agentReasoning.decisions.length > 0 && (
                           <details className="group">
@@ -768,7 +672,6 @@ export function Chat() {
                         )}
                       </div>
                     )}
-                    
                     {message.type === 'tool-config' && message.configTool === 'email' && (
                       <div className="mt-4 p-4 rounded-xl bg-white/5 border border-white/10 w-full max-w-sm">
                         <div className="flex items-center gap-3 mb-4">
@@ -806,11 +709,9 @@ export function Chat() {
                         </div>
                       </div>
                     )}
-                    
                     <p className={`whitespace-pre-wrap ${message.type === 'error' ? 'text-red-400' : ''}`}>
                       {message.text}
                     </p>
-                    
                     {/* Workflow Actions */}
                     {message.type === 'workflow' && message.workflowData && (
                       <div className="mt-4 flex gap-2 flex-wrap">
@@ -860,7 +761,6 @@ export function Chat() {
                   </div>
                 </div>
               ))}
-              
               {isTyping && (
                 <div className="flex justify-start">
                   <div className={`${bgCard} rounded-2xl px-6 py-4 border ${borderColor}`}>
@@ -874,7 +774,6 @@ export function Chat() {
               <div ref={messagesEndRef} />
             </div>
           )}
-
           {/* Input Container */}
           <div className="sticky bottom-8 max-w-4xl mx-auto w-full">
             <div className={`${bgCard} border ${borderColor} rounded-3xl shadow-xl`}>
@@ -895,7 +794,6 @@ export function Chat() {
                   ))}
                 </div>
               )}
-
               {/* Input Area */}
               <div className="px-4 pt-4">
                 <div className="flex items-start gap-3">
@@ -928,7 +826,6 @@ export function Chat() {
                   </button>
                 </div>
               </div>
-
               {/* Bottom Bar: Tools & Actions */}
               <div className="px-4 pb-3 pt-2 flex items-center justify-between">
                 {/* Left: Tools */}
@@ -953,7 +850,6 @@ export function Chat() {
                       </span>
                     )}
                   </button>
-
                   {/* Selected Tools Chips - Compact */}
                   {selectedTools.slice(0, 3).map((tool) => {
                     const Icon = tool.icon;
@@ -987,7 +883,6 @@ export function Chat() {
                     </button>
                   )}
                 </div>
-
                 {/* Right: Model, Mode & Send */}
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {/* Model Dropdown */}
@@ -1006,7 +901,6 @@ export function Chat() {
                       </span>
                       <ChevronDown className={`w-3 h-3 ${textSecondary}`} />
                     </button>
-
                     {showModelDropdown && (
                       <div className={`absolute bottom-full right-0 mb-2 w-48 ${bgCard} border ${borderColor} rounded-xl shadow-2xl z-50 py-1`}>
                         {aiModels.map((model) => (
@@ -1031,7 +925,6 @@ export function Chat() {
                       </div>
                     )}
                   </div>
-
                   {/* Mode Dropdown */}
                   <div className="relative">
                     <button 
@@ -1047,7 +940,6 @@ export function Chat() {
                       </span>
                       <ChevronDown className={`w-3 h-3 ${textSecondary}`} />
                     </button>
-
                     {showModeDropdown && (
                       <div className={`absolute bottom-full right-0 mb-2 w-48 ${bgCard} border ${borderColor} rounded-xl shadow-2xl z-50 py-1`}>
                         {chatModes.map((mode) => {
@@ -1079,7 +971,6 @@ export function Chat() {
                       </div>
                     )}
                   </div>
-                  
                   <button
                     onClick={handleSend}
                     disabled={!inputValue.trim()}
@@ -1094,7 +985,6 @@ export function Chat() {
                 </div>
               </div>
             </div>
-
             {/* Suggestion Chips */}
             {messages.length === 0 && (
               <div className="flex flex-wrap justify-center gap-2 mt-6 px-4">
@@ -1113,7 +1003,6 @@ export function Chat() {
           </div>
         </div>
       </div>
-
       {/* Tools Picker Modal - Always show all tools/nodes/triggers */}
       <ChatToolsPicker
         isOpen={showToolsPicker}
@@ -1124,7 +1013,6 @@ export function Chat() {
         selectedTools={selectedTools}
         mode="agent" // Always show all tools, nodes, and triggers
       />
-
       {/* Prompt Library Modal */}
       <PromptLibrary
         isOpen={showPromptLibrary}
@@ -1137,7 +1025,6 @@ export function Chat() {
           if (textarea) textarea.focus();
         }}
       />
-
       {/* Memories Modal */}
       <MemoriesModal
         isOpen={showMemories}

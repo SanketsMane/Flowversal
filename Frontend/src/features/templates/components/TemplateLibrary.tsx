@@ -3,7 +3,6 @@
  * Main interface for browsing and selecting workflow templates
  * Updated: Fixed import system to use unified workflow manager
  */
-
 import React, { useState } from 'react';
 import * as LucideIcons from 'lucide-react';
 import { useTemplateStore } from '../store/templateStore';
@@ -30,10 +29,8 @@ import { ScrollArea } from '../../../components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import { WorkflowTemplate, TemplateCategory } from '../types/template.types';
 import { useTheme } from '@/core/theme/ThemeContext';
-
 export const TemplateLibrary: React.FC = () => {
   const { theme } = useTheme();
-  
   // Template store - handles all template state and filtering
   const {
     isTemplateLibraryOpen,
@@ -52,10 +49,8 @@ export const TemplateLibrary: React.FC = () => {
     resetFilters,
     onTemplateInstall
   } = useTemplateStore();
-  
   // File input ref for JSON import
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-  
   // Theme-aware colors
   const bgDialog = theme === 'dark' ? 'bg-[#0E0E1F]' : 'bg-white';
   const borderColor = theme === 'dark' ? 'border-[#2A2A3E]' : 'border-gray-200';
@@ -65,7 +60,6 @@ export const TemplateLibrary: React.FC = () => {
   const bgCategory = theme === 'dark' ? 'bg-[#1A1A2E]' : 'bg-gray-100';
   const bgCategoryActive = theme === 'dark' ? 'bg-[#2A2A3E]' : 'bg-blue-100';
   const textCategoryActive = theme === 'dark' ? 'text-blue-400' : 'text-blue-600';
-  
   const categories: { value: TemplateCategory; label: string; icon: any }[] = [
     { value: 'all', label: 'All Templates', icon: LucideIcons.LayoutGrid },
     { value: 'automation', label: 'Automation', icon: LucideIcons.Zap },
@@ -77,36 +71,26 @@ export const TemplateLibrary: React.FC = () => {
     { value: 'productivity', label: 'Productivity', icon: LucideIcons.Target },
     { value: 'analytics', label: 'Analytics', icon: LucideIcons.BarChart3 }
   ];
-  
   const difficulties = [
     { value: 'all', label: 'All Levels' },
     { value: 'beginner', label: 'Beginner' },
     { value: 'intermediate', label: 'Intermediate' },
     { value: 'advanced', label: 'Advanced' }
   ];
-  
   const handleInstallTemplate = async (template: WorkflowTemplate) => {
-    console.log('📥 Installing template:', template.name);
-    
     try {
       // Lazy load the FULL template with workflowData
       const fullTemplate = await loadFullTemplate(template.id);
-      
       if (!fullTemplate || !fullTemplate.workflowData) {
         console.error('❌ Could not find full template data for:', template.id);
         const { showNotification } = useUIStore.getState();
         showNotification('Error: Template data not found', 'error');
         return;
       }
-      
-      console.log('✅ Found full template with workflowData');
-      
       // Close the library first to free up resources
       closeTemplateLibrary();
-      
       // Check if there's a callback (from MyWorkflows) to open the workflow builder
       if (onTemplateInstall) {
-        console.log('🚀 Opening workflow builder from MyWorkflows with template');
         // Call the callback to open workflow builder with template data
         setTimeout(() => {
           onTemplateInstall(fullTemplate.workflowData);
@@ -116,12 +100,10 @@ export const TemplateLibrary: React.FC = () => {
       } else {
         // Already in workflow builder - load template directly
         // loadWorkflowIntoStores handles all clearing internally
-        console.log('📦 [Flow 4 Pre-built] Loading template into existing workflow builder');
         setTimeout(() => {
           try {
             loadWorkflowIntoStores(fullTemplate.workflowData);
             // loadWorkflowIntoStores handles clearing and shows success notification
-            console.log('✅ [Flow 4 Pre-built] Template installed successfully');
           } catch (error) {
             console.error('❌ [Flow 4 Pre-built] Error installing template:', error);
             const { showNotification } = useUIStore.getState();
@@ -135,34 +117,25 @@ export const TemplateLibrary: React.FC = () => {
       showNotification(`Error loading template: ${error}`, 'error');
     }
   };
-  
   const handleClose = () => {
     closeTemplateLibrary();
     resetFilters();
   };
-  
   // Handle importing a template from JSON file
   const handleImportTemplate = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    
     try {
-      console.log('📁 [Popup Import] Importing template from file:', file.name);
-
       // Ensure URL reflects workflow builder for imported templates
       if (typeof window !== 'undefined' && window.location.pathname !== '/workflow-builder') {
         window.history.pushState({}, '', '/workflow-builder');
       }
-      
       // Close the library first
       closeTemplateLibrary();
-      
       // Check if there's a callback (from Dashboard/MyWorkflows) to open the workflow builder
       if (onTemplateInstall) {
-        console.log('🚀 [Popup Import] Opening workflow builder from outside with imported JSON');
         // Parse file first
         const workflowData = await parseWorkflowFile(file);
-        
         // Call the callback to open workflow builder with template data
         setTimeout(() => {
           onTemplateInstall(workflowData);
@@ -171,31 +144,24 @@ export const TemplateLibrary: React.FC = () => {
         }, 200);
       } else {
         // Already in workflow builder - use the SAME function as dropdown import
-        console.log('📦 [Popup Import] Using unified import (same as dropdown)');
-        
         // Small delay to allow dialog to close and free resources
         setTimeout(async () => {
           await importAndLoadWorkflow(file);
-          console.log('✅ [Popup Import] Import complete via unified function');
         }, 150);
       }
-      
     } catch (error) {
       console.error('❌ [Popup Import] Error importing template:', error);
       const { showNotification } = useUIStore.getState();
       showNotification(`Error importing workflow: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
     }
-    
     // Reset the file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
-  
   const handleImportClick = () => {
     fileInputRef.current?.click();
   };
-  
   return (
     <>
       <FullScreenDialog open={isTemplateLibraryOpen} onOpenChange={handleClose}>
@@ -240,7 +206,6 @@ export const TemplateLibrary: React.FC = () => {
               </div>
             </div>
           </FullScreenDialogHeader>
-          
           {/* Compact Search and Filters */}
           <div className={`px-6 py-3 border-b ${borderColor} ${bgInput}/30 flex-shrink-0`}>
             {/* Search and Difficulty in one row */}
@@ -255,7 +220,6 @@ export const TemplateLibrary: React.FC = () => {
                   className={`pl-9 h-9 text-sm ${bgInput} ${borderColor} ${textPrimary} placeholder:text-gray-500`}
                 />
               </div>
-              
               {/* Difficulty Filter - Compact */}
               <div className="flex items-center gap-2">
                 <span className={`text-xs font-medium ${textSecondary} shrink-0`}>Difficulty:</span>
@@ -274,7 +238,6 @@ export const TemplateLibrary: React.FC = () => {
                 ))}
               </div>
             </div>
-            
             {/* Category Tabs - Compact horizontal scroll */}
             <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
               {categories.map((cat) => {
@@ -297,7 +260,6 @@ export const TemplateLibrary: React.FC = () => {
               })}
             </div>
           </div>
-          
           {/* Template Grid - Maximum space */}
           <div className="flex-1 overflow-y-auto px-6 py-6">
             {filteredTemplates.length === 0 ? (
@@ -330,7 +292,6 @@ export const TemplateLibrary: React.FC = () => {
           </div>
         </FullScreenDialogContent>
       </FullScreenDialog>
-      
       {/* Template Preview Modal */}
       <TemplatePreview
         template={selectedTemplate}
@@ -338,7 +299,6 @@ export const TemplateLibrary: React.FC = () => {
         onClose={closePreview}
         onInstall={handleInstallTemplate}
       />
-      
       {/* Hidden file input for importing templates */}
       <input
         type="file"

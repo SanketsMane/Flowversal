@@ -2,11 +2,9 @@
  * Production Auth Store with Supabase
  * Replaces localStorage with real authentication
  */
-
 import { authService } from '@/core/api/services/auth.service';
 import { supabase } from '@/shared/lib/supabase';
 import { create } from 'zustand';
-
 export interface Profile {
   id: string;
   email: string;
@@ -16,13 +14,11 @@ export interface Profile {
   created_at?: string;
   last_login_at?: string;
 }
-
 interface AuthState {
   user: Profile | null;
   session: any | null;
   loading: boolean;
   initialized: boolean;
-  
   // Actions
   initialize: () => Promise<void>;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
@@ -32,9 +28,7 @@ interface AuthState {
   updateProfile: (updates: Partial<Profile>) => Promise<void>;
   isAdmin: () => boolean;
 }
-
 let authListenerSetUp = false;
-
 const getUserProfile = async (userId: string): Promise<Profile | null> => {
   try {
     const { data, error } = await supabase
@@ -50,34 +44,27 @@ const getUserProfile = async (userId: string): Promise<Profile | null> => {
         }
         return { data: null, error: err };
       });
-    
     if (error) {
       console.warn('Could not fetch user profile:', error.message || error);
       return null;
     }
-    
     return data;
   } catch (err) {
     console.warn('Error in getUserProfile:', err);
     return null;
   }
 };
-
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   session: null,
   loading: true,
   initialized: false,
-  
   // Actions
   initialize: async () => {
     try {
-      console.log('[Auth Store] Initializing...');
-      
       // Check if we have a custom auth session (demo/justin mode)
       const customUser = authService.getCurrentUser();
       if (customUser && authService.isAuthenticated()) {
-        console.log('[Auth Store] ✅ Found custom auth session:', customUser.email);
         const profile: Profile = {
           id: customUser.id,
           email: customUser.email,
@@ -90,15 +77,10 @@ export const useAuthStore = create<AuthState>((set) => ({
         set({ user: profile, session: { access_token: authService.getAccessToken() }, loading: false, initialized: true });
         return;
       }
-      
-      console.log('[Auth Store] No custom session, checking Supabase...');
-
       if (!supabase) {
-        console.log('[Auth Store] Supabase not available');
         set({ user: null, session: null, loading: false, initialized: true });
         return;
       }
-
       // Get current session with error handling
       const sessionResult = await supabase.auth.getSession().catch((err: any) => {
         // Handle network errors for unconfigured Supabase
@@ -108,14 +90,10 @@ export const useAuthStore = create<AuthState>((set) => ({
         }
         throw err;
       });
-      
       const session = sessionResult?.data?.session;
-      
       if (session?.user) {
-        console.log('[Auth Store] ✅ Found Supabase session:', session.user.email);
         // Get user profile
         const profile = await getUserProfile(session.user.id);
-        
         // Update last login
         if (profile) {
           await supabase
@@ -124,19 +102,15 @@ export const useAuthStore = create<AuthState>((set) => ({
             .eq('id', session.user.id)
             .catch(() => console.warn('[Auth Store] Failed to update last login'));
         }
-        
         set({ user: profile, session, loading: false, initialized: true });
       } else {
-        console.log('[Auth Store] No session found');
         set({ user: null, session: null, loading: false, initialized: true });
       }
-
       // Set up auth listener only once, with error handling
       if (!authListenerSetUp) {
         authListenerSetUp = true;
         try {
           supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log('[Auth Store] Auth state changed:', event);
             if (event === 'SIGNED_IN' && session?.user) {
               const profile = await getUserProfile(session.user.id).catch(() => null);
               set({ user: profile, session });
@@ -153,15 +127,11 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ user: null, session: null, loading: false, initialized: true });
     }
   },
-  
   login: async (email: string, password: string) => {
     try {
-      console.log('[Auth Store] Login attempt for:', email);
-      
       // Try custom auth service first (handles demo/justin credentials)
       const customResult = await authService.login(email, password);
       if (customResult.success && customResult.user) {
-        console.log('[Auth Store] ✅ Custom auth successful:', customResult.user.email);
         const profile: Profile = {
           id: customResult.user.id,
           email: customResult.user.email,
@@ -174,14 +144,10 @@ export const useAuthStore = create<AuthState>((set) => ({
         set({ user: profile, session: { access_token: authService.getAccessToken() }, loading: false });
         return { success: true };
       }
-      
-      console.log('[Auth Store] Custom auth failed, trying Supabase...');
-      
       // Fall back to Supabase
       if (!supabase) {
         return { success: false, error: 'Authentication service not available' };
       }
-
       const { data, error } = await supabase.auth.signInWithPassword({ email, password }).catch((err: any) => {
         // Handle network errors
         if (err?.message?.includes('Failed to fetch') || err?.message?.includes('Supabase not configured')) {
@@ -190,26 +156,21 @@ export const useAuthStore = create<AuthState>((set) => ({
         }
         throw err;
       });
-      
       if (error) {
         console.error('[Auth Store] ❌ Supabase auth failed:', error.message);
         return { success: false, error: error.message };
       }
-      
       if (data.user) {
-        console.log('[Auth Store] ✅ Supabase auth successful:', data.user.email);
         const profile = await getUserProfile(data.user.id);
         set({ user: profile, session: data.session });
         return { success: true };
       }
-      
       return { success: false, error: 'Login failed' };
     } catch (error: any) {
       console.error('[Auth Store] Login error:', error);
       return { success: false, error: error.message || 'An unexpected error occurred' };
     }
   },
-  
   loginWithGoogle: async () => {
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'google' }).catch((err: any) => {
@@ -219,7 +180,6 @@ export const useAuthStore = create<AuthState>((set) => ({
         }
         throw err;
       });
-      
       if (error) {
         return { success: false, error: error.message || 'Google login not available' };
       }
@@ -229,7 +189,6 @@ export const useAuthStore = create<AuthState>((set) => ({
       return { success: false, error: error.message || 'An unexpected error occurred' };
     }
   },
-  
   signup: async (email: string, password: string, name: string) => {
     try {
       const { data, error } = await supabase.auth.signUp({ email, password }).catch((err: any) => {
@@ -239,7 +198,6 @@ export const useAuthStore = create<AuthState>((set) => ({
         }
         throw err;
       });
-      
       if (error) {
         return { success: false, error: error.message || 'Signup not available' };
       }
@@ -255,14 +213,10 @@ export const useAuthStore = create<AuthState>((set) => ({
       return { success: false, error: error.message || 'An unexpected error occurred' };
     }
   },
-  
   logout: async () => {
     try {
-      console.log('[Auth Store] Logging out...');
-      
       // Clear custom auth service session
       await authService.logout();
-      
       // Clear Supabase session if available
       if (supabase) {
         await supabase.auth.signOut().catch((err: any) => {
@@ -274,14 +228,11 @@ export const useAuthStore = create<AuthState>((set) => ({
           }
         });
       }
-      
       set({ user: null, session: null });
-      console.log('[Auth Store] ✅ Logged out successfully');
     } catch (error) {
       console.error('[Auth Store] Logout error:', error);
     }
   },
-  
   updateProfile: async (updates: Partial<Profile>) => {
     try {
       if (!supabase) {
@@ -299,7 +250,6 @@ export const useAuthStore = create<AuthState>((set) => ({
           }
           throw err;
         });
-        
       if (error) {
         throw new Error(error.message || 'Failed to update profile');
       }
@@ -308,7 +258,6 @@ export const useAuthStore = create<AuthState>((set) => ({
       console.error('Update profile error:', error.message || error);
     }
   },
-  
   isAdmin: () => {
     return (useAuthStore.getState().user?.role === 'admin');
   },

@@ -2,12 +2,10 @@ import { X } from 'lucide-react';
 import { useState } from 'react';
 import { useTheme } from '@/core/theme/ThemeContext';
 import { useModal } from '@/core/stores/ModalContext';
-
 interface ChangePasswordModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
 export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProps) {
   const { theme } = useTheme();
   const { showError } = useModal();
@@ -16,26 +14,21 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
     newPassword: '',
     confirmPassword: '',
   });
-
   const bgModal = theme === 'dark' ? 'bg-[#1A1A2E]' : 'bg-white';
   const bgMain = theme === 'dark' ? 'bg-[#0E0E1F]' : 'bg-gray-50';
   const borderColor = theme === 'dark' ? 'border-white/10' : 'border-gray-200';
   const textPrimary = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const textSecondary = theme === 'dark' ? 'text-[#CFCFE8]' : 'text-gray-600';
   const inputBg = theme === 'dark' ? 'bg-[#0E0E1F]' : 'bg-gray-50';
-
   if (!isOpen) return null;
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.newPassword !== formData.confirmPassword) {
       showError('Password Mismatch', 'Passwords do not match! Please make sure both passwords are identical.');
       return;
     }
-    console.log('Change password');
     onClose();
   };
-
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
       <div className={`${bgModal} rounded-2xl max-w-xl w-full border ${borderColor} shadow-2xl`}>
@@ -49,7 +42,6 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
             <X className={`w-4 h-4 ${textSecondary}`} />
           </button>
         </div>
-
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Email (Read-only) */}
@@ -62,7 +54,6 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
               className={`w-full ${inputBg} border ${borderColor} rounded-lg px-4 py-2.5 ${textSecondary} cursor-not-allowed`}
             />
           </div>
-
           {/* Current Password */}
           <div>
             <label className={`block mb-2 ${textSecondary} text-sm`}>Current Password</label>
@@ -75,7 +66,6 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
               required
             />
           </div>
-
           {/* New Password */}
           <div>
             <label className={`block mb-2 ${textSecondary} text-sm`}>New Password</label>
@@ -88,7 +78,6 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
               required
             />
           </div>
-
           {/* Confirm Password */}
           <div>
             <label className={`block mb-2 ${textSecondary} text-sm`}>Confirm New Password</label>
@@ -101,7 +90,6 @@ export function ChangePasswordModal({ isOpen, onClose }: ChangePasswordModalProp
               required
             />
           </div>
-
           {/* Submit Button */}
           <div className="flex justify-end pt-4">
             <button

@@ -1,7 +1,6 @@
 import { WorkflowExecutionModel } from '../../../modules/workflows/models/WorkflowExecution.model';
 import { workflowExecutionService } from '../../../modules/workflows/services/workflow-execution.service';
 import { inngest } from './inngest.client';
-
 /**
  * Inngest function for workflow execution with LangGraph
  * Supports state checkpointing for long-running workflows
@@ -11,13 +10,11 @@ export const executeWorkflow = inngest.createFunction(
   { event: 'workflow/execute' },
   async ({ event, step }) => {
     const { workflowId, userId, input, executionId: existingExecutionId, triggeredBy, triggerData } = event.data as any;
-
     // Start or reuse existing execution record
     const execution = await step.run('start-execution', async () => {
       if (existingExecutionId) {
         return await WorkflowExecutionModel.findById(existingExecutionId);
       }
-
       return await workflowExecutionService.startExecution(
         workflowId,
         userId,
@@ -27,13 +24,10 @@ export const executeWorkflow = inngest.createFunction(
         { enqueue: false, useQueue: false }
       );
     });
-
     if (!execution) {
       throw new Error('Execution record not found or could not be created');
     }
-
     const executionId = (execution as any)._id.toString();
-
     // Execute workflow with LangGraph (with checkpointing support)
     const result = await step.run('execute-workflow-langgraph', async () => {
       try {
@@ -62,7 +56,6 @@ export const executeWorkflow = inngest.createFunction(
         throw error;
       }
     });
-
     return {
       executionId: result.executionId,
       status: result.status,
@@ -70,7 +63,6 @@ export const executeWorkflow = inngest.createFunction(
     };
   }
 );
-
 /**
  * Inngest function for workflow step processing (for complex multi-step workflows)
  */
@@ -79,16 +71,12 @@ export const processWorkflowStep = inngest.createFunction(
   { event: 'workflow/step' },
   async ({ event, step }) => {
     const { executionId, stepId, stepData } = event.data;
-
     // This can be used for checkpointing individual steps
     // For now, it's a placeholder for future step-by-step execution
     await step.run('process-step', async () => {
       // Future: Process individual step with checkpointing
-      console.log(`Processing step ${stepId} for execution ${executionId}`);
       return { stepId, processed: true };
     });
-
     return { executionId, stepId, processed: true };
   }
 );
-

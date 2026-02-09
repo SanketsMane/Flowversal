@@ -2,12 +2,10 @@
  * Subscription Service
  * Handles all subscription and billing operations
  */
-
 import { buildApiUrl, getAuthHeaders } from '@/core/api/api.config';
 import type { SubscriptionTier, UsageLimits } from '@/core/config/subscription.config';
 import { SUBSCRIPTION_TIERS, isLimitExceeded } from '@/core/config/subscription.config';
 import { authService } from './auth.service';
-
 export interface UserSubscription {
   userId: string;
   tier: SubscriptionTier;
@@ -20,7 +18,6 @@ export interface UserSubscription {
   stripeSubscriptionId?: string;
   usage: UsageLimits;
 }
-
 export interface BillingInfo {
   customerId: string;
   paymentMethod?: {
@@ -41,11 +38,9 @@ export interface BillingInfo {
     invoiceUrl: string;
   }>;
 }
-
 class SubscriptionService {
   private baseUrl = buildApiUrl(''); // Use centralized API URL
   private serverAvailable: boolean | null = null; // null = unknown, true = available, false = unavailable
-
   /**
    * Check if the server is available
    */
@@ -54,20 +49,16 @@ class SubscriptionService {
     if (this.serverAvailable !== null) {
       return this.serverAvailable;
     }
-
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 1000); // 1 second timeout
-
       // Use the prefixed health route so it goes through the Vite proxy in dev
       // Registered at /api/v1/health/live (and also unprefixed), but proxy only forwards /api/*
       const healthUrl = buildApiUrl('health/live');
-
       const response = await fetch(healthUrl, {
         method: 'GET',
         signal: controller.signal,
       });
-      
       clearTimeout(timeoutId);
       this.serverAvailable = response.ok;
       return response.ok;
@@ -77,7 +68,6 @@ class SubscriptionService {
       return false;
     }
   }
-
   /**
    * Get current user's subscription
    */
@@ -85,7 +75,6 @@ class SubscriptionService {
     // Return mock subscription data in demo mode
     const isDemoMode = authService.isDemoMode ? authService.isDemoMode() : false;
     if (isDemoMode) {
-      console.log('[Subscription Service] DEMO MODE - Returning mock subscription data');
       const mockSubscription: UserSubscription = {
         userId: 'demo-user-123',
         tier: 'free',
@@ -105,43 +94,35 @@ class SubscriptionService {
       };
       return { success: true, subscription: mockSubscription };
     }
-
     // Check if server is available first
     const serverReady = await this.checkServerHealth();
     if (!serverReady) {
       // Silently return error - server not deployed
       return { success: false, error: 'SERVER_NOT_AVAILABLE' };
     }
-
     try {
       const headers = await getAuthHeaders(accessToken);
       const response = await fetch(`${this.baseUrl}/subscription/current`, {
         method: 'GET',
         headers,
       });
-
       if (!response.ok) {
         const data = await response.json().catch(() => ({ error: 'Unknown error' }));
-
         // If unauthorized, clear cached session so we don't keep sending bad tokens
         if (response.status === 401) {
           localStorage.removeItem('flowversal_auth_session');
           return { success: false, error: 'UNAUTHORIZED' };
         }
-
         const backendUnavailable =
           response.status === 503 &&
           (data?.error === 'Backend server is not available' ||
             data?.message?.toLowerCase?.().includes('backend server is not available'));
-
         if (backendUnavailable) {
           this.serverAvailable = false;
           return { success: false, error: 'SERVER_NOT_AVAILABLE' };
         }
-
         return { success: false, error: data.error || `HTTP ${response.status}: Failed to fetch subscription` };
       }
-
       const data = await response.json();
       return { success: true, subscription: data.subscription };
     } catch (error: any) {
@@ -150,7 +131,6 @@ class SubscriptionService {
       return { success: false, error: 'SERVER_NOT_AVAILABLE' };
     }
   }
-
   /**
    * Create Stripe checkout session
    */
@@ -168,20 +148,16 @@ class SubscriptionService {
         },
         body: JSON.stringify({ tier, billingCycle }),
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         return { success: false, error: data.error || 'Failed to create checkout session' };
       }
-
       return { success: true, sessionUrl: data.sessionUrl };
     } catch (error) {
       console.error('Create checkout session error:', error);
       return { success: false, error: 'Network error' };
     }
   }
-
   /**
    * Create billing portal session
    */
@@ -193,20 +169,16 @@ class SubscriptionService {
           'Authorization': `Bearer ${accessToken}`,
         },
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         return { success: false, error: data.error || 'Failed to create portal session' };
       }
-
       return { success: true, portalUrl: data.portalUrl };
     } catch (error) {
       console.error('Create portal session error:', error);
       return { success: false, error: 'Network error' };
     }
   }
-
   /**
    * Cancel subscription
    */
@@ -218,20 +190,16 @@ class SubscriptionService {
           'Authorization': `Bearer ${accessToken}`,
         },
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         return { success: false, error: data.error || 'Failed to cancel subscription' };
       }
-
       return { success: true };
     } catch (error) {
       console.error('Cancel subscription error:', error);
       return { success: false, error: 'Network error' };
     }
   }
-
   /**
    * Resume subscription
    */
@@ -243,20 +211,16 @@ class SubscriptionService {
           'Authorization': `Bearer ${accessToken}`,
         },
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         return { success: false, error: data.error || 'Failed to resume subscription' };
       }
-
       return { success: true };
     } catch (error) {
       console.error('Resume subscription error:', error);
       return { success: false, error: 'Network error' };
     }
   }
-
   /**
    * Get billing info
    */
@@ -268,20 +232,16 @@ class SubscriptionService {
           'Authorization': `Bearer ${accessToken}`,
         },
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         return { success: false, error: data.error || 'Failed to fetch billing info' };
       }
-
       return { success: true, billing: data.billing };
     } catch (error) {
       console.error('Get billing info error:', error);
       return { success: false, error: 'Network error' };
     }
   }
-
   /**
    * Update usage tracking
    */
@@ -299,20 +259,16 @@ class SubscriptionService {
         },
         body: JSON.stringify({ limitType, increment }),
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         return { success: false, error: data.error || 'Failed to update usage' };
       }
-
       return { success: true };
     } catch (error) {
       console.error('Update usage error:', error);
       return { success: false, error: 'Network error' };
     }
   }
-
   /**
    * Check if user can perform action based on limits
    */
@@ -322,22 +278,18 @@ class SubscriptionService {
   ): Promise<{ success: boolean; allowed: boolean; error?: string }> {
     try {
       const subResult = await this.getSubscription(accessToken);
-      
       if (!subResult.success || !subResult.subscription) {
         return { success: false, allowed: false, error: subResult.error };
       }
-
       const { tier, usage } = subResult.subscription;
       const currentUsage = usage[limitType];
       const exceeded = isLimitExceeded(tier, limitType, currentUsage);
-
       return { success: true, allowed: !exceeded };
     } catch (error) {
       console.error('Can perform action error:', error);
       return { success: false, allowed: false, error: 'Network error' };
     }
   }
-
   /**
    * Get default subscription for new users
    */
@@ -345,7 +297,6 @@ class SubscriptionService {
     const now = new Date();
     const nextMonth = new Date(now);
     nextMonth.setMonth(nextMonth.getMonth() + 1);
-
     return {
       userId,
       tier: 'free',
@@ -366,7 +317,6 @@ class SubscriptionService {
       },
     };
   }
-
   /**
    * Format price for display
    */
@@ -377,7 +327,6 @@ class SubscriptionService {
       minimumFractionDigits: 0,
     }).format(price);
   }
-
   /**
    * Get tier name with emoji
    */
@@ -387,9 +336,7 @@ class SubscriptionService {
       pro: '⭐',
       enterprise: '🚀',
     };
-    
     return `${emojis[tier]} ${SUBSCRIPTION_TIERS[tier].name}`;
   }
 }
-
 export const subscriptionService = new SubscriptionService();

@@ -1,7 +1,6 @@
 import { FastifyPluginAsync } from 'fastify';
 import { userService } from '../../users/services/user.service';
 import { projectService } from '../services/project.service';
-
 interface CreateProjectBody {
   name: string;
   description?: string;
@@ -9,7 +8,6 @@ interface CreateProjectBody {
   iconColor?: string;
   configuration?: Record<string, any>;
 }
-
 interface UpdateProjectBody {
   name?: string;
   description?: string;
@@ -17,24 +15,16 @@ interface UpdateProjectBody {
   iconColor?: string;
   configuration?: Record<string, any>;
 }
-
 interface ListProjectsQuery {
   search?: string;
 }
-
 const projectRoutes: FastifyPluginAsync = async (fastify) => {
-
-
   // Create project with best practices
   fastify.post<{ Body: CreateProjectBody }>('/', async (request, reply) => {
-
-
     try {
       const { name, description, icon, iconColor, configuration } = request.body as CreateProjectBody;
-
       // === INPUT VALIDATION ===
       const validationErrors: string[] = [];
-
       if (!name || typeof name !== 'string') {
         validationErrors.push('Project name is required and must be a string');
       } else if (name.trim().length === 0) {
@@ -42,21 +32,17 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
       } else if (name.trim().length > 100) {
         validationErrors.push('Project name must be less than 100 characters');
       }
-
       if (description && typeof description !== 'string') {
         validationErrors.push('Description must be a string');
       } else if (description && description.length > 500) {
         validationErrors.push('Description must be less than 500 characters');
       }
-
       if (icon && typeof icon !== 'string') {
         validationErrors.push('Icon must be a string');
       }
-
       if (iconColor && typeof iconColor !== 'string') {
         validationErrors.push('Icon color must be a string');
       }
-
       if (validationErrors.length > 0) {
         return reply.code(400).send({
           success: false,
@@ -65,12 +51,8 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
           details: validationErrors,
         });
       }
-
       // === BUSINESS LOGIC VALIDATION ===
-      console.log('[Project Routes] Getting/creating user for Supabase ID:', request.user!.id);
       const dbUser = await userService.getOrCreateUserFromSupabase(request.user!.id, request.user);
-      console.log('[Project Routes] Got user:', dbUser._id, dbUser.email);
-
       // Check for duplicate project names for this user
       const existingProject = await projectService.getProjectByNameAndUser(name.trim(), dbUser._id.toString());
       if (existingProject) {
@@ -80,7 +62,6 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
           message: 'A project with this name already exists',
         });
       }
-
       // === CREATE PROJECT ===
       const projectData = {
           name: name.trim(),
@@ -89,11 +70,7 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
         iconColor: iconColor || '#6366f1', // Default indigo color
         configuration: configuration || {},
       };
-
-      console.log('[Project Routes] Creating project with data:', projectData);
       const project = await projectService.createProject(projectData, dbUser._id.toString());
-      console.log('[Project Routes] Created project:', project._id);
-
       // === AUDIT LOGGING ===
       fastify.log.info({
         event: 'project_created',
@@ -102,7 +79,6 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
         projectName: project.name,
         timestamp: new Date().toISOString(),
       });
-
       return reply.code(201).send({
         success: true,
         data: {
@@ -117,7 +93,6 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
         },
         message: 'Project created successfully',
       });
-
     } catch (error: any) {
       fastify.log.error({
         msg: 'Error creating project',
@@ -126,7 +101,6 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
         userId: request.user?.id,
         body: request.body,
       });
-
       // Handle specific database errors
       if (error.code === 11000) { // Duplicate key error
         return reply.code(409).send({
@@ -135,7 +109,6 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
           message: 'A project with this name already exists',
         });
       }
-
       return reply.code(500).send({
         success: false,
         error: 'Internal Server Error',
@@ -143,17 +116,12 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
   });
-
   // List projects
   fastify.get<{ Querystring: ListProjectsQuery }>('/', async (request, reply) => {
-
-
     try {
       const dbUser = await userService.getOrCreateUserFromSupabase(request.user!.id, request.user);
       const query = request.query as ListProjectsQuery;
-
       const projects = await projectService.getProjects(dbUser._id.toString(), query.search);
-
       return reply.send({
         success: true,
         data: projects,
@@ -169,17 +137,12 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
   });
-
   // Get project by ID
   fastify.get<{ Params: { id: string } }>('/:id', async (request, reply) => {
-
-
     try {
       const dbUser = await userService.getOrCreateUserFromSupabase(request.user!.id, request.user);
       const { id } = request.params;
-
       const project = await projectService.getProjectById(id, dbUser._id.toString());
-
       if (!project) {
         return reply.code(404).send({
           success: false,
@@ -187,7 +150,6 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
           message: 'Project not found',
         });
       }
-
       return reply.send({
         success: true,
         data: project,
@@ -202,16 +164,12 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
   });
-
   // Update project
   fastify.put<{ Params: { id: string }; Body: UpdateProjectBody }>('/:id', async (request, reply) => {
-
-
     try {
       const dbUser = await userService.getOrCreateUserFromSupabase(request.user!.id, request.user);
       const { id } = request.params;
       const updateData = request.body as UpdateProjectBody;
-
       if (updateData.name !== undefined && !updateData.name.trim()) {
         return reply.code(400).send({
           success: false,
@@ -219,9 +177,7 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
           message: 'Project name cannot be empty',
         });
       }
-
       const project = await projectService.updateProject(id, dbUser._id.toString(), updateData);
-
       if (!project) {
         return reply.code(404).send({
           success: false,
@@ -229,7 +185,6 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
           message: 'Project not found',
         });
       }
-
       return reply.send({
         success: true,
         data: project,
@@ -245,17 +200,12 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
   });
-
   // Delete project
   fastify.delete<{ Params: { id: string } }>('/:id', async (request, reply) => {
-
-
     try {
       const dbUser = await userService.getOrCreateUserFromSupabase(request.user!.id, request.user);
       const { id } = request.params;
-
       const result = await projectService.deleteProject(id, dbUser._id.toString());
-
       return reply.send({
         success: true,
         message: 'Project deleted successfully',
@@ -263,7 +213,6 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
       });
     } catch (error: any) {
       fastify.log.error('Error deleting project:', error);
-      
       if (error.message === 'Project not found') {
         return reply.code(404).send({
           success: false,
@@ -271,7 +220,6 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
           message: 'Project not found',
         });
       }
-
       return reply.code(500).send({
         success: false,
         error: 'Internal Server Error',
@@ -281,6 +229,4 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 };
-
 export default projectRoutes;
-

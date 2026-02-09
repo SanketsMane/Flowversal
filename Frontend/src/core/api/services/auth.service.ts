@@ -6,10 +6,8 @@
  * - Session management
  * - User profile
  */
-
 import { API_ENDPOINTS } from '@/core/api/api.config';
 import api from '@/shared/lib/api-client';
-
 export interface User {
   id: string;
   email: string;
@@ -20,50 +18,39 @@ export interface User {
   createdAt: string;
   lastLogin?: string;
 }
-
 export interface AuthSession {
   user: User;
   accessToken: string;
   refreshToken: string;
   expiresAt: number;
 }
-
 class AuthService {
   private sessionKey = 'flowversal_auth_session';
   private currentSession: AuthSession | null = null;
-
   constructor() {
-    console.log('[Auth Service] ========== CONSTRUCTOR START ==========');
     // Load session from localStorage on init
     this.loadSession();
-    
     // Drop demo/justin tokens and expired sessions
     if (this.currentSession) {
       const isExpired = this.currentSession.expiresAt && this.currentSession.expiresAt < Date.now();
       if (isExpired) {
-        console.log('[Auth Service] Clearing session (expired)');
         this.clearSession();
       }
     }
-    console.log('[Auth Service] ========== CONSTRUCTOR END ==========');
   }
-
   /**
    * Sign up with email and password
    */
   async signUp(email: string, password: string, name?: string): Promise<{ success: boolean; error?: string; user?: User }> {
     try {
       const response = await api.post<any>(API_ENDPOINTS.auth.signup, { email, password, fullName: name });
-
       if (!response.success || !response.data) {
         return { success: false, error: response.error || 'Signup failed' };
       }
-
       // Backend now returns tokens on signup
       if (response.data.accessToken) {
          return this.handleAuthResponse(response.data);
       }
-
       // Fallback if backend requires verification (not current implementation)
       return { success: true, user: response.data.user };
     } catch (error: any) {
@@ -71,25 +58,21 @@ class AuthService {
       return { success: false, error: error.message || 'Network error during signup' };
     }
   }
-
   /**
    * Login with email and password
    */
   async login(email: string, password: string): Promise<{ success: boolean; error?: string; user?: User }> {
     try {
       const response = await api.post<any>(API_ENDPOINTS.auth.login, { email, password });
-
       if (!response.success) {
          return { success: false, error: response.error || 'Login failed' };
       }
-
       return this.handleAuthResponse(response.data);
     } catch (error: any) {
       console.error('Login error:', error);
       return { success: false, error: error.message || 'Network error during login' };
     }
   }
-
   private handleAuthResponse(data: any): { success: boolean; user: User } {
       const user: User = {
         id: data.user.id || data.user._id, // Handle Mongo/Neon ID
@@ -101,7 +84,6 @@ class AuthService {
         lastLogin: new Date().toISOString(),
         onboardingCompleted: data.user.onboardingCompleted || false,
       };
-
       // Extract expiry from token
       let expiresAt = Date.now() + (7 * 24 * 60 * 60 * 1000); // Default 7 days
       if (data.accessToken) {
@@ -116,62 +98,27 @@ class AuthService {
               const payload = JSON.parse(jsonPayload);
               if (payload.exp) {
                   expiresAt = payload.exp * 1000;
-                  console.log(`[AuthService] Token expires at: ${new Date(expiresAt).toISOString()} (from JWT exp)`);
               }
           }
         } catch (e) {
           console.warn('[AuthService] Failed to decode token expiry:', e);
         }
       }
-
       const session: AuthSession = {
         user,
         accessToken: data.accessToken,
         refreshToken: data.refreshToken,
         expiresAt: expiresAt,
       };
-      
-      console.log('[AuthService] Saving session with token:', data.accessToken ? data.accessToken.substring(0, 20) + '...' : 'MISSING');
       this.saveSession(session);
       return { success: true, user };
   }
-
   /**
    * Login with Google OAuth (Disabled/Pending Migration)
    */
   async loginWithGoogle(): Promise<{ success: boolean; error?: string }> {
       return { success: false, error: 'Google Login temporarily disabled for migration' };
   }
-
-  /**
-   * Demo login for development
-   */
-  async demoLogin(): Promise<{ success: boolean; error?: string; user?: User }> {
-    if (!this.isDemoMode()) {
-        return { success: false, error: 'Demo mode not enabled' };
-    }
-    
-     const demoUser: User = {
-      id: 'demo-user-123',
-      email: 'demo@flowversal.com',
-      name: 'Demo User',
-      avatar: 'DU',
-      role: 'user',
-      createdAt: new Date().toISOString(),
-      lastLogin: new Date().toISOString(),
-      onboardingCompleted: false
-    };
-
-    const demoSession: AuthSession = {
-      user: demoUser,
-      accessToken: 'demo-token',
-      refreshToken: 'demo-refresh',
-      expiresAt: Date.now() + 86400000
-    };
-    this.saveSession(demoSession);
-    return { success: true, user: demoUser };
-  }
- 
   /**
    * Logout
    */
@@ -185,14 +132,12 @@ class AuthService {
       this.clearSession();
     }
   }
-
   /**
    * Get current user
    */
   getCurrentUser(): User | null {
     return this.currentSession?.user || null;
   }
-
   /**
    * Check if user is authenticated
    */
@@ -204,11 +149,6 @@ class AuthService {
     }
     return true;
   }
-
-  private isDemoMode(): boolean {
-    return (import.meta as any).env.DEV;
-  }
-
   /**
    * Get access token
    */
@@ -222,37 +162,74 @@ class AuthService {
     }
     return null;
   }
-
   /**
-   * Update user profile
+   * Update user profile - Fixes BUG-008
+   * Author: Sanket
    */
   async updateProfile(updates: Partial<Pick<User, 'name' | 'avatar'>>): Promise<{ success: boolean; error?: string }> {
-     // TODO: Implement backend endpoint for profile update
-     console.warn('updateProfile not implemented in backend yet');
-     if (this.currentSession) {
-         this.currentSession.user = { ...this.currentSession.user, ...updates };
-         this.saveSession(this.currentSession);
-         return { success: true };
-     }
-     return { success: false, error: 'Not authenticated' };
-  }
+     try {
+       // Call backend to persist changes
+       const response = await api.put<any>(API_ENDPOINTS.users.me, {
+         metadata: {
+           name: updates.name,
+           avatar: updates.avatar,
+         }
+       });
 
+       if (response.success && response.data) {
+         // Update local session with backend response
+         if (this.currentSession) {
+           this.currentSession.user = {
+             ...this.currentSession.user,
+             name: response.data.name || updates.name || this.currentSession.user.name,
+             avatar: response.data.avatar || updates.avatar || this.currentSession.user.avatar,
+           };
+           this.saveSession(this.currentSession);
+         }
+         return { success: true };
+       }
+       return { success: false, error: response.error || 'Failed to update profile' };
+     } catch (error: any) {
+       console.error('[AuthService] Profile update error:', error);
+       return { success: false, error: error.message || 'Network error' };
+     }
+   }
   /**
-   * Change password
+   * Change password - Fixes BUG-003
    */
   async changePassword(currentPassword: string, newPassword: string): Promise<{ success: boolean; error?: string }> {
-     // TODO: Implement backend endpoint
-     return { success: false, error: 'Not implemented' };
+    try {
+      const response = await api.post<any>(API_ENDPOINTS.auth.changePassword, { 
+        currentPassword, 
+        newPassword 
+      });
+      if (response.success) {
+        return { success: true };
+      }
+      return { success: false, error: response.error || 'Failed to change password' };
+    } catch (error: any) {
+      console.error('[AuthService] Change password error:', error);
+      if (error.response?.status === 401) {
+        return { success: false, error: 'Current password is incorrect' };
+      }
+      return { success: false, error: error.message || 'Network error' };
+    }
   }
-
   /**
-   * Reset password
+   * Reset password - Fixes BUG-002
    */
   async resetPassword(email: string): Promise<{ success: boolean; error?: string }> {
-      // TODO: Implement backend endpoint
-     return { success: false, error: 'Not implemented' };
+    try {
+      const response = await api.post<any>(API_ENDPOINTS.auth.forgotPassword, { email });
+      if (response.success) {
+        return { success: true };
+      }
+      return { success: false, error: response.error || 'Failed to send reset email' };
+    } catch (error: any) {
+      console.error('[AuthService] Password reset error:', error);
+      return { success: false, error: error.message || 'Network error' };
+    }
   }
-
   /**
    * Save session to localStorage
    */
@@ -260,26 +237,37 @@ class AuthService {
     this.currentSession = session;
     localStorage.setItem(this.sessionKey, JSON.stringify(session));
   }
-
   /**
-   * Load session from localStorage
+   * Load session from localStorage - Updated for BUG-007 fix
+   * Author: Sanket
    */
   private loadSession(): void {
     try {
       const stored = localStorage.getItem(this.sessionKey);
       if (stored) {
         const session = JSON.parse(stored) as AuthSession;
-        if (Date.now() < session.expiresAt) {
-          this.currentSession = session;
+        
+        // ✅ Only load accessToken - will verify user from backend
+        if (session.accessToken && Date.now() < session.expiresAt) {
+          this.currentSession = {
+            user: session.user, // Temporary - will verify async
+            accessToken: session.accessToken,
+            refreshToken: session.refreshToken,
+            expiresAt: session.expiresAt,
+          };
+          
+          // ✅ Verify session is valid by fetching user from backend
+          // This prevents localStorage tampering (changing role, etc.)
+          this.verifySessionAsync();
         } else {
           this.clearSession();
         }
       }
     } catch (error) {
+      console.error('[AuthService] Failed to load session:', error);
       this.clearSession();
     }
   }
-
   /**
    * Clear session
    */
@@ -289,19 +277,51 @@ class AuthService {
   }
 
   /**
+   * Verify session by fetching user data from backend - Fixes BUG-007
+   * This prevents localStorage tampering (e.g., changing role to admin)
+   * Author: Sanket
+   */
+  private async verifySessionAsync(): Promise<void> {
+    try {
+      const response = await api.get<any>('/api/v1/auth/me');
+      if (response.success && response.data) {
+        // Update session with verified user data from backend
+        if (this.currentSession) {
+          // ✅ Trust backend role only - ignore localStorage role
+          this.currentSession.user = {
+            id: response.data.id,
+            email: response.data.email,
+            name: response.data.name || response.data.email,
+            avatar: response.data.avatar,
+            role: response.data.role, // ✅ Backend is source of truth!
+            createdAt: response.data.createdAt,
+            onboardingCompleted: response.data.onboardingCompleted,
+          };
+          this.saveSession(this.currentSession);
+        }
+      } else {
+        // Invalid session - clear it
+        console.warn('[AuthService] Session verification failed - invalid session');
+        this.clearSession();
+      }
+    } catch (error) {
+      console.error('[AuthService] Session verification failed:', error);
+      // If verification fails (network error, etc.), clear session for security
+      this.clearSession();
+    }
+  }
+  /**
    * Refresh session if needed
    */
   async refreshSession(): Promise<boolean> {
     try {
       if (!this.currentSession) return false;
-
       // Refresh if within 1 hour of expiry
       const oneHour = 3600000;
       if (Date.now() > this.currentSession.expiresAt - oneHour) {
          const response = await api.post<any>(API_ENDPOINTS.auth.refresh, { 
              refreshToken: this.currentSession.refreshToken 
          });
-         
          if (response.success && response.data) {
              const data = response.data;
              this.currentSession.accessToken = data.accessToken;
@@ -321,7 +341,6 @@ class AuthService {
       return false;
     }
   }
-
   /**
    * Hydrate session (legacy/noop for now)
    */
@@ -331,6 +350,5 @@ class AuthService {
       return !!this.currentSession;
   }
 }
-
 // Export singleton instance
 export const authService = new AuthService();

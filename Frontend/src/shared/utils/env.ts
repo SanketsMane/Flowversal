@@ -4,7 +4,6 @@
  * Safe access to Vite environment variables with proper fallbacks.
  * This prevents "Cannot read properties of undefined" errors.
  */
-
 /**
  * Safely get environment variable
  */
@@ -21,7 +20,6 @@ function getEnvVar(key: string, fallback: string = ''): string {
     return fallback;
   }
 }
-
 /**
  * Get environment variable with validation
  */
@@ -32,21 +30,18 @@ function getRequiredEnvVar(key: string): string {
   }
   return value;
 }
-
 /**
  * Check if we're in development mode
  */
 export function isDevelopment(): boolean {
   return getEnvVar('MODE', 'development') === 'development';
 }
-
 /**
  * Check if we're in production mode
  */
 export function isProduction(): boolean {
   return getEnvVar('MODE', 'development') === 'production';
 }
-
 /**
  * Get API URL for Node.js backend
  */
@@ -54,35 +49,30 @@ export function getApiUrl(): string {
   // Default to relative proxy path so Vite dev server can proxy to backend
   return getEnvVar('VITE_API_URL', '/api/v1');
 }
-
 /**
  * Get Stripe publishable key
  */
 export function getStripePublishableKey(): string {
   return getEnvVar('VITE_STRIPE_PUBLISHABLE_KEY', '');
 }
-
 /**
  * Get Pinecone environment
  */
 export function getPineconeEnvironment(): string {
   return getEnvVar('VITE_PINECONE_ENV', 'us-west1-gcp');
 }
-
 /**
  * Get Pinecone host URL (new API - replaces environment)
  */
 export function getPineconeHost(): string {
   return getEnvVar('VITE_PINECONE_HOST', '');
 }
-
 /**
  * Get Pinecone index name
  */
 export function getPineconeIndex(): string {
   return getEnvVar('VITE_PINECONE_INDEX', 'flowversal-vectors');
 }
-
 /**
  * Get all environment variables (for debugging)
  */
@@ -104,21 +94,12 @@ export function getAllEnvVars(): Record<string, string> {
     return {};
   }
 }
-
 /**
  * Log environment configuration (for debugging)
  */
 export function logEnvConfig(): void {
   if (isDevelopment()) {
-    console.log('🔧 Environment Configuration:');
-    console.log('  Mode:', getEnvVar('MODE', 'development'));
-    console.log('  API URL:', getApiUrl());
-    console.log('  Stripe Key:', getStripePublishableKey() ? '✅ Set' : '❌ Not set');
-    console.log('  Pinecone Env:', getPineconeEnvironment());
-    console.log('  Pinecone Host:', getPineconeHost());
-    console.log('  Pinecone Index:', getPineconeIndex());
   }
 }
-
 // Export the main getter functions
 export { getEnvVar, getRequiredEnvVar };

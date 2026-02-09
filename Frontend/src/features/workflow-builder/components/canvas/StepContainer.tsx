@@ -4,7 +4,6 @@
  * 
  * Container for workflow steps with nodes and drop zones
  */
-
 import { Plus, Trash2, ChevronDown, Package } from 'lucide-react';
 import { useTheme } from '@/core/theme/ThemeContext';
 import { useWorkflowStore, useUIStore, useSelectionStore } from '../../stores';
@@ -13,24 +12,20 @@ import { StepHeader } from './StepHeader';
 import { NodeCard } from './NodeCard';
 import { useDrop } from 'react-dnd';
 import { NodeRegistry } from '../../registries';
-
 interface StepContainerProps {
   container: Container;
   containerIndex: number;
   stepNumber: number;
 }
-
 export function StepContainer({ container, containerIndex, stepNumber }: StepContainerProps) {
   const { theme } = useTheme();
   const { moveNode, deleteContainer, addNode } = useWorkflowStore();
   const { openNodePicker, openDeleteContainerConfirm } = useUIStore();
   const { selection } = useSelectionStore();
-
   const bgColor = theme === 'dark' ? 'bg-[#1A1A2E]' : 'bg-white';
   const borderColor = theme === 'dark' ? 'border-[#2A2A3E]' : 'border-gray-200';
   const textSecondary = theme === 'dark' ? 'text-[#CFCFE8]' : 'text-gray-600';
   const textPrimary = theme === 'dark' ? 'text-white' : 'text-gray-900';
-
   // Drop zone for dragging nodes from sidebar
   const [{ isOver, canDrop }, drop] = useDrop(() => ({
     accept: ['SIDEBAR_NODE', 'SIDEBAR_TOOL'],
@@ -51,25 +46,19 @@ export function StepContainer({ container, containerIndex, stepNumber }: StepCon
       canDrop: monitor.canDrop(),
     }),
   }));
-
   const handleAddNode = () => {
-    console.log('🔘 Add Actions button clicked', { containerId: container.id, containerIndex });
     openNodePicker('step', container.id);
-    console.log('✅ openNodePicker called');
   };
-
   const handleAddNodeFromMenu = (nodeType: string) => {
     const newNode = NodeRegistry.createInstance(nodeType);
     if (newNode) {
       addNode(container.id, newNode);
     }
   };
-
   const handleDeleteContainer = () => {
     // Always show confirmation modal
     openDeleteContainerConfirm(container.id, container.title);
   };
-
   // Get quick add nodes
   const quickAddNodes = [
     { type: 'prompt_builder', label: 'Prompt Builder', category: 'ai' },
@@ -79,12 +68,10 @@ export function StepContainer({ container, containerIndex, stepNumber }: StepCon
     { type: 'delay', label: 'Delay', category: 'flow' },
     { type: 'transform_data', label: 'Transform Data', category: 'data' },
   ];
-
   const dropZoneClasses = `
     ${isOver && canDrop ? 'border-[#00C6FF] bg-[#00C6FF]/5' : borderColor}
     ${canDrop ? 'border-dashed' : 'border-dashed'}
   `;
-
   return (
     <div 
       ref={drop}
@@ -103,7 +90,6 @@ export function StepContainer({ container, containerIndex, stepNumber }: StepCon
           <Trash2 className="w-4 h-4 text-red-400" />
         </button>
       )}
-
       {/* Header */}
       <div className="mb-4">
         <StepHeader
@@ -113,7 +99,6 @@ export function StepContainer({ container, containerIndex, stepNumber }: StepCon
           stepNumber={stepNumber}
         />
       </div>
-
       {/* Nodes */}
       {container.nodes.length > 0 ? (
         <div className="space-y-3 mb-4">
@@ -158,13 +143,10 @@ export function StepContainer({ container, containerIndex, stepNumber }: StepCon
           )}
         </div>
       )}
-
       {/* Add Actions Button - Directly open node picker */}
       <button
         onClick={() => {
-          console.log('🔘 Add Actions button clicked', { containerId: container.id, containerIndex });
           openNodePicker('step', container.id);
-          console.log('✅ openNodePicker called');
         }}
         className={`w-full border-2 border-dashed ${borderColor} border-green-400/70 rounded-lg p-3 text-sm ${textSecondary} flex items-center justify-center gap-2 transition-all
           bg-white/95 dark:bg-[#0a1b12] dark:border-green-500/60
@@ -176,14 +158,12 @@ export function StepContainer({ container, containerIndex, stepNumber }: StepCon
         <Plus className="w-4 h-4" />
         Add Actions
       </button>
-
       {/* Form Container Badge */}
       {container.isFormContainer && (
         <div className="absolute -top-3 left-6 px-3 py-1 bg-gradient-to-r from-[#00C6FF] to-[#9D50BB] text-white text-xs font-semibold rounded-full">
           AI Form
         </div>
       )}
-
       {/* Drop Zone Indicator */}
       {canDrop && (
         <div className="absolute -top-2 -left-2 -right-2 -bottom-2 border-2 border-dashed border-[#00C6FF] rounded-xl pointer-events-none opacity-50" />

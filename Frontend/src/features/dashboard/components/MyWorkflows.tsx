@@ -10,7 +10,6 @@ import { useTemplateStore } from '@/features/templates';
 import { MyWorkflowCard } from '@/features/workflows/components/MyWorkflowCard'; // Add missing import
 import { WorkflowPreviewModal } from '@/features/workflows/components/WorkflowPreviewModal'; // Add missing import
 import { loadWorkflowIntoStores } from '@/features/workflow-builder/utils/workflowManager';
-
 // Icon mapping for string to component conversion
 const iconMap: Record<string, LucideIcon> = {
   FileText,
@@ -24,13 +23,11 @@ const iconMap: Record<string, LucideIcon> = {
   CheckCircle,
   Clock,
 };
-
 interface MyWorkflowsProps {
   onWorkflowClick: (name: string) => void;
   onWorkflowPlusClick?: (workflow: { name: string; description: string }, action: 'create' | 'attach') => void;
   onCreateClick?: () => void;
 }
-
 interface WorkflowItem {
   id: string;
   name: string;
@@ -46,7 +43,6 @@ interface WorkflowItem {
   isPro?: boolean;
   workflowData?: any;
 }
-
 // Helper function to create workflow preview data for sample workflows
 const createSampleWorkflowPreview = (workflow: WorkflowItem) => {
   return {
@@ -75,7 +71,6 @@ const createSampleWorkflowPreview = (workflow: WorkflowItem) => {
     triggers: [],
   };
 };
-
 export function MyWorkflows({ onWorkflowClick, onWorkflowPlusClick, onCreateClick }: MyWorkflowsProps) {
   const [activeTab, setActiveTab] = useState<'all' | 'draft' | 'published'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -86,40 +81,32 @@ export function MyWorkflows({ onWorkflowClick, onWorkflowPlusClick, onCreateClic
   const [previewWorkflow, setPreviewWorkflow] = useState<any>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [workflowToDelete, setWorkflowToDelete] = useState<{ id: string; name: string } | null>(null);
-  
   const categoryRef = useRef<HTMLDivElement>(null);
   const sortRef = useRef<HTMLDivElement>(null);
-  
   const { theme } = useTheme();
   const { workflows, deleteWorkflow } = useWorkflows();
-  
   // Set up template install callback for opening workflow builder from MyWorkflows
   useEffect(() => {
     const { setInstallCallback } = useTemplateStore.getState();
-    
     // Set the callback to open workflow builder with template data for editing
     // This is called when a template is clicked from the Template Library
     setInstallCallback((templateData: any) => {
-      console.log('🚀 MyWorkflows: Template selected - opening workflow builder for editing');
       // Use onWorkflowClick to trigger the workflow builder opening
       // The template data has already been loaded into stores by the TemplateLibrary component
       if (onWorkflowClick) {
         onWorkflowClick('__TEMPLATE_FROM_LIBRARY__');
       }
     });
-    
     // Clean up callback when component unmounts
     return () => {
       setInstallCallback(undefined);
     };
   }, [onWorkflowClick]);
-
   // Convert saved workflows to the expected format
   const userWorkflowList: WorkflowItem[] = (workflows || []).map(workflow => {
     const categoryStr = Array.isArray(workflow.category) 
       ? workflow.category[0] || 'General'
       : workflow.category || 'General';
-    
     return {
       id: workflow.id,
       name: workflow.name || 'Untitled Workflow',
@@ -136,7 +123,6 @@ export function MyWorkflows({ onWorkflowClick, onWorkflowPlusClick, onCreateClic
       workflowData: workflow,
     };
   });
-
   // Start with user workflows or add example workflows if none exist
   const workflowList: WorkflowItem[] = userWorkflowList.length > 0 ? userWorkflowList : [
     {
@@ -238,10 +224,8 @@ export function MyWorkflows({ onWorkflowClick, onWorkflowPlusClick, onCreateClic
       isPro: false,
     } as WorkflowItem
   ];
-
   const categories = ['All', ...Array.from(new Set(workflowList.map(w => w.category)))];
   const sortOptions = ['Most Recent', 'Most Liked', 'Most Viewed', 'Alphabetical'];
-
   // Click outside to close dropdowns
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -252,13 +236,11 @@ export function MyWorkflows({ onWorkflowClick, onWorkflowPlusClick, onCreateClic
         setShowSortDropdown(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
-
   // Filter and sort workflows
   let filteredWorkflows = workflowList.filter(workflow => {
     // Tab filter
@@ -267,19 +249,15 @@ export function MyWorkflows({ onWorkflowClick, onWorkflowPlusClick, onCreateClic
       activeTab === 'draft' ? (workflow.status === 'draft' || workflow.status === 'pending' || workflow.status === 'rejected') :
       activeTab === 'published' ? (workflow.status === 'published' || workflow.status === 'approved') :
       true;
-
     // Search filter
     const searchMatch = searchQuery.trim() === '' ||
       workflow.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       workflow.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       workflow.category.toLowerCase().includes(searchQuery.toLowerCase());
-
     // Category filter
     const categoryMatch = selectedCategory === 'All' || workflow.category === selectedCategory;
-
     return tabMatch && searchMatch && categoryMatch;
   });
-
   // Apply sorting
   if (selectedSort === 'Most Recent') {
     // Already sorted by default (newest first)
@@ -298,15 +276,12 @@ export function MyWorkflows({ onWorkflowClick, onWorkflowPlusClick, onCreateClic
   } else if (selectedSort === 'Alphabetical') {
     filteredWorkflows = [...filteredWorkflows].sort((a, b) => a.name.localeCompare(b.name));
   }
-
   const handleEdit = (workflowId: string) => {
-    console.log('📝 Edit workflow:', workflowId);
     // Find the workflow data
     const workflow = workflowList.find(w => w.id === workflowId);
     if (workflow) {
       // If workflow has workflowData, use it; otherwise create sample data
       const workflowData = workflow.workflowData || createSampleWorkflowPreview(workflow);
-      console.log('✅ Loading workflow into builder for editing');
       // Load the workflow data into the builder stores
       loadWorkflowIntoStores(workflowData);
       // Open the workflow builder via callback
@@ -317,9 +292,7 @@ export function MyWorkflows({ onWorkflowClick, onWorkflowPlusClick, onCreateClic
       console.error('❌ Workflow not found for:', workflowId);
     }
   };
-
   const handleDelete = (workflowId: string) => {
-    console.log('🗑️ Delete workflow:', workflowId);
     // Find the workflow to get its name
     const workflow = workflowList.find(w => w.id === workflowId);
     if (workflow) {
@@ -327,21 +300,17 @@ export function MyWorkflows({ onWorkflowClick, onWorkflowPlusClick, onCreateClic
       setShowDeleteConfirm(true);
     }
   };
-
   const confirmDelete = () => {
     if (workflowToDelete) {
       deleteWorkflow(workflowToDelete.id);
-      console.log('✅ Workflow deleted successfully');
       setShowDeleteConfirm(false);
       setWorkflowToDelete(null);
     }
   };
-
   const cancelDelete = () => {
     setShowDeleteConfirm(false);
     setWorkflowToDelete(null);
   };
-
   const bgMain = theme === 'dark' ? 'bg-[#0E0E1F]' : 'bg-gray-50';
   const bgCard = theme === 'dark' ? 'bg-[#1A1A2E]' : 'bg-white';
   const bgPanel = theme === 'dark' ? 'bg-[#252540]' : 'bg-gray-100';
@@ -349,11 +318,9 @@ export function MyWorkflows({ onWorkflowClick, onWorkflowPlusClick, onCreateClic
   const textSecondary = theme === 'dark' ? 'text-[#CFCFE8]' : 'text-gray-600';
   const borderColor = theme === 'dark' ? 'border-white/5' : 'border-gray-200';
   const hoverBg = theme === 'dark' ? 'hover:bg-white/5' : 'hover:bg-gray-100';
-
   const allCount = workflowList.length;
   const draftCount = workflowList.filter(w => w.status === 'draft' || w.status === 'pending' || w.status === 'rejected').length;
   const publishedCount = workflowList.filter(w => w.status === 'published' || w.status === 'approved').length;
-
   return (
     <div className={`min-h-full h-full flex flex-col transition-colors duration-300 pt-16 ${
       theme === 'dark' ? 'bg-[#0E0E1F]' : 'bg-white'
@@ -387,10 +354,8 @@ export function MyWorkflows({ onWorkflowClick, onWorkflowPlusClick, onCreateClic
           </div>
         </div>
       </div>
-
       {/* Main Content */}
       <div className="px-8 pb-8">{/* Changed from p-8 pt-0 */}
-
         {/* Search and Filters */}
         <div className="mb-6 flex items-center gap-4 flex-wrap">
           {/* Search Bar */}
@@ -409,7 +374,6 @@ export function MyWorkflows({ onWorkflowClick, onWorkflowPlusClick, onCreateClic
               </button>
             )}
           </div>
-
           {/* Category Filter */}
           <div className="relative" ref={categoryRef}>
             <button
@@ -438,7 +402,6 @@ export function MyWorkflows({ onWorkflowClick, onWorkflowPlusClick, onCreateClic
                 </span>
               )}
             </button>
-
             {showCategoryDropdown && (
               <div className={`absolute top-full left-0 mt-2 w-full ${bgCard} border ${borderColor} rounded-lg shadow-2xl z-50 max-h-60 overflow-y-auto`}>
                 {/* Close button */}
@@ -454,7 +417,6 @@ export function MyWorkflows({ onWorkflowClick, onWorkflowPlusClick, onCreateClic
                     <X className={`w-4 h-4 ${textSecondary}`} />
                   </button>
                 </div>
-                
                 {categories.map((category) => (
                   <button
                     key={category}
@@ -476,7 +438,6 @@ export function MyWorkflows({ onWorkflowClick, onWorkflowPlusClick, onCreateClic
               </div>
             )}
           </div>
-
           {/* Sort Dropdown */}
           <div className="relative" ref={sortRef}>
             <button
@@ -492,7 +453,6 @@ export function MyWorkflows({ onWorkflowClick, onWorkflowPlusClick, onCreateClic
               </span>
               <ChevronDown className={`w-4 h-4 ${textSecondary}`} />
             </button>
-
             {showSortDropdown && (
               <div className={`absolute top-full left-0 mt-2 w-full ${bgCard} border ${borderColor} rounded-lg shadow-2xl z-50`}>
                 {sortOptions.map((option) => (
@@ -517,7 +477,6 @@ export function MyWorkflows({ onWorkflowClick, onWorkflowPlusClick, onCreateClic
             )}
           </div>
         </div>
-
         {/* Tabs */}
         <div className={`flex items-center gap-6 mb-8 border-b ${borderColor}`}>
           <button
@@ -551,7 +510,6 @@ export function MyWorkflows({ onWorkflowClick, onWorkflowPlusClick, onCreateClic
             Published ({publishedCount})
           </button>
         </div>
-
         {/* Workflow Grid */}
         {filteredWorkflows.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-16">
@@ -560,7 +518,6 @@ export function MyWorkflows({ onWorkflowClick, onWorkflowPlusClick, onCreateClic
               const IconComponent = typeof workflow.icon === 'string' 
                 ? (iconMap[workflow.icon] || Workflow) 
                 : workflow.icon;
-              
               return (
                 <MyWorkflowCard
                   key={workflow.id}
@@ -597,7 +554,6 @@ export function MyWorkflows({ onWorkflowClick, onWorkflowPlusClick, onCreateClic
           </div>
         )}
       </div>
-      
       {/* Workflow Preview Modal */}
       {previewWorkflow && (
         <WorkflowPreviewModal
@@ -610,7 +566,6 @@ export function MyWorkflows({ onWorkflowClick, onWorkflowPlusClick, onCreateClic
           theme={theme}
         />
       )}
-
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && workflowToDelete && (
         <>
@@ -624,7 +579,6 @@ export function MyWorkflows({ onWorkflowClick, onWorkflowPlusClick, onCreateClic
             }}
             onClick={cancelDelete}
           />
-
           {/* Modal */}
           <div
             className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[101] w-[90%] max-w-[480px] ${bgCard} rounded-2xl shadow-2xl overflow-hidden border ${borderColor}`}
@@ -637,7 +591,6 @@ export function MyWorkflows({ onWorkflowClick, onWorkflowPlusClick, onCreateClic
                 <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
                   <AlertCircle className="w-6 h-6 text-red-500" />
                 </div>
-
                 {/* Title & Subtitle */}
                 <div className="flex-1">
                   <h2 className={`${textPrimary} text-xl mb-1`}>
@@ -648,7 +601,6 @@ export function MyWorkflows({ onWorkflowClick, onWorkflowPlusClick, onCreateClic
                   </p>
                 </div>
               </div>
-
               {/* Close Button */}
               <button
                 onClick={cancelDelete}
@@ -657,14 +609,12 @@ export function MyWorkflows({ onWorkflowClick, onWorkflowPlusClick, onCreateClic
                 <X className={`w-5 h-5 ${textSecondary}`} />
               </button>
             </div>
-
             {/* Content */}
             <div className="p-6">
               {/* Question */}
               <p className={`${textPrimary} text-[15px] mb-4`}>
                 Are you sure you want to delete this workflow?
               </p>
-
               {/* Workflow Name Box */}
               <div className={`p-4 ${bgPanel} border ${borderColor} rounded-lg mb-4`}>
                 <div className={`${textSecondary} text-[11px] mb-1 uppercase tracking-wide`}>
@@ -674,12 +624,10 @@ export function MyWorkflows({ onWorkflowClick, onWorkflowPlusClick, onCreateClic
                   {workflowToDelete.name}
                 </div>
               </div>
-
               {/* Warning Text */}
               <p className={`${textSecondary} text-sm mb-6 leading-relaxed`}>
                 This will permanently remove the workflow and all its configurations. This action cannot be undone.
               </p>
-
               {/* Action Buttons */}
               <div className="flex gap-3 justify-end">
                 {/* Cancel Button */}
@@ -689,7 +637,6 @@ export function MyWorkflows({ onWorkflowClick, onWorkflowPlusClick, onCreateClic
                 >
                   Cancel
                 </button>
-
                 {/* Delete Button */}
                 <button
                   onClick={confirmDelete}

@@ -3,17 +3,14 @@
  * Manages projects, boards, and tasks with icon support
  * Integrated with backend API for data persistence
  */
-
 import * as projectsAPI from '@/core/api/services/projects.service';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-
 // Unique ID generator with counter to avoid collisions
 let idCounter = 0;
 const generateUniqueId = (prefix: string): string => {
   return `${prefix}-${Date.now()}-${++idCounter}`;
 };
-
 const labelColorMap: Record<string, string> = {
   Red: 'bg-red-500',
   Orange: 'bg-orange-500',
@@ -27,12 +24,10 @@ const labelColorMap: Record<string, string> = {
   Cyan: 'bg-cyan-500',
   Gray: 'bg-gray-500'
 };
-
 type LabelHint = { name: string; color: string };
 type ApiProject = projectsAPI.Project;
 type ApiBoard = projectsAPI.Board;
 type ApiTask = projectsAPI.Task;
-
 const buildLabelHintMap = (hints?: LabelHint[]) => {
   const map = new Map<string, string>();
   hints?.forEach((hint) => {
@@ -42,7 +37,6 @@ const buildLabelHintMap = (hints?: LabelHint[]) => {
   });
   return map;
 };
-
 const toLabelHints = (labels?: any[]): LabelHint[] => {
   if (!Array.isArray(labels)) return [];
   return labels
@@ -53,20 +47,17 @@ const toLabelHints = (labels?: any[]): LabelHint[] => {
           color: labelColorMap[label] || 'bg-blue-500'
         };
       }
-
       if (label && typeof label === 'object') {
         return {
           name: label.name || label.id || '',
           color: label.color || labelColorMap[label.name] || 'bg-blue-500'
         };
       }
-
       return null;
     })
     .filter((hint): hint is LabelHint => hint !== null && hint.name.trim().length > 0)
     .map((hint) => ({ name: hint.name.trim(), color: hint.color }));
 };
-
 const normalizeLabelEntry = (
   label: any,
   index: number,
@@ -82,7 +73,6 @@ const normalizeLabelEntry = (
       color: hintMap.get(name) || labelColorMap[name] || 'bg-blue-500'
     };
   }
-
   if (label && typeof label === 'object') {
     const name = (label.name || label.id || '').toString().trim();
     if (!name) return null;
@@ -92,19 +82,15 @@ const normalizeLabelEntry = (
       color: label.color || hintMap.get(name) || labelColorMap[name] || 'bg-blue-500'
     };
   }
-
   return null;
 };
-
 const normalizeLabels = (labels: any, taskId: string, hints?: LabelHint[]) => {
   if (!Array.isArray(labels)) return [];
-
   const hintMap = buildLabelHintMap(hints);
   return labels
     .map((label, index) => normalizeLabelEntry(label, index, taskId, hintMap))
     .filter((label): label is { id: string; name: string; color: string } => label !== null);
 };
-
 const mapApiProjectToProject = (apiProject: ApiProject): Project => ({
   id: apiProject.id,
   name: apiProject.name,
@@ -115,11 +101,9 @@ const mapApiProjectToProject = (apiProject: ApiProject): Project => ({
   updatedAt: apiProject.updatedAt ? new Date(apiProject.updatedAt) : undefined,
   configuration: apiProject.configuration,
 });
-
 const mapApiTaskToTask = (apiTask: ApiTask & Partial<Task>, labelHints?: LabelHint[]): Task => {
   const safeId = apiTask.id || apiTask.taskId || generateUniqueId('task');
   const hints = labelHints ?? toLabelHints(apiTask.labels as any);
-
   return {
     id: safeId,
     taskId: apiTask.taskId || safeId,
@@ -158,7 +142,6 @@ const mapApiTaskToTask = (apiTask: ApiTask & Partial<Task>, labelHints?: LabelHi
     order: apiTask.order ?? 0,
   };
 };
-
 export interface Task {
   id: string;
   taskId: string;
@@ -184,7 +167,6 @@ export interface Task {
   updatedAt: Date;
   order?: number; // For drag-and-drop reordering within a column
 }
-
 export interface BoardConfiguration {
   companyName?: string;
   email?: string;
@@ -192,7 +174,6 @@ export interface BoardConfiguration {
   templateId?: string; // If created from template
   customFields?: Record<string, any>;
 }
-
 export interface Board {
   id: string;
   name: string;
@@ -205,7 +186,6 @@ export interface Board {
   userId?: string;
   configuration?: BoardConfiguration; // Board-specific configuration and API keys
 }
-
 // Keep project configuration for backward compatibility
 export interface ProjectConfiguration {
   companyName?: string;
@@ -214,7 +194,6 @@ export interface ProjectConfiguration {
   templateId?: string; // If created from template
   customFields?: Record<string, any>;
 }
-
 export interface Project {
   id: string;
   name: string;
@@ -226,19 +205,16 @@ export interface Project {
   userId?: string;
   configuration?: ProjectConfiguration; // Project configuration and API keys
 }
-
 interface ProjectStore {
   projects: Project[];
   boards: Board[];
   tasks: Task[];
-  
   // Project actions
   addProject: (project: Omit<Project, 'id' | 'createdAt'>) => Promise<string>;
   updateProject: (id: string, updates: Partial<Project>) => Promise<void>;
   deleteProject: (id: string) => Promise<void>;
   updateProjectConfiguration: (id: string, config: ProjectConfiguration) => void;
   getProjectConfiguration: (id: string) => ProjectConfiguration | undefined;
-  
   // Board actions
   addBoard: (board: Omit<Board, 'id' | 'createdAt'>) => Promise<string>;
   updateBoard: (id: string, updates: Partial<Board>) => Promise<void>;
@@ -246,7 +222,6 @@ interface ProjectStore {
   getBoardsByProject: (projectId: string) => Board[];
   updateBoardConfiguration: (id: string, config: BoardConfiguration) => void;
   getBoardConfiguration: (id: string) => BoardConfiguration | undefined;
-  
   // Task actions
   addTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string>;
   updateTask: (id: string, updates: Partial<Task>) => Promise<void>;
@@ -254,15 +229,12 @@ interface ProjectStore {
   getTasksByBoard: (boardId: string) => Task[];
   getTasksByProject: (projectId: string) => Task[];
   getAllUserTasks: (userId: string) => Task[];
-  
   // Data loading
   loadAllData: () => Promise<void>;
   isLoading: boolean;
   isInitialized: boolean;
 }
-
 const LOGGED_IN_USER_ID = '4'; // Current logged-in user - Justin (justin@gmail.com)
-
 export const useProjectStore = create<ProjectStore>()(
   persist(
     (set, get) => ({
@@ -361,7 +333,6 @@ export const useProjectStore = create<ProjectStore>()(
           createdAt: new Date('2025-10-10'),
           updatedAt: new Date('2025-10-10'),
         },
-        
         // TO DO TASKS - Various due dates
         {
           id: 'task-todo-past',
@@ -469,7 +440,6 @@ export const useProjectStore = create<ProjectStore>()(
           createdAt: new Date('2025-11-01'),
           updatedAt: new Date('2025-11-05'),
         },
-        
         // IN PROGRESS TASKS
         {
           id: 'task-progress-1',
@@ -516,7 +486,6 @@ export const useProjectStore = create<ProjectStore>()(
           createdAt: new Date('2025-11-05'),
           updatedAt: new Date('2025-11-17'),
         },
-        
         // REVIEW TASKS
         {
           id: 'task-review-1',
@@ -539,7 +508,6 @@ export const useProjectStore = create<ProjectStore>()(
           createdAt: new Date('2025-11-12'),
           updatedAt: new Date('2025-11-19'),
         },
-        
         // BLOCKED TASKS
         {
           id: 'task-blocked-1',
@@ -562,7 +530,6 @@ export const useProjectStore = create<ProjectStore>()(
           createdAt: new Date('2025-11-15'),
           updatedAt: new Date('2025-11-18'),
         },
-        
         // DONE TASKS - Recent (this month)
         {
           id: 'task-done-recent-1',
@@ -606,7 +573,6 @@ export const useProjectStore = create<ProjectStore>()(
           createdAt: new Date('2025-11-08'),
           updatedAt: new Date('2025-11-15'),
         },
-        
         // DONE TASKS - Last month (October 2025)
         {
           id: 'task-done-lastmonth-1',
@@ -649,7 +615,6 @@ export const useProjectStore = create<ProjectStore>()(
           createdAt: new Date('2025-09-15'),
           updatedAt: new Date('2025-10-20'),
         },
-        
         // DONE TASKS - 2 months ago (September 2025)
         {
           id: 'task-done-2months-1',
@@ -671,7 +636,6 @@ export const useProjectStore = create<ProjectStore>()(
           createdAt: new Date('2025-08-01'),
           updatedAt: new Date('2025-09-15'),
         },
-        
         // Future tasks (no due date)
         {
           id: 'task-future-1',
@@ -693,7 +657,6 @@ export const useProjectStore = create<ProjectStore>()(
           createdAt: new Date('2025-11-01'),
           updatedAt: new Date('2025-11-01'),
         },
-        
         // JUSTIN'S TASKS - justin@gmail.com (id: '4')
         {
           id: 'task-justin-1',
@@ -784,31 +747,18 @@ export const useProjectStore = create<ProjectStore>()(
           updatedAt: new Date('2025-11-10'),
         },
       ],
-      
       isLoading: false,
       isInitialized: false,
-      
       // Data loading
       loadAllData: async () => {
         const state = get();
         if (state.isInitialized || state.isLoading) {
-          console.log('[Project Store] Data already initialized or loading, skipping.');
           return;
         }
-
         try {
-          console.log('[Project Store] Loading all data from API');
           set({ isLoading: true });
-          
           const result = await projectsAPI.fetchAllUserData();
-          
           if (result.success && result.data) {
-            console.log('[Project Store] Data loaded successfully:', {
-              projects: result.data.projects.length,
-              boards: result.data.boards.length,
-              tasks: result.data.tasks.length,
-            });
-            
             // Normalize tasks: convert string labels to objects and dates to Date objects
             const normalizedTasks = result.data.tasks.map((task: any) => ({
               ...task,
@@ -834,7 +784,6 @@ export const useProjectStore = create<ProjectStore>()(
               recurring: task.recurring || 'Never',
               reminder: task.reminder || 'None',
             }));
-            
             set({
               projects: result.data.projects as any[],
               boards: result.data.boards as any[],
@@ -851,11 +800,8 @@ export const useProjectStore = create<ProjectStore>()(
           set({ isLoading: false });
         }
       },
-      
       // Project actions
       addProject: async (project) => {
-        console.log('[Project Store] Adding project:', project.name);
-        
         // Optimistic update
         const tempId = generateUniqueId('proj');
         const tempProject: Project = {
@@ -866,7 +812,6 @@ export const useProjectStore = create<ProjectStore>()(
         set((state) => ({
           projects: [...state.projects, tempProject],
         }));
-        
         // API call
         try {
           const result = await projectsAPI.createProject({
@@ -876,9 +821,7 @@ export const useProjectStore = create<ProjectStore>()(
             iconColor: project.iconColor,
             configuration: project.configuration,
           });
-          
           if (result.success && result.data) {
-            console.log('[Project Store] Project created successfully:', result.data.id);
             // Replace temp with real data
             set((state) => ({
               projects: state.projects.map(p => p.id === tempId ? result.data as any : p),
@@ -901,10 +844,7 @@ export const useProjectStore = create<ProjectStore>()(
           throw error;
         }
       },
-      
       updateProject: async (id, updates) => {
-        console.log('[Project Store] Updating project:', id);
-
         // Optimistic update
         const previousProjects = get().projects;
         set((state) => ({
@@ -912,7 +852,6 @@ export const useProjectStore = create<ProjectStore>()(
             p.id === id ? { ...p, ...updates } : p
           ),
         }));
-
         // API call
         try {
           const result = await projectsAPI.updateProject(id, updates);
@@ -924,9 +863,7 @@ export const useProjectStore = create<ProjectStore>()(
           };
           const success = apiResponse.success ?? !!apiResponse.data;
           const updatedProject = apiResponse.data ? mapApiProjectToProject(apiResponse.data) : undefined;
-
           if (success && updatedProject) {
-            console.log('[Project Store] Project updated successfully:', id);
             set((state) => ({
               projects: state.projects.map(p => p.id === id ? updatedProject : p),
             }));
@@ -938,29 +875,22 @@ export const useProjectStore = create<ProjectStore>()(
           console.warn('[Project Store] Keeping optimistic update despite failure');
         }
       },
-      
       deleteProject: async (id) => {
-        console.log('[Project Store] Deleting project:', id);
-
         // Optimistic update
         const previousState = {
           projects: get().projects,
           boards: get().boards,
           tasks: get().tasks,
         };
-
         set((state) => ({
           projects: state.projects.filter((p) => p.id !== id),
           boards: state.boards.filter((b) => b.projectId !== id),
           tasks: state.tasks.filter((t) => t.projectId !== id),
         }));
-
         // API call
         try {
           const result = await projectsAPI.deleteProject(id);
-          
           if (result.success) {
-            console.log('[Project Store] Project deleted successfully:', id);
           } else {
             console.error('[Project Store] Failed to delete project:', result.error);
             // Rollback
@@ -974,7 +904,6 @@ export const useProjectStore = create<ProjectStore>()(
           throw error;
         }
       },
-      
       updateProjectConfiguration: (id, config) => {
         set((state) => ({
           projects: state.projects.map((p) =>
@@ -982,15 +911,11 @@ export const useProjectStore = create<ProjectStore>()(
           ),
         }));
       },
-      
       getProjectConfiguration: (id) => {
         return get().projects.find((p) => p.id === id)?.configuration;
       },
-      
       // Board actions
       addBoard: async (board) => {
-        console.log('[Project Store] Adding board:', board.name);
-        
         // Optimistic update
         const tempId = generateUniqueId('board');
         const tempBoard: Board = {
@@ -1001,7 +926,6 @@ export const useProjectStore = create<ProjectStore>()(
         set((state) => ({
           boards: [...state.boards, tempBoard],
         }));
-        
         // API call
         try {
           const result = await projectsAPI.createBoard({
@@ -1012,9 +936,7 @@ export const useProjectStore = create<ProjectStore>()(
             projectId: board.projectId,
             configuration: board.configuration,
           });
-          
           if (result.success && result.data) {
-            console.log('[Project Store] Board created successfully:', result.data.id);
             set((state) => ({
               boards: state.boards.map(b => b.id === tempId ? result.data as any : b),
             }));
@@ -1034,22 +956,16 @@ export const useProjectStore = create<ProjectStore>()(
           throw error;
         }
       },
-      
       updateBoard: async (id, updates) => {
-        console.log('[Project Store] Updating board:', id);
-
         const previousBoards = get().boards;
         set((state) => ({
           boards: state.boards.map((b) =>
             b.id === id ? { ...b, ...updates } : b
           ),
         }));
-
         try {
           const result = await projectsAPI.updateBoard(id, updates);
-          
           if (result.success && result.data) {
-            console.log('[Project Store] Board updated successfully:', id);
             set((state) => ({
               boards: state.boards.map(b => b.id === id ? result.data as any : b),
             }));
@@ -1064,25 +980,18 @@ export const useProjectStore = create<ProjectStore>()(
           throw error;
         }
       },
-      
       deleteBoard: async (id) => {
-        console.log('[Project Store] Deleting board:', id);
-
         const previousState = {
           boards: get().boards,
           tasks: get().tasks,
         };
-
         set((state) => ({
           boards: state.boards.filter((b) => b.id !== id),
           tasks: state.tasks.filter((t) => t.boardId !== id),
         }));
-
         try {
           const result = await projectsAPI.deleteBoard(id);
-          
           if (result.success) {
-            console.log('[Project Store] Board deleted successfully:', id);
           } else {
             console.error('[Project Store] Failed to delete board:', result.error);
             set(previousState);
@@ -1094,11 +1003,9 @@ export const useProjectStore = create<ProjectStore>()(
           throw error;
         }
       },
-      
       getBoardsByProject: (projectId) => {
         return get().boards.filter((b) => b.projectId === projectId);
       },
-      
       updateBoardConfiguration: (id, config) => {
         set((state) => ({
           boards: state.boards.map((b) =>
@@ -1106,16 +1013,12 @@ export const useProjectStore = create<ProjectStore>()(
           ),
         }));
       },
-      
       getBoardConfiguration: (id) => {
         const board = get().boards.find((b) => b.id === id);
         return board?.configuration;
       },
-      
       // Task actions
       addTask: async (task) => {
-        console.log('[Project Store] Adding task:', task.name);
-        
         // Optimistic update
         const tempId = generateUniqueId('task');
         const taskId = `TSK-${String(get().tasks.length + 1).padStart(3, '0')}`;
@@ -1129,28 +1032,18 @@ export const useProjectStore = create<ProjectStore>()(
         set((state) => ({
           tasks: [...state.tasks, tempTask],
         }));
-        
         // API call
         try {
           // Validate required fields before API call
           if (!task.boardId || !task.projectId) {
             throw new Error('Board ID and Project ID are required to create a task');
           }
-
           // Normalize labels to strings for API (backend expects string array)
           const normalizedLabels = Array.isArray(task.labels)
             ? task.labels.map((label: any) => typeof label === 'string' ? label : label.name || label.id || '')
             : [];
-          
           // Normalize assignedTo to ensure proper format
           const normalizedAssignedTo = Array.isArray(task.assignedTo) ? task.assignedTo : [];
-          
-          console.log('[Project Store] Creating task with:', {
-            name: task.name,
-            boardId: task.boardId,
-            projectId: task.projectId,
-          });
-          
           const result = await projectsAPI.createTask({
             name: task.name,
             description: task.description || '',
@@ -1184,9 +1077,7 @@ export const useProjectStore = create<ProjectStore>()(
             createdBy: task.createdBy || { id: 'system', name: 'System', avatar: 'S' },
             order: task.order || 0,
           });
-          
           if (result.success && result.data) {
-            console.log('[Project Store] Task created successfully:', result.data.id);
             const normalizedTask = mapApiTaskToTask(
               result.data as ApiTask & Partial<Task>,
               toLabelHints(task.labels)
@@ -1216,28 +1107,21 @@ export const useProjectStore = create<ProjectStore>()(
           throw error;
         }
       },
-      
       updateTask: async (id, updates) => {
-        console.log('[Project Store] Updating task:', id);
-        
         const previousTasks = get().tasks;
         set((state) => ({
           tasks: state.tasks.map((t) =>
             t.id === id ? { ...t, ...updates, updatedAt: new Date() } : t
           ),
         }));
-        
         try {
           const apiUpdates = {
             ...updates,
             dueDate: updates.dueDate instanceof Date ? updates.dueDate.toISOString() : updates.dueDate,
             startDate: updates.startDate instanceof Date ? updates.startDate.toISOString() : updates.startDate,
           };
-          
           const result = await projectsAPI.updateTask(id, apiUpdates);
-          
           if (result.success && result.data) {
-            console.log('[Project Store] Task updated successfully:', id);
             const normalizedTask = mapApiTaskToTask(
               result.data as ApiTask & Partial<Task>,
               toLabelHints(updates.labels)
@@ -1258,20 +1142,14 @@ export const useProjectStore = create<ProjectStore>()(
           throw error;
         }
       },
-      
       deleteTask: async (id) => {
-        console.log('[Project Store] Deleting task:', id);
-        
         const previousTasks = get().tasks;
         set((state) => ({
           tasks: state.tasks.filter((t) => t.id !== id),
         }));
-        
         try {
           const result = await projectsAPI.deleteTask(id);
-          
           if (result.success) {
-            console.log('[Project Store] Task deleted successfully:', id);
           } else {
             console.error('[Project Store] Failed to delete task:', result.error);
             set({ tasks: previousTasks });
@@ -1283,15 +1161,12 @@ export const useProjectStore = create<ProjectStore>()(
           throw error;
         }
       },
-      
       getTasksByBoard: (boardId) => {
         return get().tasks.filter((t) => t.boardId === boardId);
       },
-      
       getTasksByProject: (projectId) => {
         return get().tasks.filter((t) => t.projectId === projectId);
       },
-      
       getAllUserTasks: (userId) => {
         return get().tasks.filter((t) => 
           t.assignedTo.some(user => user.id === userId) ||

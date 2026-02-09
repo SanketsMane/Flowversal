@@ -2,7 +2,6 @@
  * Activity Log / Audit Trail
  * Track all user actions and system events
  */
-
 import React, { useState } from 'react';
 import { Card } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
@@ -25,7 +24,6 @@ import {
   Clock,
   ChevronDown,
 } from 'lucide-react';
-
 interface ActivityLogEntry {
   id: string;
   timestamp: string;
@@ -42,36 +40,27 @@ interface ActivityLogEntry {
   userAgent: string;
   metadata?: Record<string, any>;
 }
-
 type FilterCategory = 'all' | 'auth' | 'user' | 'workflow' | 'subscription' | 'system' | 'security';
 type FilterStatus = 'all' | 'success' | 'failed' | 'warning';
-
 export const ActivityLog: React.FC = () => {
   const { theme } = useThemeStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState<FilterCategory>('all');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [selectedEntry, setSelectedEntry] = useState<ActivityLogEntry | null>(null);
-
   const activities = getActivityLogs();
-
   const filteredActivities = activities.filter((activity) => {
     const matchesSearch =
       activity.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       activity.user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       activity.action.toLowerCase().includes(searchQuery.toLowerCase());
-    
     const matchesCategory = filterCategory === 'all' || activity.category === filterCategory;
     const matchesStatus = filterStatus === 'all' || activity.status === filterStatus;
-
     return matchesSearch && matchesCategory && matchesStatus;
   });
-
   const exportLogs = () => {
-    console.log('Exporting activity logs...');
     alert('Activity logs exported to CSV!');
   };
-
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'auth':
@@ -90,7 +79,6 @@ export const ActivityLog: React.FC = () => {
         return <Eye className="w-4 h-4" />;
     }
   };
-
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'success':
@@ -103,7 +91,6 @@ export const ActivityLog: React.FC = () => {
         return null;
     }
   };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'success':
@@ -116,7 +103,6 @@ export const ActivityLog: React.FC = () => {
         return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
     }
   };
-
   const getCategoryColor = (category: string) => {
     switch (category) {
       case 'auth':
@@ -135,7 +121,6 @@ export const ActivityLog: React.FC = () => {
         return 'bg-gray-500/20 text-gray-400';
     }
   };
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -154,7 +139,6 @@ export const ActivityLog: React.FC = () => {
           Export Logs
         </Button>
       </div>
-
       {/* Filters */}
       <Card className={`p-6 ${theme === 'dark' ? 'bg-[#1A1A2E] border-white/10' : 'bg-white border-gray-200'}`}>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -168,7 +152,6 @@ export const ActivityLog: React.FC = () => {
               className={`pl-10 ${theme === 'dark' ? 'bg-[#0E0E1F] border-[#2A2A3E] text-white' : 'bg-white border-gray-300 text-gray-900'}`}
             />
           </div>
-
           {/* Category Filter */}
           <div className="flex gap-2 flex-wrap">
             {(['all', 'auth', 'user', 'workflow', 'subscription', 'security', 'system'] as FilterCategory[]).map((category) => (
@@ -187,7 +170,6 @@ export const ActivityLog: React.FC = () => {
               </button>
             ))}
           </div>
-
           {/* Status Filter */}
           <div className="flex gap-2">
             {(['all', 'success', 'failed', 'warning'] as FilterStatus[]).map((status) => (
@@ -208,7 +190,6 @@ export const ActivityLog: React.FC = () => {
           </div>
         </div>
       </Card>
-
       {/* Activity List */}
       <Card className={`p-6 ${theme === 'dark' ? 'bg-[#1A1A2E] border-white/10' : 'bg-white border-gray-200'}`}>
         <div className="space-y-3">
@@ -264,7 +245,6 @@ export const ActivityLog: React.FC = () => {
           )}
         </div>
       </Card>
-
       {/* Details Modal */}
       {selectedEntry && (
         <div
@@ -289,18 +269,15 @@ export const ActivityLog: React.FC = () => {
                 Close
               </Button>
             </div>
-
             <div className="space-y-4">
               <div>
                 <label className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Action</label>
                 <p className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{selectedEntry.action}</p>
               </div>
-
               <div>
                 <label className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Details</label>
                 <p className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>{selectedEntry.details}</p>
               </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Status</label>
@@ -320,13 +297,11 @@ export const ActivityLog: React.FC = () => {
                   </div>
                 </div>
               </div>
-
               <div>
                 <label className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>User</label>
                 <p className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>{selectedEntry.user.name}</p>
                 <p className={`text-sm ${theme === 'dark' ? 'text-gray-500' : 'text-gray-600'}`}>{selectedEntry.user.email}</p>
               </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Timestamp</label>
@@ -337,12 +312,10 @@ export const ActivityLog: React.FC = () => {
                   <p className={theme === 'dark' ? 'text-white' : 'text-gray-900'}>{selectedEntry.ipAddress}</p>
                 </div>
               </div>
-
               <div>
                 <label className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>User Agent</label>
                 <p className={`text-sm ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{selectedEntry.userAgent}</p>
               </div>
-
               {selectedEntry.metadata && (
                 <div>
                   <label className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>Additional Metadata</label>
@@ -362,7 +335,6 @@ export const ActivityLog: React.FC = () => {
     </div>
   );
 };
-
 // Mock data generator
 function getActivityLogs(): ActivityLogEntry[] {
   const users = [
@@ -370,7 +342,6 @@ function getActivityLogs(): ActivityLogEntry[] {
     { id: '2', name: 'Jane Smith', email: 'jane@example.com' },
     { id: '3', name: 'Bob Johnson', email: 'bob@example.com' },
   ];
-
   const actions = [
     { action: 'User Login', category: 'auth' as const, status: 'success' as const, details: 'User logged in successfully' },
     { action: 'User Logout', category: 'auth' as const, status: 'success' as const, details: 'User logged out' },
@@ -385,13 +356,11 @@ function getActivityLogs(): ActivityLogEntry[] {
     { action: 'High Memory Usage', category: 'system' as const, status: 'warning' as const, details: 'Memory usage exceeded 80%' },
     { action: 'Suspicious Activity', category: 'security' as const, status: 'warning' as const, details: 'Multiple failed login attempts detected' },
   ];
-
   return Array.from({ length: 50 }, (_, i) => {
     const user = users[Math.floor(Math.random() * users.length)];
     const action = actions[Math.floor(Math.random() * actions.length)];
     const now = new Date();
     now.setMinutes(now.getMinutes() - i * 15);
-
     return {
       id: `log-${i}`,
       timestamp: now.toLocaleString(),

@@ -3,7 +3,6 @@
  * Zapier-inspired modal with categories sidebar and items grid
  * Replaces LHS panel functionality
  */
-
 import { useState, useEffect } from 'react';
 import { useTheme } from '@/core/theme/ThemeContext';
 import { X, Search, Home, Zap, Bot, Globe, Pen, GitBranch, Briefcase, Plus } from 'lucide-react';
@@ -17,19 +16,16 @@ import { useConnectionStore } from '@/features/workflow-builder/stores/connectio
 import { triggerTemplates } from '@/features/workflow-builder/utils/triggerTemplates';
 import { nodeTemplates } from '@/features/workflow-builder/utils/nodeTemplates';
 import { toolTemplates } from '@/features/workflow-builder/utils/toolTemplates';
-
 interface UnifiedNodePickerModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
 interface Category {
   id: string;
   label: string;
   icon: LucideIcon;
   description?: string;
 }
-
 interface Item {
   type: string;
   label: string;
@@ -38,7 +34,6 @@ interface Item {
   description?: string;
   itemType: 'trigger' | 'node' | 'tool';
 }
-
 export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerModalProps) {
   const { theme } = useTheme();
   const { addTrigger, addNode, addNodeToBranch, insertContainerAt, containers } = useWorkflowStore();
@@ -47,27 +42,18 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
   const { addConnection } = useConnectionStore();
   const [selectedCategory, setSelectedCategory] = useState<string>('home');
   const [searchQuery, setSearchQuery] = useState('');
-
   // Debug logging
   useEffect(() => {
     if (isOpen) {
-      console.log('🎯 UnifiedNodePickerModal opened', {
-        isOpen,
-        nodePickerContext,
-        containersCount: containers.length,
-      });
     }
   }, [isOpen, nodePickerContext, containers.length]);
-
   if (!isOpen) return null;
-
   const bgColor = theme === 'dark' ? '#1A1A2E' : '#ffffff';
   const borderColor = theme === 'dark' ? '#2A2A3E' : '#E5E7EB';
   const textColor = theme === 'dark' ? '#FFFFFF' : '#111827';
   const mutedColor = theme === 'dark' ? '#CFCFE8' : '#6B7280';
   const inputBg = theme === 'dark' ? '#0E0E1F' : '#F9FAFB';
   const sidebarBg = theme === 'dark' ? '#0E0E1F' : '#F9FAFB';
-
   // Define categories
   const categories: Category[] = [
     { id: 'home', label: 'Home', icon: Home, description: 'All items' },
@@ -78,11 +64,9 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
     { id: 'flow', label: 'Flow', icon: GitBranch, description: 'Control workflow flow' },
     { id: 'core', label: 'Core', icon: Briefcase, description: 'Core functionality' },
   ];
-
   // Get all items (triggers + nodes + tools)
   const getAllItems = (): Item[] => {
     const items: Item[] = [];
-
     // Add triggers
     triggerTemplates.forEach(trigger => {
       items.push({
@@ -94,7 +78,6 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
         itemType: 'trigger',
       });
     });
-
     // Add nodes
     nodeTemplates.forEach(node => {
       items.push({
@@ -106,7 +89,6 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
         itemType: 'node',
       });
     });
-
     // Add tools
     toolTemplates.forEach(tool => {
       items.push({
@@ -118,16 +100,12 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
         itemType: 'tool',
       });
     });
-
     return items;
   };
-
   const allItems = getAllItems();
-
   // Filter items based on selected category and search
   const getFilteredItems = (): Item[] | { [category: string]: Item[] } => {
     let filtered = allItems;
-
     // Filter by category (except 'home' which shows all)
     if (selectedCategory !== 'home') {
       filtered = filtered.filter(item => {
@@ -137,7 +115,6 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
         return item.category === selectedCategory;
       });
     }
-
     // Filter by search query
     if (searchQuery) {
       filtered = filtered.filter(item =>
@@ -145,7 +122,6 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
         item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         item.type.toLowerCase().includes(searchQuery.toLowerCase())
       );
-
       // If searching from 'home', group results by category
       if (selectedCategory === 'home') {
         const grouped: { [category: string]: Item[] } = {};
@@ -157,13 +133,10 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
         return grouped;
       }
     }
-
     return filtered;
   };
-
   const filteredItems = getFilteredItems();
   const isGrouped = !Array.isArray(filteredItems);
-
   // Handle item selection
   const handleSelectItem = (item: Item) => {
     if (item.itemType === 'trigger') {
@@ -182,40 +155,28 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
         console.error('Failed to create node:', item.type);
         return;
       }
-
       // Check if we're adding node to trigger box
       if (nodePickerContext?.source === 'trigger-node') {
-        console.log('✅ Adding node to trigger box!');
-        
         const triggers = useWorkflowStore.getState().triggers;
-        
         if (triggers.length === 0) {
           console.error('❌ No triggers found to add node to');
           return;
         }
-        
         // Add to the first trigger (you could also allow user to select which trigger)
         const firstTriggerId = triggers[0].id;
         const { addNodeToTrigger } = useWorkflowStore.getState();
         addNodeToTrigger(firstTriggerId, newNode);
-        
-        console.log('✅ Node added to trigger successfully!');
       }
       // Check if we're adding from the floating [+] button at top-left
       else if (nodePickerContext?.source === 'floating') {
-        console.log('✅ Adding node from floating button - creating right-side substep!');
-        
         // Calculate position at the right side of the workflow
         // Position relative to the trigger section or first container
         const canvasElement = document.querySelector('.infinite-canvas-content');
         const triggerSection = document.querySelector('[data-trigger-section]');
         const firstContainer = containers.length > 0 ? document.querySelector(`[data-container-id="${containers[0].id}"]`) : null;
-        
         let position = { x: 900, y: 100 }; // Default: right side, near top
-        
         if (canvasElement) {
           const canvasRect = canvasElement.getBoundingClientRect();
-          
           // Position relative to trigger section if it exists
           if (triggerSection) {
             const triggerRect = triggerSection.getBoundingClientRect();
@@ -233,9 +194,6 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
             };
           }
         }
-        
-        console.log('📍 Calculated right-side position:', position);
-        
         // Create a standalone sub-step (no parent node)
         const newSubStepId = `substep-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const subStepContainer = {
@@ -248,23 +206,15 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
           expanded: true,
           position: position,
         };
-        
-        console.log('Creating standalone right-side sub-step:', subStepContainer);
-        
         // Add the sub-step using the store
         useSubStepStore.getState().subStepContainers.push(subStepContainer);
         useSubStepStore.setState({ 
           subStepContainers: [...useSubStepStore.getState().subStepContainers] 
         });
-        
-        console.log('✅ Standalone sub-step created at right side of workflow!');
       }
       // Check if we're inserting between connected nodes (from connection line hover)
       else if (nodePickerContext?.connectionContext) {
-        console.log('✅ Creating SUB-STEP from connection context:', nodePickerContext.connectionContext);
-        
         const { sourceId, targetId, connectionId } = nodePickerContext.connectionContext;
-        
         // Find which node this connection is connected to
         // The sourceId could be a node within a container OR within a sub-step
         let parentContainer = null;
@@ -272,12 +222,10 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
         let targetNode = null;
         let sourceNodeInfo = null;
         let targetNodeInfo = null;
-        
         // First, search in main containers
         for (const container of containers) {
           const foundSource = container.nodes?.find(n => n.id === sourceId);
           const foundTarget = container.nodes?.find(n => n.id === targetId);
-          
           if (foundSource) {
             parentContainer = container;
             parentNode = foundSource;
@@ -288,7 +236,6 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
             targetNodeInfo = { node: foundTarget, container: container, isSubStep: false };
           }
         }
-        
         // If not found in main containers, search in sub-step containers
         const existingSubSteps = useSubStepStore.getState().subStepContainers;
         if (!sourceNodeInfo) {
@@ -303,7 +250,6 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
             }
           }
         }
-        
         if (!targetNodeInfo) {
           for (const subStep of existingSubSteps) {
             const foundTarget = subStep.nodes?.find(n => n.id === targetId);
@@ -314,54 +260,37 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
             }
           }
         }
-        
         if (!sourceNodeInfo || !parentNode) {
           console.error('❌ Could not find source node:', sourceId);
           return;
         }
-        
         if (!targetNodeInfo || !targetNode) {
           console.error('❌ Could not find target node:', targetId);
           return;
         }
-        
-        console.log('Source node info:', sourceNodeInfo);
-        console.log('Target node info:', targetNodeInfo);
-        console.log('Parent container:', parentContainer);
-        
         // Calculate smart position: centered between source and target nodes, offset downward
         const sourceElement = document.querySelector(`[data-node-id="${sourceId}"]`);
         const targetElement = document.querySelector(`[data-node-id="${targetId}"]`);
         let position = { x: 0, y: 0 };
-        
         if (sourceElement && targetElement) {
           const sourceRect = sourceElement.getBoundingClientRect();
           const targetRect = targetElement.getBoundingClientRect();
           const canvasElement = document.querySelector('.infinite-canvas-content');
           const canvasRect = canvasElement?.getBoundingClientRect();
-          
           if (canvasRect) {
             // Calculate positions relative to canvas
             const sourceX = sourceRect.left - canvasRect.left + (sourceRect.width / 2);
             const sourceY = sourceRect.top - canvasRect.top + (sourceRect.height / 2);
             const targetX = targetRect.left - canvasRect.left + (targetRect.width / 2);
             const targetY = targetRect.top - canvasRect.top + (targetRect.height / 2);
-            
             // Calculate current distance between source and target
             const currentDistance = Math.abs(targetX - sourceX);
-            console.log(`📏 Current distance between nodes: ${currentDistance}px`);
-            
             // We want to create 2x space, so we need to add the current distance as extra space
             const additionalSpaceNeeded = currentDistance;
-            
-            console.log(`🚀 Creating 2x space by adding ${additionalSpaceNeeded}px between nodes`);
-            
             // 🚀 SMART REPOSITIONING: Shift target and all consecutive sub-steps to the right
             const existingSubSteps = useSubStepStore.getState().subStepContainers;
-            
             // Find the target node's container/substep to shift it along with consecutive ones
             let targetNodeContainer = null;
-            
             // Check if target is in a sub-step
             for (const subStep of existingSubSteps) {
               if (subStep.nodes?.find(n => n.id === targetId)) {
@@ -369,56 +298,43 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
                 break;
               }
             }
-            
             // Find all sub-steps that need to be shifted (target and everything to its right)
             const subsStepsToShift = existingSubSteps.filter(subStep => {
               // Get the subStep's X position
               const subStepX = subStep.position.x;
-              
               // Only shift sub-steps that are:
               // 1. At or to the right of the target position
               // 2. Within a reasonable vertical range (to avoid shifting unrelated sub-steps)
               const targetBaseX = targetRect.left - canvasRect.left;
               const isAtOrToRight = subStepX >= targetBaseX - 50; // Small tolerance for floating point
               const isInVerticalRange = Math.abs(subStep.position.y - sourceY) < 200;
-              
               return isAtOrToRight && isInVerticalRange;
             });
-            
-            console.log(`🔄 Shifting ${subsStepsToShift.length} consecutive sub-steps (including target) to the right by ${additionalSpaceNeeded}px`);
-            
             // Shift all identified sub-steps to the right to create 2x space
             subsStepsToShift.forEach(subStep => {
               subStep.position.x += additionalSpaceNeeded;
             });
-            
             // Update the store with repositioned sub-steps
             if (subsStepsToShift.length > 0) {
               useSubStepStore.setState({ 
                 subStepContainers: [...existingSubSteps] 
               });
-              console.log('✅ Repositioned consecutive sub-steps to create 2x space');
             }
-            
             // Now calculate midpoint position for the new sub-step
             // The target has moved, so recalculate based on new positions
             const newMidX = (sourceX + targetX + additionalSpaceNeeded) / 2;
             const midY = (sourceY + targetY) / 2;
-            
             // Position sub-step at the new midpoint, offset downward for visibility
             position = {
               x: newMidX - 100, // Center the sub-step (assuming ~200px width)
               y: midY + 80, // Offset downward
             };
-            
-            console.log('📍 Calculated insertion position in expanded space:', position);
           }
         } else if (sourceElement) {
           // Fallback: position to the right of source
           const sourceRect = sourceElement.getBoundingClientRect();
           const canvasElement = document.querySelector('.infinite-canvas-content');
           const canvasRect = canvasElement?.getBoundingClientRect();
-          
           if (canvasRect) {
             position = {
               x: sourceRect.right - canvasRect.left + 150,
@@ -426,7 +342,6 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
             };
           }
         }
-        
         // Create a new sub-step attached to the parent node
         const newSubStepId = `substep-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const subStepContainer = {
@@ -439,20 +354,14 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
           expanded: true,
           position: position,
         };
-        
-        console.log('Creating sub-step container at cleared position:', subStepContainer);
-        
         // Add the sub-step using the store
         useSubStepStore.getState().subStepContainers.push(subStepContainer);
         useSubStepStore.setState({ 
           subStepContainers: [...useSubStepStore.getState().subStepContainers] 
         });
-        
         // Update connections:
         // 1. Remove the old connection from source → target
         useConnectionStore.getState().removeConnection(connectionId);
-        console.log('🔗 Removed old connection:', connectionId);
-        
         // 2. Create new connection from source → new substep node (INPUT dot)
         addConnection({
           sourceId: sourceId,
@@ -462,8 +371,6 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
           connectionType: 'manual',
           side: 'right',
         });
-        console.log('🔗 Created connection: Source node →', newNode.id, '(new substep node)');
-        
         // 3. Create new connection from new substep node → target (OUTPUT dot)
         addConnection({
           sourceId: newNode.id,  // Connect from the actual node inside sub-step
@@ -473,9 +380,6 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
           connectionType: 'manual',
           side: 'right',
         });
-        console.log('🔗 Created connection:', newNode.id, '(new substep node) → Target node');
-        
-        console.log('✅ Sub-step inserted between nodes with auto-connections: Source → New Substep → Target!');
       }
       // Check if we should insert a new container at a specific index
       else if (nodePickerContext?.insertIndex !== undefined) {
@@ -494,18 +398,12 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
       else if (nodePickerContext?.source === 'substep' && nodePickerContext.containerId) {
         // Check if substepId is provided (adding to existing substep)
         if (nodePickerContext.subStepId) {
-          console.log('✅ Adding node to EXISTING sub-step!', nodePickerContext.subStepId);
-          
           // Add node to the existing substep
           useSubStepStore.getState().addNodeToSubStep(nodePickerContext.subStepId, newNode);
-          console.log('✅ Node added to existing substep!');
         } else {
           // Create NEW substep (legacy behavior)
-          console.log('✅ Adding node to NEW sub-step!', nodePickerContext);
-          
           const parentContainerId = nodePickerContext.containerId;
           const parentNodeId = nodePickerContext.nodeId;
-          
           if (!parentNodeId) {
             console.error('❌ No parent node ID provided for substep creation');
             console.error('❌ Context received:', nodePickerContext);
@@ -513,26 +411,21 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
             console.error('❌ Expected: openNodePicker("substep", containerId, nodeId)');
             return;
           }
-          
           // Calculate position to the right of the parent node
           const nodeElement = document.querySelector(`[data-node-id="${parentNodeId}"]`);
           let position = { x: 0, y: 0 };
-          
           if (nodeElement) {
             const rect = nodeElement.getBoundingClientRect();
             const canvasElement = document.querySelector('.infinite-canvas-content');
             const canvasRect = canvasElement?.getBoundingClientRect();
-            
             if (canvasRect) {
               // Position 200px to the right of the node
               position = {
                 x: rect.right - canvasRect.left + 200,
                 y: rect.top - canvasRect.top,
               };
-              console.log('📍 Calculated sub-step position:', position);
             }
           }
-          
           // Create the new sub-step container with the selected node
           const newSubStepId = `substep-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
           const subStepContainer = {
@@ -545,15 +438,11 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
             expanded: true,
             position: position,
           };
-          
-          console.log('Creating sub-step container:', subStepContainer);
-          
           // Add the sub-step using the store
           useSubStepStore.getState().subStepContainers.push(subStepContainer);
           useSubStepStore.setState({ 
             subStepContainers: [...useSubStepStore.getState().subStepContainers] 
           });
-          
           // Create automatic connection from parent node to the first node in the sub-step
           addConnection({
             sourceId: parentNodeId,
@@ -563,8 +452,6 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
             connectionType: 'manual',
             side: 'right',
           });
-          
-          console.log('✅ Sub-step created successfully with auto-connection from parent node to first substep node!');
         }
       } 
       // If opened from a branch output dot ([+] button), create sub-step with branch connection
@@ -572,19 +459,14 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
           nodePickerContext.containerId && 
           nodePickerContext.nodeId && 
           nodePickerContext.branchId) {
-        console.log('✅ Adding node to NEW branch sub-step!', nodePickerContext);
-        
         const parentContainerId = nodePickerContext.containerId;
         const parentNodeId = nodePickerContext.nodeId;
         const branch = nodePickerContext.branchId;
-        
         // Find the parent node - check both main containers AND substeps
         let parentNode = null;
-        
         // Search in main workflow containers
         const mainContainerNodes = useWorkflowStore.getState().containers.flatMap(c => c.nodes || []);
         parentNode = mainContainerNodes.find(n => n.id === parentNodeId);
-        
         // If not found in main containers, search in substeps
         if (!parentNode) {
           const allSubSteps = useSubStepStore.getState().subStepContainers;
@@ -596,21 +478,15 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
             }
           }
         }
-        
-        console.log('🔍 Found parent node:', { parentNode, nodeType: parentNode?.type });
-        
         // Calculate position to the right of the parent node with vertical offset based on branch
         const nodeElement = document.querySelector(`[data-node-id="${parentNodeId}"]`);
         let position = { x: 0, y: 0 };
-        
         if (nodeElement) {
           const rect = nodeElement.getBoundingClientRect();
           const canvasElement = document.querySelector('.infinite-canvas-content');
           const canvasRect = canvasElement?.getBoundingClientRect();
-          
           if (canvasRect) {
             let yOffset = 0;
-            
             if (parentNode) {
               // Calculate Y offset based on branch position to avoid overlap
               if (parentNode.type === 'if') {
@@ -620,40 +496,25 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
                 } else if (branch === 'false') {
                   yOffset = 120; // False branch goes down
                 }
-                console.log('📐 IF node Y offset:', { branch, yOffset });
               } else if (parentNode.type === 'switch') {
                 // SWITCH node: Get branches from routes array
                 let branches: string[] = [];
-                
                 if (parentNode.routes && parentNode.routes.length > 0) {
                   branches = parentNode.routes.map((r: any, idx: number) => r.type || `case${idx + 1}`);
                 } else {
                   branches = ['default'];
                 }
-                
                 // Ensure 'default' is always present
                 if (!branches.includes('default')) {
                   branches.unshift('default');
                 }
-                
-                console.log('📐 SWITCH node branches:', { branches, currentBranch: branch });
-                
                 const branchIndex = branches.indexOf(branch);
-                
                 if (branchIndex !== -1) {
                   // Space branches vertically: 150px apart
                   const BRANCH_SPACING = 150;
                   const totalBranches = branches.length;
                   const centerOffset = -((totalBranches - 1) * BRANCH_SPACING) / 2;
                   yOffset = centerOffset + (branchIndex * BRANCH_SPACING);
-                  
-                  console.log('📐 SWITCH node Y offset:', { 
-                    branch, 
-                    branchIndex, 
-                    totalBranches, 
-                    centerOffset, 
-                    yOffset 
-                  });
                 } else {
                   // Default case or unknown branch
                   console.warn('⚠️ Branch not found in branches array:', { branch, branches });
@@ -663,16 +524,13 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
             } else {
               console.warn('⚠️ Parent node not found, using default position');
             }
-            
             // Position 200px to the right of the node with calculated Y offset
             position = {
               x: rect.right - canvasRect.left + 200,
               y: rect.top - canvasRect.top + yOffset,
             };
-            console.log('📍 Calculated branch sub-step position:', { position, branch, yOffset });
           }
         }
-        
         // Get branch label for naming
         const getBranchLabel = (branchId: string) => {
           if (branchId === 'true') return 'True';
@@ -682,9 +540,7 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
           if (caseMatch) return `Case ${caseMatch[1]}`;
           return branchId;
         };
-        
         const branchLabel = getBranchLabel(branch);
-        
         // Create the new sub-step container with the selected node
         const newSubStepId = `substep-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const subStepContainer = {
@@ -697,15 +553,11 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
           expanded: true,
           position: position,
         };
-        
-        console.log('Creating branch sub-step container:', subStepContainer);
-        
         // Add the sub-step using the store
         useSubStepStore.getState().subStepContainers.push(subStepContainer);
         useSubStepStore.setState({ 
           subStepContainers: [...useSubStepStore.getState().subStepContainers] 
         });
-        
         // Create connection from parent node's branch to the first node in the sub-step
         // This uses the existing manual connection system (purple connection lines) with branch output
         addConnection({
@@ -717,8 +569,6 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
           side: 'right',
           branchOutput: branch,  // Include the branch output (true/false/case1/etc.)
         });
-        
-        console.log(`✅ Branch sub-step created with auto-connection from ${branchLabel} branch to sub-step node!`);
       }
       else if (nodePickerContext?.source === 'branch' && 
           nodePickerContext.containerId && 
@@ -739,13 +589,11 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
         addNode(nodePickerContext.containerId, newNode);
       } else {
         // Default: show notification
-        console.log('Node selected but no container context:', item);
       }
     }
     onClose();
     setSearchQuery('');
   };
-
   // Render item card
   const renderItemCard = (item: Item) => {
     const Icon = item.icon;
@@ -757,7 +605,6 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
         : item.category === 'flow'
         ? 'linear-gradient(135deg, #00C6FF 0%, #0072FF 100%)'
         : 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
-
     return (
       <button
         key={`${item.itemType}-${item.type}`}
@@ -807,7 +654,6 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
             <span style={{ fontSize: '24px' }}>⚙️</span>
           )}
         </div>
-
         {/* Content */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
@@ -829,7 +675,6 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
       </button>
     );
   };
-
   return (
     <>
       {/* Overlay */}
@@ -843,7 +688,6 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
         }}
         onClick={onClose}
       />
-
       {/* Modal */}
       <div
         style={{
@@ -914,7 +758,6 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
             <X className="w-6 h-6" style={{ color: mutedColor }} />
           </button>
         </div>
-
         {/* Search Bar */}
         <div style={{ padding: '20px 24px', borderBottom: `1px solid ${borderColor}` }}>
           <div style={{
@@ -953,7 +796,6 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
             />
           </div>
         </div>
-
         {/* Main Content */}
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
           {/* Categories Sidebar */}
@@ -1042,7 +884,6 @@ export function UnifiedNodePickerModal({ isOpen, onClose }: UnifiedNodePickerMod
               })}
             </div>
           </div>
-
           {/* Items Grid */}
           <div style={{
             flex: 1,

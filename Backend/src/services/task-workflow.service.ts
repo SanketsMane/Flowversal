@@ -3,7 +3,6 @@ import { WorkflowModel } from '../modules/workflows/models/Workflow.model';
 import { workflowExecutionService } from '../modules/workflows/services/workflow-execution.service';
 import { inngest, events } from '../infrastructure/queue/jobs/inngest.client';
 import { Types } from 'mongoose';
-
 export interface AttachWorkflowConfig {
   triggerOnStatus?: string[];
   schedule?: {
@@ -15,7 +14,6 @@ export interface AttachWorkflowConfig {
   };
   config?: Record<string, any>;
 }
-
 export class TaskWorkflowService {
   /**
    * Attach a workflow to a task
@@ -31,38 +29,31 @@ export class TaskWorkflowService {
       _id: taskId,
       userId: userId,
     });
-
     if (!task) {
       throw new Error('Task not found or unauthorized');
     }
-
     // Verify workflow exists and user owns it
     const workflow = await WorkflowModel.findOne({
       _id: workflowId,
       userId: userId,
     });
-
     if (!workflow) {
       throw new Error('Workflow not found or unauthorized');
     }
-
     // Initialize arrays if they don't exist
     if (!task.attachedWorkflows) {
       task.attachedWorkflows = [];
     }
-
     // Check if workflow is already attached
     const existingIndex = task.attachedWorkflows.findIndex(
       (aw: any) => aw.workflowId.toString() === workflowId
     );
-
     const attachedWorkflow: AttachedWorkflow = {
       workflowId: new Types.ObjectId(workflowId),
       triggerOnStatus: config.triggerOnStatus || [],
       schedule: config.schedule,
       config: config.config || {},
     };
-
     if (existingIndex >= 0) {
       // Update existing attachment
       task.attachedWorkflows[existingIndex] = attachedWorkflow;
@@ -70,13 +61,10 @@ export class TaskWorkflowService {
       // Add new attachment
       task.attachedWorkflows.push(attachedWorkflow);
     }
-
     task.hasWorkflow = true;
     await task.save();
-
     return task;
   }
-
   /**
    * Detach a workflow from a task
    */
@@ -89,25 +77,19 @@ export class TaskWorkflowService {
       _id: taskId,
       userId: userId,
     });
-
     if (!task) {
       throw new Error('Task not found or unauthorized');
     }
-
     if (!task.attachedWorkflows) {
       task.attachedWorkflows = [];
     }
-
     task.attachedWorkflows = task.attachedWorkflows.filter(
       (aw: any) => aw.workflowId.toString() !== workflowId
     );
-
     task.hasWorkflow = task.attachedWorkflows.length > 0;
     await task.save();
-
     return task;
   }
-
   /**
    * Get all workflows attached to a task
    */
@@ -122,18 +104,14 @@ export class TaskWorkflowService {
       _id: taskId,
       userId: userId,
     });
-
     if (!task) {
       throw new Error('Task not found or unauthorized');
     }
-
     const attachedWorkflows = task.attachedWorkflows || [];
     const workflowIds = attachedWorkflows.map((aw: any) => aw.workflowId.toString());
-
     const workflows = await WorkflowModel.find({
       _id: { $in: workflowIds },
     });
-
     return {
       workflows: attachedWorkflows.map((aw: any) => {
         const workflow = workflows.find((w) => w._id.toString() === aw.workflowId.toString());
@@ -145,7 +123,6 @@ export class TaskWorkflowService {
       }),
     };
   }
-
   /**
    * Trigger workflows on task status change
    */
@@ -159,26 +136,21 @@ export class TaskWorkflowService {
       _id: taskId,
       userId: userId,
     });
-
     if (!task || !task.attachedWorkflows || task.attachedWorkflows.length === 0) {
       return;
     }
-
     // Find workflows that should trigger on this status change
     const workflowsToTrigger = task.attachedWorkflows.filter((aw: any) => {
       const triggerStatuses = aw.triggerOnStatus || [];
       return triggerStatuses.includes(newStatus);
     });
-
     if (workflowsToTrigger.length === 0) {
       return;
     }
-
     // Trigger each workflow
     for (const attachedWorkflow of workflowsToTrigger) {
       try {
         const workflowId = attachedWorkflow.workflowId.toString();
-        
         // Create execution input with task data
         const input = {
           taskId: taskId,
@@ -196,7 +168,6 @@ export class TaskWorkflowService {
           },
           ...(attachedWorkflow.config || {}),
         };
-
         // Start workflow execution via Inngest
         await inngest.send({
           name: events['workflow/execute'].name,
@@ -206,7 +177,6 @@ export class TaskWorkflowService {
             input: input,
           },
         });
-
         // Record execution in history
         await this.recordWorkflowExecution(
           taskId,
@@ -220,7 +190,6 @@ export class TaskWorkflowService {
       }
     }
   }
-
   /**
    * Manually trigger a workflow attached to a task
    */
@@ -234,20 +203,16 @@ export class TaskWorkflowService {
       _id: taskId,
       userId: userId,
     });
-
     if (!task) {
       throw new Error('Task not found or unauthorized');
     }
-
     // Verify workflow is attached
     const attachedWorkflow = task.attachedWorkflows?.find(
       (aw: any) => aw.workflowId.toString() === workflowId
     );
-
     if (!attachedWorkflow) {
       throw new Error('Workflow is not attached to this task');
     }
-
     // Create execution input
     const executionInput = {
       taskId: taskId,
@@ -265,7 +230,6 @@ export class TaskWorkflowService {
       ...(attachedWorkflow.config || {}),
       ...(input || {}),
     };
-
     // Start workflow execution via Inngest
     await inngest.send({
       name: events['workflow/execute'].name,
@@ -275,7 +239,6 @@ export class TaskWorkflowService {
         input: executionInput,
       },
     });
-
     // Record execution in history
     await this.recordWorkflowExecution(
       taskId,
@@ -285,7 +248,6 @@ export class TaskWorkflowService {
       executionInput
     );
   }
-
   /**
    * Record workflow execution in task history
    */
@@ -300,11 +262,9 @@ export class TaskWorkflowService {
     if (!task) {
       return;
     }
-
     if (!task.workflowExecutionHistory) {
       task.workflowExecutionHistory = [];
     }
-
     // Create execution record (executionId will be set after execution starts)
     const executionRecord: WorkflowExecutionHistory = {
       executionId: new Types.ObjectId(), // Placeholder, will be updated
@@ -313,11 +273,9 @@ export class TaskWorkflowService {
       status: 'pending',
       triggeredBy: triggeredBy,
     };
-
     task.workflowExecutionHistory.push(executionRecord);
     await task.save();
   }
-
   /**
    * Update workflow execution history with execution result
    */
@@ -332,11 +290,9 @@ export class TaskWorkflowService {
     if (!task || !task.workflowExecutionHistory) {
       return;
     }
-
     const executionRecord = task.workflowExecutionHistory.find(
       (eh: any) => eh.executionId.toString() === executionId
     );
-
     if (executionRecord) {
       executionRecord.status = status;
       executionRecord.result = result;
@@ -344,7 +300,6 @@ export class TaskWorkflowService {
       await task.save();
     }
   }
-
   /**
    * Schedule task workflows (for cron-based scheduling)
    */
@@ -353,24 +308,18 @@ export class TaskWorkflowService {
       _id: taskId,
       userId: userId,
     });
-
     if (!task || !task.attachedWorkflows) {
       return;
     }
-
     // Find workflows with schedules
     const scheduledWorkflows = task.attachedWorkflows.filter(
       (aw: any) => aw.schedule && aw.schedule.type
     );
-
     // Schedule each workflow (this would integrate with Inngest cron)
     for (const attachedWorkflow of scheduledWorkflows) {
       // TODO: Create Inngest cron jobs for scheduled workflows
       // This would be handled by the scheduled-workflows Inngest function
-      console.log(`Scheduling workflow ${attachedWorkflow.workflowId} for task ${taskId}`);
     }
   }
 }
-
 export const taskWorkflowService = new TaskWorkflowService();
-

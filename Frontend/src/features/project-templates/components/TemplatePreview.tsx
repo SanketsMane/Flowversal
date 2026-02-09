@@ -2,7 +2,6 @@
  * Template Preview Component
  * Detailed preview of a project template before using it
  */
-
 import React, { useState } from 'react';
 import { ProjectTemplate } from '../types/projectTemplate.types';
 import { getTemplateStats } from '../utils/projectTemplateManager';
@@ -22,13 +21,11 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { RenderIconByName } from '@/shared/components/ui/SimpleIconPicker';
-
 interface TemplatePreviewProps {
   template: ProjectTemplate;
   onUse: () => void;
   onClose: () => void;
 }
-
 export const TemplatePreview: React.FC<TemplatePreviewProps> = ({ template, onUse, onClose }) => {
   const { theme } = useTheme();
   const [expandedBoards, setExpandedBoards] = useState<Set<string>>(new Set([template.boards[0]?.id]));
@@ -38,7 +35,6 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({ template, onUs
     template.boards.flatMap(board => board.tasks.map(task => task.id))
   ));
   const stats = getTemplateStats(template);
-
   // Theme colors
   const bgModal = theme === 'dark' ? 'bg-[#1A1A2E]' : 'bg-white';
   const bgPage = theme === 'dark' ? 'bg-[#0E0E1F]' : 'bg-gray-50';
@@ -46,7 +42,6 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({ template, onUs
   const textSecondary = theme === 'dark' ? 'text-[#CFCFE8]' : 'text-gray-600';
   const textMuted = theme === 'dark' ? 'text-gray-400' : 'text-gray-500';
   const borderColor = theme === 'dark' ? 'border-[#2A2A3E]' : 'border-gray-200';
-
   const toggleBoard = (boardId: string) => {
     setExpandedBoards(prev => {
       const newSet = new Set(prev);
@@ -58,7 +53,6 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({ template, onUs
       return newSet;
     });
   };
-
   const toggleBoardSelection = (boardId: string) => {
     setSelectedBoards(prev => {
       const newSet = new Set(prev);
@@ -88,7 +82,6 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({ template, onUs
       return newSet;
     });
   };
-
   const toggleTaskSelection = (boardId: string, taskId: string) => {
     setSelectedTasks(prev => {
       const newSet = new Set(prev);
@@ -97,7 +90,6 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({ template, onUs
       } else {
         newSet.add(taskId);
       }
-      
       // Check if all tasks in board are selected/deselected
       const board = template.boards.find(b => b.id === boardId);
       if (board) {
@@ -107,7 +99,6 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({ template, onUs
         const noTasksSelected = board.tasks.every(task => 
           task.id === taskId ? !newSet.has(taskId) : !newSet.has(task.id)
         );
-        
         if (allTasksSelected) {
           setSelectedBoards(prevBoards => new Set([...prevBoards, boardId]));
         } else if (noTasksSelected) {
@@ -118,20 +109,15 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({ template, onUs
           });
         }
       }
-      
       return newSet;
     });
   };
-
   const handleUseTemplate = () => {
     // You could pass the selected boards and tasks to the onUse handler
     // For now, we'll just call the original onUse
     // In a full implementation, you'd modify the template based on selections
-    console.log('Selected boards:', Array.from(selectedBoards));
-    console.log('Selected tasks:', Array.from(selectedTasks));
     onUse();
   };
-
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[10000] flex items-center justify-center p-4">
       <div className={`${bgModal} rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col`}>
@@ -153,7 +139,6 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({ template, onUs
                   )}
                 </div>
                 <p className={`${textSecondary} mb-4`}>{template.description}</p>
-                
                 {/* Industries */}
                 <div className="flex flex-wrap gap-2">
                   {template.industry.map((ind, idx) => (
@@ -177,7 +162,6 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({ template, onUs
             </button>
           </div>
         </div>
-
         {/* Content */}
         <div className="flex-1 overflow-y-auto">
           <div className="p-8 space-y-8">
@@ -204,7 +188,6 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({ template, onUs
                 <div className={`text-sm ${textMuted}`}>Setup Time</div>
               </div>
             </div>
-
             {/* Benefits */}
             <div>
               <h3 className={`text-xl ${textPrimary} mb-4 flex items-center gap-2`}>
@@ -220,7 +203,6 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({ template, onUs
                 ))}
               </div>
             </div>
-
             {/* Use Cases */}
             <div>
               <h3 className={`text-xl ${textPrimary} mb-4`}>Use Cases</h3>
@@ -235,14 +217,12 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({ template, onUs
                 ))}
               </ul>
             </div>
-
             {/* Boards Preview */}
             <div>
               <h3 className={`text-xl ${textPrimary} mb-4`}>Included Boards</h3>
               <div className="space-y-3">
                 {template.boards.map(board => {
                   const isExpanded = expandedBoards.has(board.id);
-                  
                   return (
                     <div
                       key={board.id}
@@ -264,7 +244,6 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({ template, onUs
                           >
                             {selectedBoards.has(board.id) && <Check className="w-3 h-3 text-white" />}
                           </button>
-                          
                           <button
                             onClick={() => toggleBoard(board.id)}
                             className="flex items-center gap-3 flex-1"
@@ -291,7 +270,6 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({ template, onUs
                           )}
                         </button>
                       </div>
-                      
                       {isExpanded && (
                         <div className={`px-6 pb-4 border-t ${borderColor}`}>
                           {board.description && (
@@ -351,7 +329,6 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({ template, onUs
                 })}
               </div>
             </div>
-
             {/* Required Integrations */}
             {template.requiredIntegrations.length > 0 && (
               <div>
@@ -371,7 +348,6 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({ template, onUs
                 </div>
               </div>
             )}
-
             {/* Usage Count */}
             {template.usageCount && (
               <div className={`${bgPage} border ${borderColor} rounded-xl p-6 text-center`}>
@@ -384,7 +360,6 @@ export const TemplatePreview: React.FC<TemplatePreviewProps> = ({ template, onUs
             )}
           </div>
         </div>
-
         {/* Footer */}
         <div className={`px-8 py-4 border-t ${borderColor} flex items-center justify-between`}>
           <div className={`text-sm ${textMuted}`}>

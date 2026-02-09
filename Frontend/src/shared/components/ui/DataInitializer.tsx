@@ -4,16 +4,13 @@
  * Loads projects, boards, and tasks data from the API on app initialization
  * Provides loading states and error handling
  */
-
 import { authService } from '@/core/api/services/auth.service';
 import { useAuth } from '@/core/auth/AuthContext';
 import { useProjectStore } from '@/core/stores/projectStore';
 import { useEffect, useRef, useState } from 'react';
-
 interface DataInitializerProps {
   children: React.ReactNode;
 }
-
 export function DataInitializer({ children }: DataInitializerProps) {
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,40 +18,27 @@ export function DataInitializer({ children }: DataInitializerProps) {
   const loadAllData = useProjectStore((state) => state.loadAllData);
   const isLoading = useProjectStore((state) => state.isLoading);
   const initializedUserRef = useRef<string | null>(null);
-
   useEffect(() => {
     const initializeData = async () => {
       // Wait for auth to finish loading
       if (authLoading) {
         return;
       }
-
       if (!user) {
-        console.log('[DataInitializer] No user logged in, skipping data load');
         setIsInitialized(true);
         initializedUserRef.current = null;
         return;
       }
-
       // Prevent duplicate initialization for the same user
       if (initializedUserRef.current === user.id) {
         return;
       }
-
-      console.log('[DataInitializer] ========== LOADING USER DATA ==========');
-      console.log('[DataInitializer] User Email:', user.email);
-      console.log('[DataInitializer] User ID:', user.id);
-      console.log('[DataInitializer] User Role:', user.role);
-      console.log('[DataInitializer] Current Token:', authService.getAccessToken());
-      
       // Mark as initialized immediately to allow app to render
       setIsInitialized(true);
       initializedUserRef.current = user.id;
-      
       // Load data in background (non-blocking)
       try {
         await loadAllData();
-        console.log('[DataInitializer] Data loaded successfully');
       } catch (err: any) {
         console.error('[DataInitializer] Failed to load data:', err);
         setError(err.message || 'Failed to load data');
@@ -62,10 +46,8 @@ export function DataInitializer({ children }: DataInitializerProps) {
         // initializedUserRef.current = null; 
       }
     };
-
     initializeData();
   }, [user?.id, authLoading]); // Re-run when user changes or auth loading changes
-
   // Show minimal loading state only for auth, allow app to render while data loads
   if (authLoading) {
     return (
@@ -77,7 +59,6 @@ export function DataInitializer({ children }: DataInitializerProps) {
       </div>
     );
   }
-
   // Render app immediately, data will load in background
   // Show minimal loading indicator only if needed, avoid blocking LCP
   return (

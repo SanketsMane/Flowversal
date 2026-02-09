@@ -195,6 +195,151 @@ export class NeonAuthService {
   }
   
   /**
+   * Request a password reset.
+   * Generates a password reset token and sends it (in a real app, this would be emailed).
+   */
+  async requestPasswordReset(email: string): Promise<void> {
+    const [user] = await this.db.select().from(users).where(eq(users.email, email)).limit(1);
+
+    if (!user) {
+      // For security, don't reveal if the email exists or not
+      logger.warn(`Password reset requested for non-existent email: ${email}`);
+      return;
+    }
+
+    // Generate a unique, time-limited token
+    const resetToken = jwt.sign(
+      { userId: user.id, type: 'password_reset' },
+      env.JWT_SECRET,
+      { expiresIn: '1h' } // Token valid for 1 hour
+    );
+
+    // In a real application, you would store this token in the database
+    // associated with the user, and send it to the user's email.
+    // For this example, we'll just log it.
+    logger.info(`Password reset token for ${email}: ${resetToken}`);
+
+    // You would typically send an email here:
+    // await emailService.sendPasswordResetEmail(user.email, resetToken);
+  }
+
+  /**
+   * Reset user's password using a valid reset token.
+   */
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    try {
+      const decoded = jwt.verify(token, env.JWT_SECRET) as any;
+
+      if (!decoded || decoded.type !== 'password_reset' || !decoded.userId) {
+        throw new Error('Invalid or expired password reset token');
+      }
+
+      // In a real application, you would also verify this token against
+      // a stored token in the database to ensure it hasn't been used or revoked.
+
+      const passwordHash = await bcrypt.hash(newPassword, this.SALT_ROUNDS);
+
+      await this.db.update(users)
+        .set({ passwordHash })
+        .where(eq(users.id, decoded.userId));
+
+      // In a real application, you might also invalidate the token in the database
+      // to prevent reuse.
+      logger.info(`Password for user ${decoded.userId} has been reset.`);
+
+    } catch (error) {
+      logger.error('Password reset failed', error);
+      throw new Error('Invalid or expired password reset token');
+    }
+  }
+
+  async getUserById(userId: string): Promise<{ id: string; email: string; fullName?: string | null; user_metadata?: any; created_at?: string } | undefined> {
+    const [user] = await this.db.select().from(users).where(eq(users.id, userId)).limit(1);
+    if (!user) {
+      return undefined;
+    }
+    return {
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      user_metadata: {
+        name: user.fullName,
+        role: 'user', // TODO: Add role to users table
+      },
+      created_at: user.createdAt?.toISOString(),
+    };
+  }
+
+  /**
+   * Alias for getUserById - for /me endpoint compatibility
+   */
+  async getUser(userId: string) {
+    return this.getUserById(userId);
+  }
+
+  /**
+   * Confirm password reset with email and token
+   */
+  async confirmPasswordReset(email: string, token: string, newPassword: string): Promise<void> {
+    // Verify the token and extract userId
+    try {
+      const decoded = jwt.verify(token, env.JWT_SECRET) as any;
+
+      if (!decoded || decoded.type !== 'password_reset' || !decoded.userId) {
+        throw new Error('Invalid or expired password reset token');
+      }
+
+      // Verify the email matches the user in the token
+      const [user] = await this.db.select().from(users).where(eq(users.id, decoded.userId)).limit(1);
+      
+      if (!user || user.email !== email) {
+        throw new Error('Invalid reset token for this email');
+      }
+
+      // Hash the new password
+      const passwordHash = await bcrypt.hash(newPassword, this.SALT_ROUNDS);
+
+      // Update the password
+      await this.db.update(users)
+        .set({ passwordHash })
+        .where(eq(users.id, decoded.userId));
+
+      logger.info(`Password reset confirmed for user ${decoded.userId}`);
+    } catch (error) {
+      logger.error('Password reset confirmation failed', error);
+      throw new Error('Invalid or expired reset token');
+    }
+  }
+
+  /**
+   * Change password for authenticated user
+   */
+  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
+    // Get the user
+    const [user] = await this.db.select().from(users).where(eq(users.id, userId)).limit(1);
+
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isMatch) {
+      throw new Error('Incorrect current password');
+    }
+
+    // Hash new password
+    const passwordHash = await bcrypt.hash(newPassword, this.SALT_ROUNDS);
+
+    // Update password
+    await this.db.update(users)
+      .set({ passwordHash })
+      .where(eq(users.id, userId));
+
+    logger.info(`Password changed for user ${userId}`);
+  }
+  
+  /**
    * Verify Access Token (Middleware helper)
    */
   verifyAccessToken(token: string): any {
