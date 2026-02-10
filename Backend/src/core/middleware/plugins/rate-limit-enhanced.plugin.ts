@@ -16,12 +16,7 @@ const rateLimitEnhancedPlugin: FastifyPluginAsync = async (fastify) => {
     max: 100,
     timeWindow: '1 minute',
     cache: 10000,
-    store: redisClient
-      ? {
-          type: 'redis',
-          client: redisClient,
-        }
-      : undefined,
+    redis: redisClient,
     allowList: ['127.0.0.1', '::1'],
     skipOnError: false,
     keyGenerator: (request) => {
@@ -46,12 +41,7 @@ const rateLimitEnhancedPlugin: FastifyPluginAsync = async (fastify) => {
         max: 5,
         timeWindow: '15 minutes',
         cache: 10000,
-        store: redisClient
-          ? {
-              type: 'redis',
-              client: redisClient,
-            }
-          : undefined,
+        redis: redisClient,
         keyGenerator: (request) => request.ip,
       });
     }
@@ -61,12 +51,7 @@ const rateLimitEnhancedPlugin: FastifyPluginAsync = async (fastify) => {
         max: 20,
         timeWindow: '1 minute',
         cache: 10000,
-        store: redisClient
-          ? {
-              type: 'redis',
-              client: redisClient,
-            }
-          : undefined,
+        redis: redisClient,
         keyGenerator: (request) => {
           const user = (request as any).user;
           return user?.id || request.ip;

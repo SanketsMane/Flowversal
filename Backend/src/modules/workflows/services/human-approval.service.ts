@@ -281,7 +281,7 @@ export class HumanApprovalService {
 
       // Default: allow approval
       return true;
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to check user approval permissions', {
         executionId: execution._id,
         userId,

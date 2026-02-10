@@ -1,4 +1,4 @@
-import { metrics, ObservableGauge } from '@opentelemetry/api';
+import { metrics, ObservableGauge, Meter, Counter, Histogram, MetricOptions } from '@opentelemetry/api';
 import { logger } from '../../shared/utils/logger.util';
 
 export interface MetricsConfig {
@@ -74,7 +74,8 @@ export class MetricsService {
 
       this.activeConnections = this.meter.createObservableGauge('active_connections', {
         description: 'Number of active connections',
-      }, (observableResult) => {
+      });
+      this.activeConnections.addCallback((observableResult: any) => {
         observableResult.observe(this._activeConnectionsValue);
       });
 
@@ -115,7 +116,8 @@ export class MetricsService {
       // Initialize approval and breakpoint metrics
       this.pendingApprovals = this.meter.createObservableGauge('pending_approvals', {
         description: 'Number of pending approvals',
-      }, (observableResult) => {
+      });
+      this.pendingApprovals.addCallback((observableResult: any) => {
         observableResult.observe(this._pendingApprovalsValue);
       });
 
@@ -125,7 +127,8 @@ export class MetricsService {
 
       this.activeBreakpoints = this.meter.createObservableGauge('active_breakpoints', {
         description: 'Number of active breakpoints',
-      }, (observableResult) => {
+      });
+      this.activeBreakpoints.addCallback((observableResult: any) => {
         observableResult.observe(this._activeBreakpointsValue);
       });
 
@@ -321,7 +324,9 @@ export class MetricsService {
     if (!this.meter) return null;
 
     try {
-      return this.meter.createObservableGauge(name, options, callback);
+      const gauge = this.meter.createObservableGauge(name, options);
+      gauge.addCallback(callback);
+      return gauge;
     } catch (error: any) {
       logger.error('Failed to create custom observable gauge', { name, error: error.message });
       return null;
@@ -411,4 +416,4 @@ export const metricsService = new MetricsService({
 });
 
 // Re-export OpenTelemetry metrics types for convenience
-export { Counter, Gauge, Histogram, MetricOptions } from '@opentelemetry/api-metrics';
+export { Counter, Histogram, MetricOptions, ObservableGauge, Meter } from '@opentelemetry/api';

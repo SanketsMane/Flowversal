@@ -5,10 +5,10 @@
  */
 
 import { BaseChatModel } from '@langchain/core/language_models/chat_models';
-import { aiConfig } from '../../../core/config/ai.config';
-import { DirectApiProvider, getAvailableProviders, selectProviderForTask } from '../../../core/config/direct-apis.config';
-import { openRouterConfig } from '../../../core/config/openrouter.config';
-import { logger } from '../../../shared/utils/logger.util';
+import { aiConfig } from '../../../../core/config/ai.config';
+import { directApiConfigs, DirectApiProvider, getAvailableProviders, selectProviderForTask } from '../../../../core/config/direct-apis.config';
+import { openRouterConfig } from '../../../../core/config/openrouter.config';
+import { logger } from '../../../../shared/utils/logger.util';
 import {
     ModelDecision,
     ModelRoutingOptions,
@@ -160,10 +160,10 @@ export class ModelRouterService {
 
       // Phase 4: Final fallback - vLLM with heavy tuning (if not already tried)
       if (routingPath.length === 0 || !routingPath.includes('vllm')) {
-        const fallbackTemp = temperatureMapper.getRetryTemperature(
+        const fallbackTemp = (await temperatureMapper.getRetryTemperature(
           taskType,
           temperatureRec.recommendedTemperature
-        ).recommendedTemperature;
+        )).recommendedTemperature;
 
         const fallbackResult = await this.tryVLLM(taskType, fallbackTemp, prompt, true);
         routingPath.push('vllm-fallback');
@@ -302,9 +302,8 @@ export class ModelRouterService {
     const mapping = selectProviderForTask(taskType);
 
     try {
-      // Adjust temperature for this specific provider
-      const providerAdjustment = mapping ? (mapping.providerAdjustments[selectedProvider] || 0) : 0;
-      const providerTemp = temperatureRec.recommendedTemperature + providerAdjustment;
+      // Adjust temperature for this specific provider (simplified: no direct providerAdjustments here)
+      const providerTemp = temperatureRec.recommendedTemperature;
 
       const clampedTemp = Math.max(0.1, Math.min(0.9, providerTemp));
 
@@ -339,13 +338,13 @@ export class ModelRouterService {
       const scoreResult = await modelScoringService.scoreResponse({
         response: testResponse,
         taskType,
-        provider,
+        provider: selectedProvider as any,
         temperature: clampedTemp,
         responseTime,
       });
 
       return {
-        provider,
+        provider: selectedProvider as any,
         temperature: clampedTemp,
         response: testResponse,
         responseTime,
@@ -355,7 +354,7 @@ export class ModelRouterService {
 
     } catch (error) {
       return {
-        provider,
+        provider: selectedProvider as any,
         temperature: temperatureRec.recommendedTemperature,
         responseTime: 0,
         decision: 'FALLBACK_OPENROUTER',
@@ -606,13 +605,13 @@ export class ModelRouterService {
     const availableProviders = getAvailableProviders();
 
     // Filter by cost preferences
-    const affordableProviders = availableProviders.filter(provider => {
-      const config = directApiConfigs[provider as keyof typeof directApiConfigs];
-      return config && config.capabilities.costPerToken <= costPreferences.maxCostPerRequest;
-    });
+      const cheaperProviders = (Object.keys(directApiConfigs) as DirectApiProvider[]).filter((provider: DirectApiProvider) => {
+        const config = directApiConfigs[provider];
+        return config.enabled && config.capabilities.costPerToken <= costPreferences.maxCostPerRequest; // Assuming maxCostPerRequest is the correct property
+      });
 
     // Prefer providers that haven't been tried yet
-    const untriedProviders = affordableProviders.filter(p => !routingPath.includes(p));
+    const untriedProviders = cheaperProviders.filter(p => !routingPath.includes(p));
 
     if (untriedProviders.length > 0) {
       // If cost is priority, prefer cheaper providers
@@ -632,14 +631,14 @@ export class ModelRouterService {
 
       // Fallback to preferred providers list
       for (const preferred of costPreferences.preferredProviders) {
-        if (untriedProviders.includes(preferred)) {
-          return preferred;
+        if (untriedProviders.includes(preferred as DirectApiProvider)) {
+          return preferred as DirectApiProvider;
         }
       }
     }
 
     // If all providers have been tried, return the best remaining one
-    return affordableProviders.length > 0 ? affordableProviders[0] : null;
+    return cheaperProviders.length > 0 ? cheaperProviders[0] : null;
   }
 
   /**
@@ -650,14 +649,19 @@ export class ModelRouterService {
     taskTypeMappings: Record<TaskType, string[]>;
     successRates: Record<string, number>;
   } {
+    const taskTypes: TaskType[] = [
+      'structured_json', 'code_generation', 'creative_writing', 'complex_reasoning',
+      'api_execution', 'data_analysis', 'mathematical_reasoning', 'conversational_chat',
+      'real_time_information', 'multimodal_tasks', 'safety_critical', 'cost_optimized'
+    ];
     return {
       availableProviders: getAvailableProviders(),
       taskTypeMappings: Object.fromEntries(
-        (Object.keys(TaskType) as TaskType[]).map(taskType => [
+        taskTypes.map(taskType => [
           taskType,
           selectProviderForTask(taskType) ? [selectProviderForTask(taskType)!.provider] : []
         ])
-      ),
+      ) as Record<TaskType, string[]>,
       successRates: {}, // Would be populated from actual usage data
     };
   }

@@ -16,7 +16,7 @@ class BillingService {
   constructor(apiKey?: string) {
     const key = apiKey || process.env.STRIPE_SECRET_KEY;
     this.enabled = !!key;
-    this.stripe = key ? new Stripe(key, { apiVersion: '2025-11-17.clover' }) : null;
+    this.stripe = key ? new Stripe(key, { apiVersion: '2025-01-27.clover' as any }) : null;
   }
 
   isEnabled() {

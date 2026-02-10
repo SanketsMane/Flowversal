@@ -9,7 +9,7 @@ interface AnalyticsQueryParams {
   userId?: string;
 }
 
-export async function analyticsRoutes(fastify: FastifyInstance) {
+export async function analyticsRoutes(fastify: any) {
   // Get comprehensive workflow analytics
   fastify.get('/workflows', {
     schema: {
@@ -92,7 +92,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
         const analytics = await workflowAnalyticsService.getWorkflowAnalytics(
           userId ? new Types.ObjectId(userId) : new Types.ObjectId(userIdObj),
           timeRange,
-          workflowId ? new Types.ObjectId(workflowId) : undefined
+          workflowId
         );
 
         reply.send(analytics);
@@ -374,7 +374,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
             const analytics = await workflowAnalyticsService.getWorkflowAnalytics(
               new Types.ObjectId(userId),
               timeRange,
-              new Types.ObjectId(workflowId)
+              workflowId
             );
 
             return {

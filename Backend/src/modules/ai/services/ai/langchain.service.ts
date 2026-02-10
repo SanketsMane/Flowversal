@@ -16,6 +16,7 @@ export interface LangChainOptions {
   useLangChain?: boolean; // Whether to use LangChain or direct API calls
   enableAccuracyCheck?: boolean; // Enable accuracy-based model selection
   accuracyThreshold?: number; // Minimum accuracy threshold (default: 0.6)
+  customModel?: any;
 }
 export interface ModelAccuracyResult {
   model: string;

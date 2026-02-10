@@ -19,6 +19,6 @@ export function audit(event: AuditEvent) {
     ...event,
     timestamp: event.timestamp || new Date().toISOString(),
   };
-  logger.info({ audit: payload }, '[AUDIT]');
+  logger.info('[AUDIT]', { audit: payload });
 }
 

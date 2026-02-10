@@ -5,6 +5,8 @@ export interface WorkflowGenerationRequest {
   description: string;
   modelType?: 'vllm' | 'openrouter' | 'local';
   remoteModel?: 'gpt4' | 'claude' | 'gemini';
+  temperature?: number;
+  customModel?: any;
 }
 
 export interface GeneratedWorkflow {

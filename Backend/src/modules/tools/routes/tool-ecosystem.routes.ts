@@ -68,6 +68,7 @@ export async function toolEcosystemRoutes(fastify: FastifyInstance) {
 
         const toolDef: ToolDefinition = {
           ...request.body,
+          id: request.body.id || `tool_${Date.now()}`,
           implementation,
         };
 

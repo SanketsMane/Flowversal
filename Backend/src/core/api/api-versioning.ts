@@ -1,5 +1,9 @@
-import { FastifyPluginAsync } from 'fastify';
+import { FastifyPluginAsync, FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import fp from 'fastify-plugin';
+import { metrics, ObservableGauge, Meter, Counter, Histogram, MetricOptions } from '@opentelemetry/api';
+
+// Re-export OpenTelemetry metrics types for convenience
+export { Counter, Histogram, MetricOptions, ObservableGauge, Meter } from '@opentelemetry/api';
 
 export interface ApiVersioningConfig {
   defaultVersion: string;
@@ -22,23 +26,25 @@ const apiVersioning: FastifyPluginAsync<ApiVersioningConfig> = async (
   fastify.addConstraintStrategy({
     name: 'version',
     storage: function () {
-      const versions = new Map<string, string[]>();
+      const versions = new Map<string, any>();
       return {
-        get: (version: string) => {
+        get: (version: any) => {
           return versions.get(version) || null;
         },
-        set: (version: string, store: any) => {
+        set: (version: any, store: any) => {
           versions.set(version, store);
         },
       };
     },
-    deriveConstraint: (request, context) => {
+    deriveConstraint: (request: any, context: any) => {
       // Extract version from header
       let version = request.headers[config.headerName.toLowerCase()] as string;
 
       // If not in header, check query parameter
       if (!version) {
-        version = (request.query as any)?.[config.queryParamName];
+        // Fastify 4.x: query might not be on the raw request in deriveConstraint
+        // if it's called before parsing. But we'll try it as any.
+        version = request.query?.[config.queryParamName];
       }
 
       // If still no version, use default
@@ -53,23 +59,10 @@ const apiVersioning: FastifyPluginAsync<ApiVersioningConfig> = async (
 
       return version;
     },
-    validate: (request, reply, options) => {
-      const version = (request as any).routeOptions.constraints?.version;
-
-      if (version && !config.supportedVersions.includes(version)) {
-        reply.code(400).send({
-          error: 'Unsupported API Version',
-          message: `API version '${version}' is not supported. Supported versions: ${config.supportedVersions.join(', ')}`,
-        });
-        return false;
-      }
-
-      return true;
-    },
   });
 
   // Middleware to add version information to requests
-  fastify.addHook('preHandler', async (request, reply) => {
+  fastify.addHook('preHandler', async (request: FastifyRequest, reply: FastifyReply) => {
     let version = request.headers[config.headerName.toLowerCase()] as string;
 
     if (!version) {

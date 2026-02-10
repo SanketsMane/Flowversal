@@ -99,8 +99,8 @@ export class HumanApprovalExecutor {
     nodeId: string,
     approvalId: string,
     decision: 'approved' | 'rejected',
-    approvalData?: any,
-    context: ExecutionContext
+    context: ExecutionContext,
+    approvalData?: any
   ): Promise<NodeExecutionResult> {
     const startTime = Date.now();
 

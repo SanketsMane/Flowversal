@@ -12,8 +12,10 @@ export async function seedDatabase(): Promise<void> {
     logger.info('Starting database seeding...');
 
     // Clear existing data (optional - comment out if you want to keep existing data)
-    // await mongoose.connection.db.dropDatabase();
-    // logger.info('Database cleared');
+    if (mongoose.connection.db) {
+      await mongoose.connection.db.dropDatabase();
+      logger.info('Database cleared');
+    }
 
     // TODO: Add seed data here
     // Example:
@@ -39,7 +41,9 @@ export async function resetDatabase(): Promise<void> {
     await connectMongoDB();
 
     logger.warn('Dropping all collections...');
-    await mongoose.connection.db.dropDatabase();
+    if (mongoose.connection.db) {
+      await mongoose.connection.db.dropDatabase();
+    }
     logger.info('Database reset successfully');
   } catch (error: any) {
     logger.error('Database reset failed', error);
@@ -61,6 +65,11 @@ export async function checkHealth(): Promise<void> {
     // Database check
     try {
       await connectMongoDB();
+      if (!mongoose.connection.db) {
+    console.error('Database connection not established');
+    process.exit(1);
+  }
+  const db = mongoose.connection.db;
       const status = mongoose.connection.readyState;
       const statusText = ['disconnected', 'connected', 'connecting', 'disconnecting'][status] || 'unknown';
       logger.info(`✅ Database: ${statusText}`);

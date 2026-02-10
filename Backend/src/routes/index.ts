@@ -7,6 +7,7 @@ import mcpRoutes from '../modules/ai/routes/ai/mcp.routes';
 import ragRoutes from '../modules/ai/routes/ai/rag.routes';
 import searchRoutes from '../modules/ai/routes/ai/search.routes';
 import workflowAIRoutes from '../modules/ai/routes/ai/workflow.routes';
+import { analyticsRoutes, analyticsRoutes as workflowAnalyticsRoutes } from '../modules/analytics/routes/analytics.routes';
 import authRoutes from '../modules/auth/routes/auth.routes';
 import mfaRoutes from '../modules/auth/routes/mfa.routes';
 import creatorRoutes from '../modules/creator/routes/creator.routes';

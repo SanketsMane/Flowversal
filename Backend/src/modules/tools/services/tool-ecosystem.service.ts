@@ -82,11 +82,11 @@ export class ToolEcosystemService {
     const langChainTool = new DynamicStructuredTool({
       name: toolDef.name,
       description: toolDef.description,
-      schema: toolDef.schema,
-      func: async (args: any, context?: ToolExecutionContext) => {
+      schema: toolDef.schema as any,
+      func: async (args: any, context?: any) => {
         return this.executeTool(toolDef.id, args, context);
       },
-    });
+    } as any);
 
     this.activeTools.set(toolDef.id, langChainTool);
 
@@ -756,8 +756,8 @@ export class ToolEcosystemService {
           const negativeWords = ['bad', 'terrible', 'awful', 'horrible', 'poor'];
 
           const words = args.text.toLowerCase().split(/\s+/);
-          const positiveCount = words.filter(w => positiveWords.includes(w)).length;
-          const negativeCount = words.filter(w => negativeWords.includes(w)).length;
+          const positiveCount = words.filter((w: string) => positiveWords.includes(w)).length;
+          const negativeCount = words.filter((w: string) => negativeWords.includes(w)).length;
 
           if (positiveCount > negativeCount) result.sentiment = 'positive';
           else if (negativeCount > positiveCount) result.sentiment = 'negative';
@@ -768,12 +768,12 @@ export class ToolEcosystemService {
           // Simple keyword extraction
           const words = args.text.toLowerCase().split(/\s+/);
           const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by'];
-          result.keywords = [...new Set(words.filter(w => w.length > 3 && !stopWords.includes(w)))].slice(0, 10);
+          result.keywords = [...new Set(words.filter((w: string) => w.length > 3 && !stopWords.includes(w)))].slice(0, 10);
         }
 
         if (args.operations.includes('summary')) {
           // Simple text summarization
-          const sentences = args.text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+          const sentences = args.text.split(/[.!?]+/).filter((s: string) => s.trim().length > 0);
           result.summary = sentences.slice(0, 2).join('. ') + '.';
         }
 

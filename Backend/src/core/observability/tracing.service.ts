@@ -156,7 +156,7 @@ export class TracingService {
     if (!span) return;
 
     try {
-      span.recordException(error, undefined, attributes);
+      span.recordException(error, attributes as any);
       span.setStatus({
         code: SpanStatusCode.ERROR,
         message: error.message,

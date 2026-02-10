@@ -6,7 +6,8 @@ import { mcpServer } from '../../../../agents/mcp/server';
 import { aiConfig } from '../../../../core/config/ai.config';
 import { agentStateService } from './agent-state.service';
 import { ModelFactory } from './model-factory';
-// import { modelRouterService, ModelRoutingOptions } from './model-router.service';
+import { modelRouterService } from './model-router.service';
+import { ModelRoutingOptions } from './model-decision.types';
 
 export interface AgentConfig {
   modelType?: 'vllm' | 'openrouter' | 'local';
@@ -29,6 +30,7 @@ export interface AgentConfig {
   reflectionThreshold?: number;   // Confidence threshold for reflection (default: 0.7)
   planningDepth?: number;          // How deep to plan ahead (default: 3)
   adaptiveLearning?: boolean;     // Learn from previous interactions
+  customModel?: any;              // Custom LangChain model instance
 }
 
 export class LangChainAgentService {

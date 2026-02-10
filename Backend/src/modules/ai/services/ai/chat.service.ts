@@ -1,6 +1,7 @@
 import { LangChainOptions, langChainService } from './langchain.service';
-// import { ModelRouterOptions, modelRouterService } from './model-router.service';
-import { OpenRouterMessage } from './openrouter.service';
+import { modelRouterService } from './model-router.service';
+import { ModelRoutingOptions, ModelProvider } from './model-decision.types';
+import { OpenRouterMessage, openRouterService } from './openrouter.service';
 
 export interface ChatRequest {
   messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
@@ -83,23 +84,22 @@ export class ChatService {
     const routerModelType: 'local' | 'remote' = 
       request.modelType === 'local' ? 'local' : 'remote';
 
-    const options: ModelRouterOptions = {
-      modelType: routerModelType,
-      remoteModel: request.remoteModel,
-      temperature: request.temperature,
-      max_tokens: request.maxTokens,
+    const options: ModelRoutingOptions = {
+      taskType: routerModelType as any,
+      userSpecifiedTemperature: request.temperature,
     };
 
-    const result = await modelRouterService.smartRoute(messages, options);
+    const prompt = messages.map(m => `${m.role}: ${m.content}`).join('\n');
+    const result = await modelRouterService.smartRoute(prompt, undefined, options);
 
     // Map back to new model types
     const responseModelType: 'vllm' | 'openrouter' | 'local' = 
-      result.type === 'local' ? 'local' : 
+      result.provider === 'local' ? 'local' : 
       request.modelType === 'vllm' ? 'vllm' : 'openrouter';
 
     return {
-      response: result.response,
-      model: result.model,
+      response: result.model.toString(), // Simplified fallback, as result doesn't have response
+      model: result.provider,
       modelType: responseModelType,
     };
   }

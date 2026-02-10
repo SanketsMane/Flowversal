@@ -1,4 +1,4 @@
-// import { modelRouterService } from '../../modules/ai/services/ai/model-router.service';
+import { modelRouterService } from '../../modules/ai/services/ai/model-router.service';
 import { pineconeService, QueryResult } from '../vector/pinecone.service';
 
 export interface RetrievalOptions {
@@ -64,18 +64,22 @@ export class RetrievalService {
 
     if (retrievedDocs.length === 0) {
       // No relevant documents found, generate answer without context
-      const response = await modelRouterService.smartRoute(
-        [{ role: 'user', content: query }],
+      const routingResult = await modelRouterService.smartRoute(
+        query,
+        undefined,
         {
-          modelType: options.modelType,
-          remoteModel: options.remoteModel,
+          taskType: options.modelType as any,
+          forceProvider: options.remoteModel as any,
         }
       );
 
+      const completion = await routingResult.model.invoke([{ role: 'user', content: query }]);
+      const answer = typeof completion.content === 'string' ? completion.content : JSON.stringify(completion.content);
+
       return {
-        answer: response.response,
+        answer,
         sources: [],
-        model: response.model,
+        model: routingResult.provider,
       };
     }
 
@@ -94,29 +98,33 @@ Question: ${query}
 
 Answer:`;
 
-    const response = await modelRouterService.smartRoute(
-      [
-        {
-          role: 'system',
-          content:
-            'You are a helpful assistant that answers questions based on provided context. Cite sources when possible.',
-        },
-        { role: 'user', content: prompt },
-      ],
+    const routingResult = await modelRouterService.smartRoute(
+      prompt,
+      'You are a helpful assistant that answers questions based on provided context. Cite sources when possible.',
       {
-        modelType: options.modelType,
-        remoteModel: options.remoteModel,
+        taskType: options.modelType as any,
+        forceProvider: options.remoteModel as any,
       }
     );
 
+    const completion = await routingResult.model.invoke([
+      {
+        role: 'system',
+        content:
+          'You are a helpful assistant that answers questions based on provided context. Cite sources when possible.',
+      },
+      { role: 'user', content: prompt },
+    ]);
+    const answer = typeof completion.content === 'string' ? completion.content : JSON.stringify(completion.content);
+
     return {
-      answer: response.response,
+      answer,
       sources: retrievedDocs.map((doc) => ({
         text: doc.text || '',
         score: doc.score,
         metadata: doc.metadata,
       })),
-      model: response.model,
+      model: routingResult.provider,
     };
   }
 

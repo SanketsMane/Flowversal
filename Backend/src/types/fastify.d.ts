@@ -4,4 +4,7 @@ declare module 'fastify' {
   interface FastifyRequest {
     user?: AuthenticatedUser;
   }
+  interface FastifyInstance {
+    authenticate: any;
+  }
 }
