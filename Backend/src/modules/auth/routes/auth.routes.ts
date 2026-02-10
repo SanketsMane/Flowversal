@@ -97,7 +97,6 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         message: 'Failed to sign up',
       });
     }
-    }
   });
 
   // Login with email/password - With rate limiting
