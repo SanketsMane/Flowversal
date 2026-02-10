@@ -3,13 +3,11 @@ import { supabaseAdmin } from '../../../core/config/supabase.config';
 import { User } from '../../../shared/types/auth.types';
 import { decryptField, encryptField } from '../../../shared/utils/encryption.util';
 import { IUser, UserModel } from '../models/User.model';
-
 export interface CreateUserData {
   supabaseId: string;
   email: string;
   metadata?: Record<string, any>;
 }
-
 export interface UpdateUserData {
   email?: string;
   metadata?: Record<string, any>;
@@ -21,20 +19,17 @@ export interface UpdateUserData {
   techStack?: string[];
   automationGoal?: string;
 }
-
 export class UserService {
   /**
    * Find user by Supabase ID
    */
   async findBySupabaseId(supabaseId: string): Promise<IUser | null> {
     if (mongoose.connection.readyState !== 1) {
-       console.log('[UserService] MongoDB not connected (findBySupabaseId), connecting...');
        const { connectMongoDB } = require('../../../core/database/mongodb');
        await connectMongoDB();
     }
     return UserModel.findOne({ supabaseId });
   }
-
   /**
    * Find user by email
    */
@@ -43,21 +38,18 @@ export class UserService {
     const encryptedEmail = encryptField(email);
     return UserModel.findOne({ email: encryptedEmail });
   }
-
   /**
    * Find user by MongoDB ID
    */
   async findById(id: string): Promise<IUser | null> {
     return UserModel.findById(id);
   }
-
   /**
    * Get user model by MongoDB ID (alias for findById for clarity)
    */
   async getUserModel(id: string): Promise<IUser | null> {
     return this.findById(id);
   }
-
   /**
    * Create a new user (sync from Supabase)
    */
@@ -67,45 +59,30 @@ export class UserService {
     if (existingUser) {
       return existingUser;
     }
-
     // Always encrypt emails for security and GDPR compliance
     const emailValue = encryptField(data.email);
-
-    console.log('[UserService] Creating user:', {
-      supabaseId: data.supabaseId,
-      email: data.email,
-      encrypted: true
-    });
-
     const user = new UserModel({
       supabaseId: data.supabaseId,
       email: emailValue,
       metadata: data.metadata || {},
     });
-
     return user.save();
   }
-
   /**
    * Update user
    */
   async updateUser(userId: string, data: UpdateUserData): Promise<IUser | null> {
     if (mongoose.connection.readyState !== 1) {
-       console.log('[UserService] MongoDB not connected (updateUser), connecting...');
        const { connectMongoDB } = require('../../../core/database/mongodb');
        await connectMongoDB();
     }
-
     const updateData: any = {};
-
     if (data.email) {
       updateData.email = encryptField(data.email);
     }
-
     if (data.metadata !== undefined) {
       updateData.metadata = data.metadata;
     }
-
     // Onboarding fields
     if (data.onboardingCompleted !== undefined) updateData.onboardingCompleted = data.onboardingCompleted;
     if (data.organizationName !== undefined) updateData.organizationName = data.organizationName;
@@ -114,13 +91,11 @@ export class UserService {
     if (data.automationExperience !== undefined) updateData.automationExperience = data.automationExperience;
     if (data.techStack !== undefined) updateData.techStack = data.techStack;
     if (data.automationGoal !== undefined) updateData.automationGoal = data.automationGoal;
-
     return UserModel.findByIdAndUpdate(userId, updateData, {
       new: true,
       runValidators: true,
     });
   }
-
   /**
    * Delete user
    */
@@ -128,7 +103,6 @@ export class UserService {
     const result = await UserModel.findByIdAndDelete(userId);
     return result !== null;
   }
-
   /**
    * Get or create user from Supabase auth
    * This syncs the user from Supabase to MongoDB
@@ -137,21 +111,15 @@ export class UserService {
     try {
       // Ensure DB is connected
       if (mongoose.connection.readyState !== 1) {
-          console.log('[UserService] MongoDB not connected, connecting...');
           const { connectMongoDB } = require('../../../core/database/mongodb');
           await connectMongoDB();
       }
-
       // Check if user exists in MongoDB
       let user = await this.findBySupabaseId(supabaseUserId);
-
       if (user) {
-        // console.log(`[UserService] User found in MongoDB: ${user.email} (${user._id})`);
+        // 
         return user;
       }
-
-      console.log(`[UserService] User not found in MongoDB, creating from JWT data: ${supabaseUserId}`);
-
       // Try to create user using JWT data first (more reliable)
       if (userData) {
         try {
@@ -164,35 +132,28 @@ export class UserService {
               lastSyncedAt: new Date().toISOString(),
             },
           });
-          console.log(`[UserService] Created new user in MongoDB from JWT: ${user.email} (${user._id})`);
           return user;
         } catch (createError: any) {
           // If duplicate key error, it means another request created the user in the meantime
           if (createError.code === 11000) {
-            console.log(`[UserService] Race condition detected: User created by another request. Fetching...`);
             const existingUser = await this.findBySupabaseId(supabaseUserId);
             if (existingUser) return existingUser;
           }
           console.warn(`[UserService] Failed to create user from JWT data, trying Supabase admin:`, createError);
         }
       }
-
       // Fallback: Fetch user from Supabase admin API
       try {
-        console.log(`[UserService] Falling back to Supabase admin API for user: ${supabaseUserId}`);
         const { data: supabaseUser, error } = await supabaseAdmin.auth.admin.getUserById(
           supabaseUserId
         );
-
         if (error || !supabaseUser) {
           console.error(`[UserService] Failed to fetch user from Supabase:`, error);
           throw new Error(`User not found in Supabase: ${error?.message || 'Unknown error'}`);
         }
-
         if (!supabaseUser.user) {
           throw new Error('Supabase user data is missing');
         }
-
         // Create user in MongoDB
         try {
           user = await this.createUser({
@@ -206,19 +167,15 @@ export class UserService {
         } catch (createError: any) {
            // Handle race condition again
            if (createError.code === 11000) {
-             console.log(`[UserService] Race condition detected (fallback): User created by another request. Fetching...`);
              const existingUser = await this.findBySupabaseId(supabaseUserId);
              if (existingUser) return existingUser;
            }
            throw createError;
         }
-
-        console.log(`[UserService] User synced to MongoDB successfully: ${user.email} (${user._id})`);
         return user;
       } catch (supabaseError: any) {
         // Final check for race condition
         if (supabaseError.code === 11000) {
-             console.log(`[UserService] Race condition detected (final): User created by another request. Fetching...`);
              const existingUser = await this.findBySupabaseId(supabaseUserId);
              if (existingUser) return existingUser;
         }
@@ -230,7 +187,6 @@ export class UserService {
       throw error;
     }
   }
-
   /**
    * Get or create user from Neon Auth
    */
@@ -240,7 +196,6 @@ export class UserService {
     if (existingUser) {
       return existingUser;
     }
-
     // 2. Check by email (migration scenario)
     const legacyUser = await UserModel.findOne({ email: neonUser.email });
     if (legacyUser) {
@@ -249,7 +204,6 @@ export class UserService {
         await legacyUser.save();
         return legacyUser;
     }
-
     // 3. Create new user
     const newUser = new UserModel({
       neonUserId: neonUser.id,
@@ -261,35 +215,29 @@ export class UserService {
       },
       onboardingCompleted: false,
     });
-
     return newUser.save();
   }
-
   /**
    * Convert IUser to User type
    */
   toUserType(user: IUser): User {
     // Decrypt email (all emails are encrypted)
     const email = user.email ? decryptField(user.email) : '';
-
     return {
       id: user._id.toString(),
       email,
       created_at: user.createdAt.toISOString(),
       updated_at: user.updatedAt.toISOString(),
-      
       // Include onboarding status
       onboardingCompleted: user.onboardingCompleted,
     };
   }
-
   /**
    * Get user profile with additional data
    */
   async getUserProfile(userId: string): Promise<IUser | null> {
     return this.findById(userId);
   }
-
   /**
    * List users with pagination
    */
@@ -301,12 +249,10 @@ export class UserService {
     totalPages: number;
   }> {
     const skip = (page - 1) * limit;
-
     const [users, total] = await Promise.all([
       UserModel.find().sort({ createdAt: -1 }).skip(skip).limit(limit),
       UserModel.countDocuments(),
     ]);
-
     return {
       users,
       total,
@@ -316,5 +262,4 @@ export class UserService {
     };
   }
 }
-
 export const userService = new UserService();

@@ -120,18 +120,6 @@ export const MarketingNav: React.FC<MarketingNavProps> = ({ currentRoute, onNavi
             >
               Sign In
             </Button>
-            {process.env.NODE_ENV === 'development' && (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  // Demo login - navigate to app
-                  window.location.href = '/app?demo=true';
-                }}
-                className="cursor-pointer border-orange-500 text-orange-600 hover:bg-orange-50"
-              >
-                Demo Login
-              </Button>
-            )}
             <Button
               onClick={handleGetStarted}
               className="cursor-pointer bg-gradient-to-r from-blue-500 via-violet-500 to-cyan-500 hover:opacity-90 text-white border-0"

@@ -2,9 +2,7 @@
  * Tasks API Service
  * Handles all task-related API calls to the backend
  */
-
 import { API_ENDPOINTS, buildApiUrl, getAuthHeaders } from '../api.config';
-
 export interface CreateTaskData {
   name: string;
   description?: string;
@@ -27,7 +25,6 @@ export interface CreateTaskData {
   createdBy?: { id: string; name: string; avatar?: string };
   order?: number;
 }
-
 export interface UpdateTaskData {
   name?: string;
   description?: string;
@@ -49,7 +46,6 @@ export interface UpdateTaskData {
   workflows?: any[];
   order?: number;
 }
-
 export interface TaskFilters {
   projectId?: string;
   boardId?: string;
@@ -57,7 +53,6 @@ export interface TaskFilters {
   priority?: string;
   assignedTo?: string;
 }
-
 export class TasksService {
   /**
    * Create a new task
@@ -66,30 +61,22 @@ export class TasksService {
     try {
       const headers = await getAuthHeaders();
       const url = buildApiUrl(API_ENDPOINTS.tasks.create);
-
-      console.log('[TasksService] Creating task:', { url, data });
-
       const response = await fetch(url, {
         method: 'POST',
         headers,
         body: JSON.stringify(data),
       });
-
       const result = await response.json();
-
       if (!response.ok) {
         console.error('[TasksService] Create task failed:', result);
         throw new Error(result.message || `Failed to create task: ${response.status}`);
       }
-
-      console.log('[TasksService] Task created successfully:', result);
       return result.data;
     } catch (error) {
       console.error('[TasksService] Error creating task:', error);
       throw error;
     }
   }
-
   /**
    * Get all tasks with optional filters
    */
@@ -97,7 +84,6 @@ export class TasksService {
     try {
       const headers = await getAuthHeaders();
       let url = buildApiUrl(API_ENDPOINTS.tasks.list);
-
       // Add query parameters
       const params = new URLSearchParams();
       if (filters?.projectId) params.append('projectId', filters.projectId);
@@ -105,33 +91,24 @@ export class TasksService {
       if (filters?.status) params.append('status', filters.status);
       if (filters?.priority) params.append('priority', filters.priority);
       if (filters?.assignedTo) params.append('assignedTo', filters.assignedTo);
-
       if (params.toString()) {
         url += `?${params.toString()}`;
       }
-
-      console.log('[TasksService] Getting tasks:', { url, filters });
-
       const response = await fetch(url, {
         method: 'GET',
         headers,
       });
-
       const result = await response.json();
-
       if (!response.ok) {
         console.error('[TasksService] Get tasks failed:', result);
         throw new Error(result.message || `Failed to get tasks: ${response.status}`);
       }
-
-      console.log('[TasksService] Tasks retrieved successfully:', result);
       return result.data || [];
     } catch (error) {
       console.error('[TasksService] Error getting tasks:', error);
       throw error;
     }
   }
-
   /**
    * Get a single task by ID
    */
@@ -139,29 +116,21 @@ export class TasksService {
     try {
       const headers = await getAuthHeaders();
       const url = buildApiUrl(API_ENDPOINTS.tasks.update(taskId));
-
-      console.log('[TasksService] Getting task by ID:', { url, taskId });
-
       const response = await fetch(url, {
         method: 'GET',
         headers,
       });
-
       const result = await response.json();
-
       if (!response.ok) {
         console.error('[TasksService] Get task failed:', result);
         throw new Error(result.message || `Failed to get task: ${response.status}`);
       }
-
-      console.log('[TasksService] Task retrieved successfully:', result);
       return result.data;
     } catch (error) {
       console.error('[TasksService] Error getting task:', error);
       throw error;
     }
   }
-
   /**
    * Update a task
    */
@@ -169,30 +138,22 @@ export class TasksService {
     try {
       const headers = await getAuthHeaders();
       const url = buildApiUrl(API_ENDPOINTS.tasks.update(taskId));
-
-      console.log('[TasksService] Updating task:', { url, taskId, data });
-
       const response = await fetch(url, {
         method: 'PUT',
         headers,
         body: JSON.stringify(data),
       });
-
       const result = await response.json();
-
       if (!response.ok) {
         console.error('[TasksService] Update task failed:', result);
         throw new Error(result.message || `Failed to update task: ${response.status}`);
       }
-
-      console.log('[TasksService] Task updated successfully:', result);
       return result.data;
     } catch (error) {
       console.error('[TasksService] Error updating task:', error);
       throw error;
     }
   }
-
   /**
    * Delete a task
    */
@@ -200,26 +161,19 @@ export class TasksService {
     try {
       const headers = await getAuthHeaders();
       const url = buildApiUrl(API_ENDPOINTS.tasks.update(taskId));
-
-      console.log('[TasksService] Deleting task:', { url, taskId });
-
       const response = await fetch(url, {
         method: 'DELETE',
         headers,
       });
-
       if (!response.ok) {
         const result = await response.json();
         console.error('[TasksService] Delete task failed:', result);
         throw new Error(result.message || `Failed to delete task: ${response.status}`);
       }
-
-      console.log('[TasksService] Task deleted successfully');
     } catch (error) {
       console.error('[TasksService] Error deleting task:', error);
       throw error;
     }
   }
 }
-
 export const tasksService = new TasksService();

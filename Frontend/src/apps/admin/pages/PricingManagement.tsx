@@ -2,7 +2,6 @@
  * Pricing Management Page
  * Admin can edit subscription pricing with confirmation
  */
-
 import React, { useState } from 'react';
 import { Card } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
@@ -20,7 +19,6 @@ import {
   Users,
   Zap,
 } from 'lucide-react';
-
 interface PricingTier {
   id: string;
   name: string;
@@ -29,7 +27,6 @@ interface PricingTier {
   popular: boolean;
   features: string[];
 }
-
 export const PricingManagement: React.FC = () => {
   const { theme } = useThemeStore();
   const [tiers, setTiers] = useState<PricingTier[]>(getInitialTiers());
@@ -43,32 +40,25 @@ export const PricingManagement: React.FC = () => {
     oldPrice: number;
     newPrice: number;
   } | null>(null);
-
   const handleEditClick = (planId: string, field: 'monthly' | 'yearly', currentPrice: number) => {
     setEditingPlan(planId);
     setEditingField(field);
     setTempPrice(currentPrice.toString());
   };
-
   const handleCancelEdit = () => {
     setEditingPlan(null);
     setEditingField(null);
     setTempPrice('');
   };
-
   const handleSaveClick = (planId: string, field: 'monthly' | 'yearly') => {
     const newPrice = parseFloat(tempPrice);
-    
     if (isNaN(newPrice) || newPrice < 0) {
       alert('Please enter a valid price');
       return;
     }
-
     const plan = tiers.find(t => t.id === planId);
     if (!plan) return;
-
     const oldPrice = field === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice;
-
     // Show confirmation dialog
     setPendingUpdate({
       planId,
@@ -78,10 +68,8 @@ export const PricingManagement: React.FC = () => {
     });
     setShowConfirmation(true);
   };
-
   const handleConfirmUpdate = () => {
     if (!pendingUpdate) return;
-
     // Update the tier
     setTiers(prev => prev.map(tier => {
       if (tier.id === pendingUpdate.planId) {
@@ -92,27 +80,21 @@ export const PricingManagement: React.FC = () => {
       }
       return tier;
     }));
-
     // Here you would call your API to update prices globally
-    console.log('Price updated:', pendingUpdate);
     alert(`Price updated successfully! This change will be reflected everywhere in the app.`);
-
     // Reset state
     setShowConfirmation(false);
     setPendingUpdate(null);
     handleCancelEdit();
   };
-
   const handleCancelConfirmation = () => {
     setShowConfirmation(false);
     setPendingUpdate(null);
   };
-
   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const mutedColor = theme === 'dark' ? 'text-[#CFCFE8]' : 'text-gray-600';
   const cardBg = theme === 'dark' ? 'bg-[#1A1A2E] border-white/10' : 'bg-white border-gray-200';
   const inputBg = theme === 'dark' ? 'bg-[#0E0E1F] border-[#2A2A3E] text-white' : 'bg-gray-50 border-gray-200 text-gray-900';
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -135,7 +117,6 @@ export const PricingManagement: React.FC = () => {
           </div>
         </div>
       </div>
-
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className={`${cardBg} p-6`}>
@@ -151,7 +132,6 @@ export const PricingManagement: React.FC = () => {
           <p className={`text-2xl font-semibold ${textColor}`}>1,234</p>
           <p className={`text-sm ${mutedColor}`}>Paying Subscribers</p>
         </Card>
-
         <Card className={`${cardBg} p-6`}>
           <div className="flex items-center justify-between mb-3">
             <div className="p-3 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500">
@@ -165,7 +145,6 @@ export const PricingManagement: React.FC = () => {
           <p className={`text-2xl font-semibold ${textColor}`}>$48,630</p>
           <p className={`text-sm ${mutedColor}`}>Monthly Recurring Revenue</p>
         </Card>
-
         <Card className={`${cardBg} p-6`}>
           <div className="flex items-center justify-between mb-3">
             <div className="p-3 rounded-lg bg-gradient-to-br from-violet-500 to-purple-500">
@@ -179,13 +158,11 @@ export const PricingManagement: React.FC = () => {
           <p className={`text-sm ${mutedColor}`}>Average Revenue Per User</p>
         </Card>
       </div>
-
       {/* Pricing Tiers */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {tiers.map((tier) => {
           const isEditingMonthly = editingPlan === tier.id && editingField === 'monthly';
           const isEditingYearly = editingPlan === tier.id && editingField === 'yearly';
-
           return (
             <Card
               key={tier.id}
@@ -196,11 +173,9 @@ export const PricingManagement: React.FC = () => {
                   Most Popular
                 </Badge>
               )}
-
               <div className="mb-6">
                 <h3 className={`text-2xl font-semibold ${textColor}`}>{tier.name}</h3>
               </div>
-
               {/* Monthly Price */}
               <div className="mb-4">
                 <label className={`text-sm ${mutedColor} mb-2 block`}>Monthly Price</label>
@@ -253,7 +228,6 @@ export const PricingManagement: React.FC = () => {
                   </div>
                 )}
               </div>
-
               {/* Yearly Price */}
               <div className="mb-6">
                 <label className={`text-sm ${mutedColor} mb-2 block`}>Yearly Price</label>
@@ -309,7 +283,6 @@ export const PricingManagement: React.FC = () => {
                   Save ${(tier.monthlyPrice * 12 - tier.yearlyPrice).toFixed(0)} per year
                 </p>
               </div>
-
               {/* Features */}
               <div className={`border-t pt-4 ${theme === 'dark' ? 'border-white/10' : 'border-gray-200'}`}>
                 <p className={`text-sm font-semibold ${mutedColor} mb-3`}>Features</p>
@@ -331,7 +304,6 @@ export const PricingManagement: React.FC = () => {
           );
         })}
       </div>
-
       {/* Confirmation Dialog */}
       {showConfirmation && pendingUpdate && (
         <div
@@ -353,7 +325,6 @@ export const PricingManagement: React.FC = () => {
                 </p>
               </div>
             </div>
-
             <div className={`p-4 rounded-lg mb-6 ${theme === 'dark' ? 'bg-white/5' : 'bg-gray-50'}`}>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
@@ -394,7 +365,6 @@ export const PricingManagement: React.FC = () => {
                 </div>
               </div>
             </div>
-
             <div className="flex gap-3">
               <Button
                 variant="outline"
@@ -416,7 +386,6 @@ export const PricingManagement: React.FC = () => {
     </div>
   );
 };
-
 // Initial tiers data
 function getInitialTiers(): PricingTier[] {
   return [

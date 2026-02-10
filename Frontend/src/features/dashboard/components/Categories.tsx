@@ -4,12 +4,10 @@ import { WorkflowCard } from '@/features/workflows/components/WorkflowCard';
 import { TaskDetailModal } from '@/features/tasks/components/TaskDetailModal';
 import { AttachTaskModal } from '@/features/tasks/components/AttachTaskModal';
 import { Lightbulb, FileEdit, MessageSquareText, Image as ImageIcon, Linkedin, Video, Palette, TrendingUp, Mail, FileCode, ChevronDown, Filter, X, Search, CheckSquare } from 'lucide-react';
-
 interface CategoriesProps {
   selectedCategory?: string;
   onWorkflowClick: (name: string) => void;
 }
-
 interface Task {
   id: string;
   name: string;
@@ -19,7 +17,6 @@ interface Task {
   description?: string;
   boardName?: string;
 }
-
 interface Workflow {
   icon: any;
   iconBgColor: string;
@@ -30,7 +27,6 @@ interface Workflow {
   isPro?: boolean;
   category: string;
 }
-
 export function Categories({ selectedCategory, onWorkflowClick }: CategoriesProps) {
   const [selectedSort, setSelectedSort] = useState('Most Liked');
   const [showSortDropdown, setShowSortDropdown] = useState(false);
@@ -42,13 +38,10 @@ export function Categories({ selectedCategory, onWorkflowClick }: CategoriesProp
   const [workflowSearchQuery, setWorkflowSearchQuery] = useState('');
   const [selectedTaskForEdit, setSelectedTaskForEdit] = useState<Task | null>(null);
   const { theme } = useTheme();
-
   const sortDropdownRef = useRef<HTMLDivElement>(null);
   const filterDropdownRef = useRef<HTMLDivElement>(null);
-
   const sortOptions = ['Most Liked', 'Most Viewed', 'Recently Added', 'Favorites', 'My Tools'];
   const filterOptions = ['Pro', 'Free'];
-
   // Click outside to close dropdowns
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -59,13 +52,11 @@ export function Categories({ selectedCategory, onWorkflowClick }: CategoriesProp
         setShowFilterDropdown(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
-
   const allWorkflows = [
     {
       icon: Lightbulb,
@@ -179,12 +170,10 @@ export function Categories({ selectedCategory, onWorkflowClick }: CategoriesProp
       category: 'E-Commerce Tools',
     },
   ];
-
   // Filter workflows based on selected category and filters
   let workflows = selectedCategory && selectedCategory !== 'All Apps'
     ? allWorkflows.filter(w => w.category === selectedCategory)
     : allWorkflows;
-
   // Apply search filter
   if (workflowSearchQuery.trim()) {
     workflows = workflows.filter(w =>
@@ -193,7 +182,6 @@ export function Categories({ selectedCategory, onWorkflowClick }: CategoriesProp
       w.category.toLowerCase().includes(workflowSearchQuery.toLowerCase())
     );
   }
-
   // Apply Pro/Free filter
   if (selectedFilters.length > 0) {
     workflows = workflows.filter(w => {
@@ -209,7 +197,6 @@ export function Categories({ selectedCategory, onWorkflowClick }: CategoriesProp
       return true;
     });
   }
-
   // Apply sorting
   if (selectedSort === 'Most Viewed') {
     workflows = [...workflows].sort((a, b) => {
@@ -224,14 +211,12 @@ export function Categories({ selectedCategory, onWorkflowClick }: CategoriesProp
       return bLikes - aLikes;
     });
   }
-
   const bgMain = theme === 'dark' ? 'bg-[#0E0E1F]' : 'bg-gray-50';
   const bgCard = theme === 'dark' ? 'bg-[#1A1A2E]' : 'bg-white';
   const textPrimary = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const textSecondary = theme === 'dark' ? 'text-[#CFCFE8]' : 'text-gray-600';
   const borderColor = theme === 'dark' ? 'border-white/5' : 'border-gray-200';
   const hoverBg = theme === 'dark' ? 'hover:bg-white/5' : 'hover:bg-gray-100';
-
   const toggleFilter = (filter: string) => {
     if (selectedFilters.includes(filter)) {
       setSelectedFilters(selectedFilters.filter(f => f !== filter));
@@ -239,7 +224,6 @@ export function Categories({ selectedCategory, onWorkflowClick }: CategoriesProp
       setSelectedFilters([...selectedFilters, filter]);
     }
   };
-
   const handleWorkflowAction = (workflow: Workflow, action: 'create' | 'attach') => {
     setSelectedWorkflow(workflow);
     if (action === 'create') {
@@ -248,13 +232,11 @@ export function Categories({ selectedCategory, onWorkflowClick }: CategoriesProp
       setShowAttachTaskModal(true);
     }
   };
-
   const handleTaskSelect = (task: Task) => {
     // Attach workflow to task and open task for editing
     setShowAttachTaskModal(false);
     setSelectedTaskForEdit(task);
   };
-
   return (
     <div className={`min-h-screen ${bgMain} transition-colors duration-300`}>
       {/* Main Content */}
@@ -270,7 +252,6 @@ export function Categories({ selectedCategory, onWorkflowClick }: CategoriesProp
               : 'Browse all available workflows and tools'}
           </p>
         </div>
-
         {/* Search Bar */}
         <div className="mb-6">
           <div className={`flex items-center gap-2 px-4 py-3 rounded-lg border ${borderColor} ${bgCard} focus-within:border-[#00C6FF]/50 transition-all max-w-xl`}>
@@ -292,11 +273,9 @@ export function Categories({ selectedCategory, onWorkflowClick }: CategoriesProp
             )}
           </div>
         </div>
-
         {/* Filter Bar */}
         <div className="flex items-center gap-4 mb-8 flex-wrap">
           <span className={textSecondary}>Sort by:</span>
-          
           {/* Sort Dropdown */}
           <div className="relative" ref={sortDropdownRef}>
             <button
@@ -318,7 +297,6 @@ export function Categories({ selectedCategory, onWorkflowClick }: CategoriesProp
                 <X className={`w-3 h-3 ${textSecondary}`} />
               </button>
             </button>
-
             {showSortDropdown && (
               <div className={`absolute top-full left-0 mt-2 w-48 ${bgCard} border ${borderColor} rounded-lg shadow-2xl z-50`}>
                 {sortOptions.map((option) => (
@@ -342,7 +320,6 @@ export function Categories({ selectedCategory, onWorkflowClick }: CategoriesProp
               </div>
             )}
           </div>
-
           {/* Filter Dropdown */}
           <div className="relative" ref={filterDropdownRef}>
             <button
@@ -369,7 +346,6 @@ export function Categories({ selectedCategory, onWorkflowClick }: CategoriesProp
                 <X className={`w-3 h-3 ${textSecondary}`} />
               </button>
             </button>
-
             {showFilterDropdown && (
               <div className={`absolute top-full left-0 mt-2 w-48 ${bgCard} border ${borderColor} rounded-lg shadow-2xl z-50 p-3`}>
                 <div className="space-y-2">
@@ -405,7 +381,6 @@ export function Categories({ selectedCategory, onWorkflowClick }: CategoriesProp
               </div>
             )}
           </div>
-
           {/* Active Filters Display */}
           {selectedFilters.length > 0 && (
             <div className="flex items-center gap-2">
@@ -426,7 +401,6 @@ export function Categories({ selectedCategory, onWorkflowClick }: CategoriesProp
             </div>
           )}
         </div>
-
         {/* Workflow Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-16">
           {workflows.map((workflow, index) => (
@@ -438,13 +412,11 @@ export function Categories({ selectedCategory, onWorkflowClick }: CategoriesProp
             />
           ))}
         </div>
-
         {workflows.length === 0 && (
           <div className="text-center py-16">
             <p className={`${textSecondary} text-lg`}>No workflows found matching your criteria.</p>
           </div>
         )}
-
         {/* Footer */}
         <footer className={`text-center py-8 border-t ${borderColor} mt-8`}>
           <p className={`${textSecondary} text-sm`}>
@@ -452,7 +424,6 @@ export function Categories({ selectedCategory, onWorkflowClick }: CategoriesProp
           </p>
         </footer>
       </main>
-
       {/* Attach to Task Modal */}
       {showAttachTaskModal && selectedWorkflow && (
         <AttachTaskModal
@@ -464,7 +435,6 @@ export function Categories({ selectedCategory, onWorkflowClick }: CategoriesProp
           onTaskSelect={handleTaskSelect}
         />
       )}
-
       {/* Create Task Modal */}
       {showCreateTaskModal && selectedWorkflow && (
         <TaskDetailModal
@@ -482,7 +452,6 @@ export function Categories({ selectedCategory, onWorkflowClick }: CategoriesProp
             setSelectedWorkflow(null);
           }}
           onUpdate={(taskId, updates) => {
-            console.log('Task created:', taskId, updates);
             setShowCreateTaskModal(false);
             setSelectedWorkflow(null);
           }}
@@ -493,7 +462,6 @@ export function Categories({ selectedCategory, onWorkflowClick }: CategoriesProp
           preAttachedWorkflow={selectedWorkflow}
         />
       )}
-
       {/* Edit Task with Attached Workflow Modal */}
       {selectedTaskForEdit && selectedWorkflow && (
         <TaskDetailModal
@@ -511,12 +479,10 @@ export function Categories({ selectedCategory, onWorkflowClick }: CategoriesProp
             setSelectedWorkflow(null);
           }}
           onUpdate={(taskId, updates) => {
-            console.log('Task updated with workflow:', taskId, updates);
             setSelectedTaskForEdit(null);
             setSelectedWorkflow(null);
           }}
           onDelete={(taskId) => {
-            console.log('Task deleted:', taskId);
             setSelectedTaskForEdit(null);
             setSelectedWorkflow(null);
           }}

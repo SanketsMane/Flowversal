@@ -2,7 +2,6 @@
  * Publish Dropdown Component
  * Provides options to save/publish workflows in different modes
  */
-
 import React, { useState } from 'react';
 import { ChevronDown, Globe, FileText, Save, Check } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
@@ -18,14 +17,12 @@ import { useUIStore } from '../../stores/uiStore';
 import { useWorkflowRegistryStore } from '@/core/stores/core/workflowRegistryStore';
 import { useAuthStore } from '@/core/stores/core/authStore';
 import { useUserStore } from '@/core/stores/core/userStore';
-
 interface PublishDropdownProps {
   onPublishPublic?: () => void;
   onPublishTemplate?: () => void;
   onSavePersonal?: () => void;
   workflowId?: string; // If editing existing workflow
 }
-
 export function PublishDropdown({ 
   onPublishPublic, 
   onPublishTemplate, 
@@ -36,36 +33,27 @@ export function PublishDropdown({
   const [isSaving, setIsSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  
   const workflowState = useWorkflowStore();
   const workflowRegistry = useWorkflowRegistryStore();
   const authStore = useAuthStore();
   const userStore = useUserStore();
   const { openEditWorkflow, setIsPublishDropdownOpen } = useUIStore();
-
   const handlePublishPublic = () => {
-    console.log('Opening workflow settings before publishing as Public');
     openEditWorkflow();
     onPublishPublic?.();
   };
-
   const handlePublishTemplate = () => {
-    console.log('Opening workflow settings before publishing as Template');
     openEditWorkflow();
     onPublishTemplate?.();
   };
-
   const handleSavePersonal = () => {
-    console.log('Opening workflow settings before saving as Personal');
     openEditWorkflow();
     onSavePersonal?.();
   };
-
   const hasChanges = 
     workflowState.triggers.length > 0 || 
     workflowState.containers.some(c => c.nodes.length > 0) ||
     workflowState.formFields.length > 0;
-
   return (
     <DropdownMenu onOpenChange={(open) => {
       setIsOpen(open);
@@ -110,7 +98,6 @@ export function PublishDropdown({
             </span>
           </div>
         </DropdownMenuItem>
-        
         <DropdownMenuItem 
           onClick={handlePublishTemplate}
           className="cursor-pointer flex items-center gap-3 py-2.5"
@@ -125,7 +112,6 @@ export function PublishDropdown({
             </span>
           </div>
         </DropdownMenuItem>
-        
         <DropdownMenuItem 
           onClick={handleSavePersonal}
           disabled={!hasChanges || isSaving}

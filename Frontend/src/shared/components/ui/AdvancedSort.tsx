@@ -2,14 +2,11 @@
  * Advanced Sort Component
  * Sort tasks by various criteria with ascending/descending options
  */
-
 import { useEffect, useRef, useState } from 'react';
 import { SortAsc, SortDesc, Check, Calendar, Flag, User, Clock, Type, ListOrdered } from 'lucide-react';
 import { useTheme } from '@/core/theme/ThemeContext';
 import { Portal } from './Portal';
-
 export type SortOption = 'dueDate' | 'priority' | 'name' | 'createdAt' | 'status' | 'assignee' | 'updated';
-
 interface AdvancedSortProps {
   isOpen: boolean;
   onClose: () => void;
@@ -17,7 +14,6 @@ interface AdvancedSortProps {
   onSortChange: (sort: SortOption) => void;
   buttonRef?: React.RefObject<HTMLButtonElement>;
 }
-
 const sortOptions: Array<{ 
   value: SortOption; 
   label: string; 
@@ -75,7 +71,6 @@ const sortOptions: Array<{
     gradient: 'from-cyan-500 to-blue-500'
   },
 ];
-
 export function AdvancedSort({
   isOpen,
   onClose,
@@ -83,18 +78,14 @@ export function AdvancedSort({
   onSortChange,
   buttonRef
 }: AdvancedSortProps) {
-  console.log('🔥 AdvancedSort CALLED with isOpen:', isOpen);
-  
   const { theme } = useTheme();
   const panelRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ top: 0, left: 0 });
-
   const bgMain = theme === 'dark' ? 'bg-[#0E0E1F]' : 'bg-white';
   const textPrimary = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const textSecondary = theme === 'dark' ? 'text-[#CFCFE8]' : 'text-gray-600';
   const borderColor = theme === 'dark' ? 'border-white/10' : 'border-gray-200';
   const hoverBg = theme === 'dark' ? 'hover:bg-white/5' : 'hover:bg-gray-100';
-
   // Close when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -102,25 +93,21 @@ export function AdvancedSort({
       if (buttonRef?.current && buttonRef.current.contains(event.target as Node)) {
         return; // Don't close if clicking the button
       }
-      
       if (panelRef.current && !panelRef.current.contains(event.target as Node)) {
         onClose();
       }
     }
-
     if (isOpen) {
       // Add a small delay to prevent immediate closing
       const timeoutId = setTimeout(() => {
         document.addEventListener('mousedown', handleClickOutside);
       }, 100);
-      
       return () => {
         clearTimeout(timeoutId);
         document.removeEventListener('mousedown', handleClickOutside);
       };
     }
   }, [isOpen, onClose, buttonRef]);
-
   // Calculate position based on button
   useEffect(() => {
     const updatePosition = () => {
@@ -132,24 +119,18 @@ export function AdvancedSort({
         });
       }
     };
-
     if (isOpen) {
       updatePosition();
       // Update position on scroll
       window.addEventListener('scroll', updatePosition, true);
       window.addEventListener('resize', updatePosition);
-      
       return () => {
         window.removeEventListener('scroll', updatePosition, true);
         window.removeEventListener('resize', updatePosition);
       };
     }
   }, [isOpen, buttonRef]);
-
   if (!isOpen) return null;
-
-  console.log('AdvancedSort rendering, isOpen:', isOpen, 'position:', position);
-
   return (
     <Portal>
       <div
@@ -167,7 +148,6 @@ export function AdvancedSort({
           <SortAsc className="w-4 h-4 text-[#00C6FF]" />
           <h3 className={`${textPrimary}`}>Sort By</h3>
         </div>
-
         {/* Sort Options */}
         <div className="p-2">
           {sortOptions.map(option => {

@@ -2,10 +2,8 @@
  * Connection Point Registry
  * Centralized store for all connection dots and lines in Flowversal
  */
-
 import { create } from 'zustand';
 import { ConnectionPoint, ConnectionLine } from '../types/connections';
-
 interface ConnectionRegistry {
   // Points
   points: Map<string, ConnectionPoint>;
@@ -14,7 +12,6 @@ interface ConnectionRegistry {
   updatePosition: (id: string, position: { x: number; y: number }) => void;
   getPoint: (id: string) => ConnectionPoint | undefined;
   getAllPoints: () => ConnectionPoint[];
-  
   // Queries
   getPointsByOwner: (ownerId: string) => ConnectionPoint[];
   getStepInputDot: (stepId: string) => ConnectionPoint | undefined;
@@ -22,7 +19,6 @@ interface ConnectionRegistry {
   getNodeInputDot: (nodeId: string) => ConnectionPoint | undefined;
   getNodeOutputDot: (nodeId: string) => ConnectionPoint | undefined;
   getTriggerOutputDot: (triggerId: string) => ConnectionPoint | undefined;
-  
   // Lines
   lines: Map<string, ConnectionLine>;
   registerLine: (line: ConnectionLine) => void;
@@ -30,15 +26,12 @@ interface ConnectionRegistry {
   getLinesBySource: (sourceId: string) => ConnectionLine[];
   getLinesByTarget: (targetId: string) => ConnectionLine[];
   getAllLines: () => ConnectionLine[];
-  
   // Debug
   debugInfo: () => void;
 }
-
 export const useConnectionRegistry = create<ConnectionRegistry>((set, get) => ({
   points: new Map(),
   lines: new Map(),
-  
   // Point management
   registerPoint: (point) => {
     set((state) => {
@@ -47,7 +40,6 @@ export const useConnectionRegistry = create<ConnectionRegistry>((set, get) => ({
       return { points: newPoints };
     });
   },
-  
   unregisterPoint: (id) => {
     set((state) => {
       const newPoints = new Map(state.points);
@@ -55,7 +47,6 @@ export const useConnectionRegistry = create<ConnectionRegistry>((set, get) => ({
       return { points: newPoints };
     });
   },
-  
   updatePosition: (id, position) => {
     set((state) => {
       const newPoints = new Map(state.points);
@@ -70,52 +61,43 @@ export const useConnectionRegistry = create<ConnectionRegistry>((set, get) => ({
       return { points: newPoints };
     });
   },
-  
   getPoint: (id) => {
     return get().points.get(id);
   },
-  
   getAllPoints: () => {
     return Array.from(get().points.values());
   },
-  
   // Queries
   getPointsByOwner: (ownerId) => {
     return Array.from(get().points.values()).filter(
       (point) => point.ownerId === ownerId
     );
   },
-  
   getStepInputDot: (stepId) => {
     return Array.from(get().points.values()).find(
       (point) => point.ownerId === stepId && point.type === 'step-input'
     );
   },
-  
   getStepOutputDot: (stepId) => {
     return Array.from(get().points.values()).find(
       (point) => point.ownerId === stepId && point.type === 'step-output'
     );
   },
-  
   getNodeInputDot: (nodeId) => {
     return Array.from(get().points.values()).find(
       (point) => point.ownerId === nodeId && point.type === 'node-input'
     );
   },
-  
   getNodeOutputDot: (nodeId) => {
     return Array.from(get().points.values()).find(
       (point) => point.ownerId === nodeId && point.type === 'node-output'
     );
   },
-  
   getTriggerOutputDot: (triggerId) => {
     return Array.from(get().points.values()).find(
       (point) => point.ownerId === triggerId && point.type === 'trigger-output'
     );
   },
-  
   // Line management
   registerLine: (line) => {
     set((state) => {
@@ -124,7 +106,6 @@ export const useConnectionRegistry = create<ConnectionRegistry>((set, get) => ({
       return { lines: newLines };
     });
   },
-  
   unregisterLine: (id) => {
     set((state) => {
       const newLines = new Map(state.lines);
@@ -132,30 +113,21 @@ export const useConnectionRegistry = create<ConnectionRegistry>((set, get) => ({
       return { lines: newLines };
     });
   },
-  
   getLinesBySource: (sourceId) => {
     return Array.from(get().lines.values()).filter(
       (line) => line.sourceId === sourceId
     );
   },
-  
   getLinesByTarget: (targetId) => {
     return Array.from(get().lines.values()).filter(
       (line) => line.targetId === targetId
     );
   },
-  
   getAllLines: () => {
     return Array.from(get().lines.values());
   },
-  
   // Debug
   debugInfo: () => {
     const state = get();
-    console.log('=== Connection Registry Debug ===');
-    console.log('Total Points:', state.points.size);
-    console.log('Total Lines:', state.lines.size);
-    console.log('Points:', Array.from(state.points.entries()));
-    console.log('Lines:', Array.from(state.lines.entries()));
   },
 }));

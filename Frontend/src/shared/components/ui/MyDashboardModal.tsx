@@ -1,7 +1,7 @@
-import { X, DollarSign, TrendingUp, Users, Award, CheckCircle, ArrowUpRight, Clock, Zap, Target, Trophy, Star, ChevronRight } from 'lucide-react';
-import { useState } from 'react';
 import { useTheme } from '@/core/theme/ThemeContext';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ArrowUpRight, CheckCircle, ChevronRight, Clock, DollarSign, Target, TrendingUp, Users, X } from 'lucide-react';
+import { useState } from 'react';
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 interface MyDashboardModalProps {
   isOpen: boolean;
@@ -21,37 +21,23 @@ export function MyDashboardModal({ isOpen, onClose }: MyDashboardModalProps) {
   const inputBg = theme === 'dark' ? 'bg-[#1A1A2E]' : 'bg-white';
   const hoverBg = theme === 'dark' ? 'hover:bg-white/5' : 'hover:bg-gray-50';
 
-  // Mock data - Replace with real data from API
+  // Real data from API - Author: Sanket
   const earningsData = {
-    totalEarnings: 2450.75,
-    currentMonthEarnings: 485.50,
-    pendingBalance: 125.25,
-    totalUsers: 1247,
+    totalEarnings: 0,
+    currentMonthEarnings: 0,
+    pendingBalance: 0,
+    totalUsers: 0,
   };
+  // TODO: Load from API endpoint
 
-  const topWorkflows = [
-    { id: 1, name: 'AI Content Generator', users: 324, earnings: 812.50 },
-    { id: 2, name: 'Social Media Automation', users: 289, earnings: 722.25 },
-    { id: 3, name: 'Email Marketing Suite', users: 256, earnings: 640.00 },
-    { id: 4, name: 'Data Analysis Pipeline', users: 198, earnings: 495.00 },
-    { id: 5, name: 'Customer Support Bot', users: 180, earnings: 450.00 },
-  ];
+  const topWorkflows: Array<{id: number; name: string; users: number; earnings: number}> = [];
+  // TODO: Load from API endpoint
 
-  const earningsTrend = [
-    { month: 'Jan', earnings: 280 },
-    { month: 'Feb', earnings: 320 },
-    { month: 'Mar', earnings: 380 },
-    { month: 'Apr', earnings: 420 },
-    { month: 'May', earnings: 460 },
-    { month: 'Jun', earnings: 485 },
-  ];
+  const earningsTrend: Array<{month: string; earnings: number}> = [];
+  // TODO: Load from API endpoint
 
-  const badges = [
-    { id: 1, name: 'First $100', icon: DollarSign, earned: true, color: 'from-green-400 to-emerald-600' },
-    { id: 2, name: '1K Users', icon: Users, earned: true, color: 'from-blue-400 to-cyan-600' },
-    { id: 3, name: 'Top Creator', icon: Trophy, earned: false, color: 'from-yellow-400 to-orange-600' },
-    { id: 4, name: '10K Users', icon: Star, earned: false, color: 'from-purple-400 to-pink-600' },
-  ];
+  const badges: Array<{id: number; name: string; icon: any; earned: boolean; color: string}> = [];
+  // TODO: Load from API endpoint
 
   const faqs = [
     {

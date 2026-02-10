@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
 import { useTheme } from '@/core/theme/ThemeContext';
-import { X, Search, Filter, ChevronDown, CheckSquare } from 'lucide-react';
+import { CheckSquare, ChevronDown, Search, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 interface Task {
   id: string;
@@ -43,21 +43,14 @@ export function AttachTaskModal({ workflowName, onClose, onTaskSelect }: AttachT
   const borderColor = theme === 'dark' ? 'border-white/5' : 'border-gray-200';
   const hoverBg = theme === 'dark' ? 'hover:bg-white/5' : 'hover:bg-gray-100';
 
-  // Mock data - In real app, this would come from Projects
-  const folders = ['None', 'SGA', 'Marketing', 'Development'];
-  const boards = ['None', 'New Phase', 'Sales Pipeline', 'F3 SGA - Work', 'F4 SGA - Work'];
+  // Real data from projects - Author: Sanket
+  const folders: string[] = ['None'];
+  const boards: string[] = ['None'];
   const statuses = ['Backlog', 'To do', 'In Progress', 'Review', 'Done', 'Blocked'];
+  // TODO: Load folders and boards from real project data
 
-  const allTasks: Task[] = [
-    { id: '1', name: 'Website Redesign', assignee: 'VS', avatar: 'VS', status: 'Backlog', description: 'Complete homepage redesign', boardName: 'New Phase', folderName: 'None' },
-    { id: '2', name: 'Marketing Campaign', assignee: 'MP', avatar: 'MP', status: 'Backlog', description: 'Launch Q1 campaign', boardName: 'Sales Pipeline', folderName: 'Marketing' },
-    { id: '3', name: 'Product Launch', assignee: 'DS', avatar: 'DS', status: 'Backlog', description: 'Final review before launch', boardName: 'New Phase', folderName: 'None' },
-    { id: '4', name: 'API Integration', assignee: 'AK', avatar: 'AK', status: 'Backlog', description: 'Backend API setup', boardName: 'F3 SGA - Work', folderName: 'SGA' },
-    { id: '5', name: 'Database Migration', assignee: 'KK', avatar: 'KK', status: 'To do', description: 'Migrate to new database', boardName: 'New Phase', folderName: 'Development' },
-    { id: '6', name: 'UI/UX Updates', assignee: 'YS', avatar: 'YS', status: 'In Progress', description: 'Update design system', boardName: 'Sales Pipeline', folderName: 'None' },
-    { id: '7', name: 'Content Writing', assignee: 'N', avatar: 'N', status: 'Backlog', description: 'Write blog posts', boardName: 'F4 SGA - Work', folderName: 'SGA' },
-    { id: '8', name: 'SEO Optimization', assignee: 'SK', avatar: 'SK', status: 'Review', description: 'Optimize site for SEO', boardName: 'New Phase', folderName: 'Marketing' },
-  ];
+  const allTasks: Task[] = [];
+  // TODO: Load from real project tasks API
 
   // Click outside to close dropdowns
   useEffect(() => {

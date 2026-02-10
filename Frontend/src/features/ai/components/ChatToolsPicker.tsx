@@ -3,7 +3,6 @@
  * Modal for selecting tools to add to chat
  * Matches screenshot design - white background, clean card layout
  */
-
 import { useTheme } from '@/core/theme/ThemeContext';
 import { nodeTemplates } from '@/features/workflow-builder/utils/nodeTemplates';
 import { toolTemplates } from '@/features/workflow-builder/utils/toolTemplates';
@@ -23,7 +22,6 @@ import {
 } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-
 export interface SelectedTool {
   type: string;
   label: string;
@@ -32,7 +30,6 @@ export interface SelectedTool {
   description?: string;
   itemType: 'trigger' | 'node' | 'tool';
 }
-
 interface ChatToolsPickerProps {
   isOpen: boolean;
   onClose: () => void;
@@ -40,14 +37,12 @@ interface ChatToolsPickerProps {
   selectedTools: SelectedTool[];
   mode: 'agent' | 'ask';
 }
-
 interface Category {
   id: string;
   label: string;
   icon: LucideIcon;
   description?: string;
 }
-
 interface Item {
   type: string;
   label: string;
@@ -56,7 +51,6 @@ interface Item {
   description?: string;
   itemType: 'trigger' | 'node' | 'tool';
 }
-
 export function ChatToolsPicker({
   isOpen,
   onClose,
@@ -69,23 +63,18 @@ export function ChatToolsPicker({
   const [searchQuery, setSearchQuery] = useState('');
   const [isMounted, setIsMounted] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
-
   useEffect(() => {
     // Check initial theme from DOM
     const checkTheme = () => setIsDarkMode(document.documentElement.classList.contains('dark'));
     checkTheme();
-    
     // Watch for class changes on html element
     const observer = new MutationObserver(checkTheme);
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-    
     return () => observer.disconnect();
   }, []);
-
   // Get all items based on mode - moved before early return
   const getAllItems = (): Item[] => {
     const items: Item[] = [];
-
     if (mode === 'agent') {
       // Add triggers
       triggerTemplates.forEach(trigger => {
@@ -98,7 +87,6 @@ export function ChatToolsPicker({
           itemType: 'trigger',
         });
       });
-
       // Add nodes
       nodeTemplates.forEach(node => {
         items.push({
@@ -110,7 +98,6 @@ export function ChatToolsPicker({
           itemType: 'node',
         });
       });
-
       // Add tools
       toolTemplates.forEach(tool => {
         items.push({
@@ -135,14 +122,11 @@ export function ChatToolsPicker({
         });
       });
     }
-
     return items;
   };
-
   // Filter items similar to UnifiedNodePickerModal: grouping only when searching in Home
   const filteredItems = useMemo(() => {
     let items = getAllItems();
-
     // Filter by category (except home)
     if (selectedCategory !== 'home') {
       items = items.filter(item => {
@@ -150,7 +134,6 @@ export function ChatToolsPicker({
         return item.category === selectedCategory;
       });
     }
-
     // Filter by search
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -159,7 +142,6 @@ export function ChatToolsPicker({
           item.label.toLowerCase().includes(query) ||
           (item.description && item.description.toLowerCase().includes(query))
       );
-
       // If searching from home, group by category
       if (selectedCategory === 'home') {
         const grouped: Record<string, Item[]> = {};
@@ -171,25 +153,19 @@ export function ChatToolsPicker({
         return grouped;
       }
     }
-
     return items;
   }, [searchQuery, mode, selectedCategory]);
-
   const isGrouped = useMemo(() => !Array.isArray(filteredItems), [filteredItems]);
-
   // Mount check for portal
   useEffect(() => {
     setIsMounted(true);
     return () => setIsMounted(false);
   }, []);
-
   // Debug: Log when component renders
   useEffect(() => {
     if (isOpen) {
-      console.log('[ChatToolsPicker] Modal should be visible, isOpen:', isOpen, 'isMounted:', isMounted);
     }
   }, [isOpen, isMounted]);
-
   const categories: Category[] = [
     { id: 'home', label: 'Home', icon: Home, description: 'All items' },
     { id: 'triggers', label: 'Triggers', icon: Zap, description: 'Start your workflow' },
@@ -199,16 +175,13 @@ export function ChatToolsPicker({
     { id: 'flow', label: 'Flow', icon: GitBranch, description: 'Control workflow flow' },
     { id: 'core', label: 'Core', icon: Briefcase, description: 'Core utilities' },
   ];
-
   // Early return AFTER all hooks
   if (!isOpen) {
     return null;
   }
-
   const isToolSelected = (type: string) => {
     return selectedTools.some(t => t.type === type);
   };
-
   const handleItemClick = (item: Item, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent modal from closing
     onSelectTool({
@@ -221,7 +194,6 @@ export function ChatToolsPicker({
     });
     // Don't close modal - allow multiple selections
   };
-
   // Get item card color based on category - matches screenshot
   const getItemCardColor = (category: string, itemType: string) => {
     if (itemType === 'trigger') {
@@ -240,7 +212,6 @@ export function ChatToolsPicker({
         return 'bg-gray-500';
     }
   };
-
   const modalContent = (
     <div 
       className="fixed inset-0 z-[9999] flex items-center justify-center"
@@ -252,7 +223,6 @@ export function ChatToolsPicker({
         onClick={onClose}
         style={{ position: 'absolute' }}
       />
-
       {/* Modal - Inspired by UnifiedNodePickerModal */}
       <div
         className={`relative w-[90%] max-w-[1000px] h-[85vh] rounded-2xl overflow-hidden shadow-2xl flex flex-col border ${
@@ -284,7 +254,6 @@ export function ChatToolsPicker({
             </button>
           </div>
         </div>
-
         {/* Search bar */}
         <div className={`px-6 py-4 border-b ${
           isDarkMode ? 'border-gray-800' : 'border-gray-200'
@@ -304,7 +273,6 @@ export function ChatToolsPicker({
             />
           </div>
         </div>
-
         {/* Content with categories sidebar + grid - Fixed layout matching UnifiedNodePickerModal */}
         <div className={`flex flex-1 overflow-hidden ${
           isDarkMode ? 'bg-[#0F1115]' : 'bg-white'
@@ -354,7 +322,6 @@ export function ChatToolsPicker({
               })}
             </div>
           </div>
-
           {/* Items grid */}
           <div className={`flex-1 overflow-y-auto p-6 ${
             isDarkMode ? 'bg-[#0F1115]' : 'bg-white'
@@ -413,7 +380,6 @@ export function ChatToolsPicker({
                   const Icon = item.icon;
                   const isSelected = isToolSelected(item.type);
                   const cardColor = getItemCardColor(item.category, item.itemType);
-
                   return (
                     <button
                       key={`${item.itemType}-${item.type}`}
@@ -445,7 +411,6 @@ export function ChatToolsPicker({
                     </button>
                   );
                 })}
-
                 {filteredItems.length === 0 && (
                   <div className="col-span-full text-center py-12 text-gray-500">
                     <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
@@ -461,7 +426,6 @@ export function ChatToolsPicker({
             )}
           </div>
         </div>
-
         {/* Footer */}
         <div className={`p-4 flex items-center justify-between border-t ${
           isDarkMode ? 'border-gray-800 bg-[#0F1115]' : 'border-gray-200 bg-white'
@@ -504,14 +468,10 @@ export function ChatToolsPicker({
       </div>
     </div>
   );
-
   // Use portal to render at document body level
   if (!isMounted || typeof document === 'undefined') {
-    console.log('[ChatToolsPicker] Not mounted or no document, returning null');
     return null;
   }
-  
-  console.log('[ChatToolsPicker] Rendering modal via portal, isOpen:', isOpen);
   return createPortal(
     <div className={isDarkMode ? 'dark' : ''}>
       {modalContent}

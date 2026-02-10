@@ -2,7 +2,6 @@
  * Workflow Approvals Page
  * Admin can approve/disapprove workflows created by users
  */
-
 import React, { useState } from 'react';
 import { Card } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
@@ -21,7 +20,6 @@ import {
   Calendar,
   Activity,
 } from 'lucide-react';
-
 interface WorkflowApproval {
   id: string;
   name: string;
@@ -41,7 +39,6 @@ interface WorkflowApproval {
   nodeCount: number;
   category: string;
 }
-
 export const WorkflowApprovals: React.FC = () => {
   const { theme } = useThemeStore();
   const [searchQuery, setSearchQuery] = useState('');
@@ -50,49 +47,36 @@ export const WorkflowApprovals: React.FC = () => {
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
   const [approvalAction, setApprovalAction] = useState<'approve' | 'reject'>('approve');
   const [approvalMessage, setApprovalMessage] = useState('');
-
   const workflows = getMockWorkflows();
-
   const filteredWorkflows = workflows.filter((workflow) => {
     const matchesSearch =
       workflow.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       workflow.owner.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       workflow.category.toLowerCase().includes(searchQuery.toLowerCase());
-    
     const matchesStatus = filterStatus === 'all' || workflow.status === filterStatus;
-
     return matchesSearch && matchesStatus;
   });
-
   const handleApprove = (workflow: WorkflowApproval) => {
     setSelectedWorkflow(workflow);
     setApprovalAction('approve');
     setApprovalMessage('');
     setShowApprovalDialog(true);
   };
-
   const handleReject = (workflow: WorkflowApproval) => {
     setSelectedWorkflow(workflow);
     setApprovalAction('reject');
     setApprovalMessage('');
     setShowApprovalDialog(true);
   };
-
   const handleConfirmAction = () => {
     if (!selectedWorkflow) return;
-
     const action = approvalAction === 'approve' ? 'approved' : 'rejected';
-    console.log(`${action} workflow:`, selectedWorkflow.id);
-    console.log('Message:', approvalMessage);
-    
     // Here you would call your API to update the workflow status
     alert(`Workflow ${action}!\n\n${approvalMessage ? `Message: ${approvalMessage}` : 'No message provided'}`);
-    
     setShowApprovalDialog(false);
     setSelectedWorkflow(null);
     setApprovalMessage('');
   };
-
   const getStatusColor = (status: WorkflowApproval['status']) => {
     switch (status) {
       case 'pending':
@@ -109,7 +93,6 @@ export const WorkflowApprovals: React.FC = () => {
           : 'bg-red-50 text-red-700 border-red-200';
     }
   };
-
   const getStatusIcon = (status: WorkflowApproval['status']) => {
     switch (status) {
       case 'pending':
@@ -120,15 +103,12 @@ export const WorkflowApprovals: React.FC = () => {
         return <XCircle className="w-4 h-4" />;
     }
   };
-
   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const mutedColor = theme === 'dark' ? 'text-[#CFCFE8]' : 'text-gray-600';
   const cardBg = theme === 'dark' ? 'bg-[#1A1A2E] border-white/10' : 'bg-white border-gray-200';
   const hoverBg = theme === 'dark' ? 'hover:bg-white/5' : 'hover:bg-gray-50';
   const inputBg = theme === 'dark' ? 'bg-[#0E0E1F] border-[#2A2A3E] text-white' : 'bg-gray-50 border-gray-200 text-gray-900';
-
   const pendingCount = workflows.filter(w => w.status === 'pending').length;
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -145,7 +125,6 @@ export const WorkflowApprovals: React.FC = () => {
           </Badge>
         )}
       </div>
-
       {/* Filters */}
       <Card className={`${cardBg} p-6`}>
         <div className="flex flex-col lg:flex-row gap-4">
@@ -159,7 +138,6 @@ export const WorkflowApprovals: React.FC = () => {
               className={`pl-10 ${inputBg}`}
             />
           </div>
-
           {/* Status Filter */}
           <div className="flex gap-2">
             {(['all', 'pending', 'approved', 'rejected'] as const).map((status) => (
@@ -181,7 +159,6 @@ export const WorkflowApprovals: React.FC = () => {
           </div>
         </div>
       </Card>
-
       {/* Workflows List */}
       <div className="space-y-4">
         {filteredWorkflows.length > 0 ? (
@@ -200,7 +177,6 @@ export const WorkflowApprovals: React.FC = () => {
                     </Badge>
                   </div>
                   <p className={`${mutedColor} mb-3`}>{workflow.description}</p>
-                  
                   <div className="flex items-center gap-6 text-sm">
                     <div className="flex items-center gap-2">
                       <User className={`w-4 h-4 ${mutedColor}`} />
@@ -215,7 +191,6 @@ export const WorkflowApprovals: React.FC = () => {
                       <span className={mutedColor}>{workflow.triggerCount} triggers, {workflow.nodeCount} nodes</span>
                     </div>
                   </div>
-
                   {workflow.status === 'rejected' && workflow.rejectionReason && (
                     <div className={`mt-3 p-3 rounded-lg ${theme === 'dark' ? 'bg-red-500/10' : 'bg-red-50'}`}>
                       <div className="flex items-start gap-2">
@@ -231,14 +206,12 @@ export const WorkflowApprovals: React.FC = () => {
                       </div>
                     </div>
                   )}
-
                   {workflow.status === 'approved' && workflow.reviewedBy && (
                     <div className={`mt-3 text-sm ${mutedColor}`}>
                       Approved by {workflow.reviewedBy} on {workflow.reviewedAt && new Date(workflow.reviewedAt).toLocaleDateString()}
                     </div>
                   )}
                 </div>
-
                 <div className="flex gap-2 ml-4">
                   <Button
                     variant="outline"
@@ -280,7 +253,6 @@ export const WorkflowApprovals: React.FC = () => {
           </Card>
         )}
       </div>
-
       {/* Approval/Rejection Dialog */}
       {showApprovalDialog && selectedWorkflow && (
         <div
@@ -294,13 +266,11 @@ export const WorkflowApprovals: React.FC = () => {
             <h2 className={`text-2xl mb-4 ${textColor}`}>
               {approvalAction === 'approve' ? 'Approve Workflow' : 'Reject Workflow'}
             </h2>
-            
             <div className="mb-4">
               <p className={`${mutedColor} mb-2`}>Workflow:</p>
               <p className={`${textColor} font-semibold`}>{selectedWorkflow.name}</p>
               <p className={`text-sm ${mutedColor}`}>by {selectedWorkflow.owner.name}</p>
             </div>
-
             <div className="mb-6">
               <label className={`block text-sm ${mutedColor} mb-2`}>
                 {approvalAction === 'approve' ? 'Approval Message (Optional)' : 'Rejection Reason (Required)'}
@@ -317,7 +287,6 @@ export const WorkflowApprovals: React.FC = () => {
                 className={inputBg}
               />
             </div>
-
             <div className="flex gap-3">
               <Button
                 variant="outline"
@@ -354,7 +323,6 @@ export const WorkflowApprovals: React.FC = () => {
     </div>
   );
 };
-
 // Mock data
 function getMockWorkflows(): WorkflowApproval[] {
   return [

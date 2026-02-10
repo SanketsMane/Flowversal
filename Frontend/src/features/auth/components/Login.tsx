@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { Mail, Lock, Eye, EyeOff, Sparkles, AlertCircle, Settings } from 'lucide-react';
-import { useAppThemeStore, getThemeClasses } from '@/core/stores/app/themeStore';
 import { useAuth } from '@/core/auth/AuthContext';
+import { getThemeClasses, useAppThemeStore } from '@/core/stores/app/themeStore';
 import { SetupGuide } from '@/shared/components/ui/SetupGuide';
 import flowversalLogoDark from 'figma:asset/6002bc04b2fb15d40304d81c459c74499954d9ad.png';
 import flowversalLogoLight from 'figma:asset/a343b12e588be649c0fd15261a16aac9163083d0.png';
+import { AlertCircle, Eye, EyeOff, Loader2, Lock, Mail, Settings } from 'lucide-react';
+import { useState } from 'react';
 
 interface LoginProps {
   onLogin: () => void;
@@ -99,7 +99,7 @@ export function Login({ onLogin, onSignupClick, onForgotPasswordClick }: LoginPr
           <p className={themeClasses.textSecondary}>Sign in to continue to your dashboard</p>
         </div>
 
-        {/* Google Login Button */}
+        {/* Google Login - Temporarily disabled for migration (BUG-010 fix)
         <button
           onClick={handleGoogleLogin}
           disabled={isLoading}
@@ -125,13 +125,15 @@ export function Login({ onLogin, onSignupClick, onForgotPasswordClick }: LoginPr
           </svg>
           <span>Continue with Google</span>
         </button>
+        */}
 
-        {/* Divider */}
+        {/* Divider - Only show when Google login is enabled
         <div className="flex items-center gap-4 mb-6">
           <div className={`flex-1 h-px ${themeClasses.divider}`}></div>
           <span className={`text-sm ${themeClasses.textSecondary}`}>or</span>
           <div className={`flex-1 h-px ${themeClasses.divider}`}></div>
         </div>
+        */}
 
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -141,6 +143,7 @@ export function Login({ onLogin, onSignupClick, onForgotPasswordClick }: LoginPr
             <div className="relative">
               <Mail className={`absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 ${themeClasses.textTertiary}`} />
               <input
+                autoFocus
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -193,9 +196,10 @@ export function Login({ onLogin, onSignupClick, onForgotPasswordClick }: LoginPr
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3 px-6 rounded-lg bg-gradient-to-r from-[#00C6FF] via-[#0072FF] to-[#9D50BB] text-white hover:shadow-lg hover:shadow-[#00C6FF]/50 transition-all flex items-center justify-center hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 px-6 rounded-lg bg-gradient-to-r from-[#00C6FF] via-[#0072FF] to-[#9D50BB] text-white hover:shadow-lg hover:shadow-[#00C6FF]/50 transition-all flex items-center justify-center gap-2 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <span className="text-center">{isLoading ? 'Signing In...' : 'Sign In'}</span>
+            {isLoading && <Loader2 className="w-5 h-5 animate-spin" />}
+            <span>{isLoading ? 'Signing in...' : 'Sign In'}</span>
           </button>
         </form>
 
@@ -209,21 +213,6 @@ export function Login({ onLogin, onSignupClick, onForgotPasswordClick }: LoginPr
           >
             Sign Up
           </button>
-        </div>
-
-        {/* Demo Credentials */}
-        <div className={`mt-6 p-4 rounded-lg ${theme === 'dark' ? 'bg-blue-500/10 border border-blue-500/20' : 'bg-blue-50 border border-blue-200'}`}>
-          <div className="flex items-start gap-2">
-            <Sparkles className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
-            <div>
-              <p className={`text-sm font-medium mb-1 ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`}>Demo Credentials</p>
-              <p className={`text-xs ${themeClasses.textTertiary}`}>
-                Email: <code className={`${theme === 'dark' ? 'text-blue-300' : 'text-blue-600'}`}>demo@demo.com</code>
-                <br />
-                Password: <code className={`${theme === 'dark' ? 'text-blue-300' : 'text-blue-600'}`}>demo@123</code>
-              </p>
-            </div>
-          </div>
         </div>
 
         {/* Error Message */}

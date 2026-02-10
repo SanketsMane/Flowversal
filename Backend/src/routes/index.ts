@@ -7,18 +7,16 @@ import mcpRoutes from '../modules/ai/routes/ai/mcp.routes';
 import ragRoutes from '../modules/ai/routes/ai/rag.routes';
 import searchRoutes from '../modules/ai/routes/ai/search.routes';
 import workflowAIRoutes from '../modules/ai/routes/ai/workflow.routes';
-import analyticsRoutes, { analyticsRoutes as workflowAnalyticsRoutes } from '../modules/analytics/routes/analytics.routes';
 import authRoutes from '../modules/auth/routes/auth.routes';
 import mfaRoutes from '../modules/auth/routes/mfa.routes';
+import creatorRoutes from '../modules/creator/routes/creator.routes';
 import boardRoutes from '../modules/projects/routes/board.routes';
 import projectRoutes from '../modules/projects/routes/project.routes';
 import setupConfigRoutes from '../modules/projects/routes/setup-config.routes';
 import templateRoutes from '../modules/projects/routes/template.routes';
+import referralRoutes from '../modules/referrals/routes/referral.routes';
 import taskRoutes from '../modules/tasks/routes/task.routes';
-import { toolEcosystemRoutes } from '../modules/tools/routes/tool-ecosystem.routes';
 import userRoutes from '../modules/users/routes/user.routes';
-import { breakpointRoutes } from '../modules/workflows/routes/breakpoint.routes';
-import { humanApprovalRoutes } from '../modules/workflows/routes/human-approval.routes';
 import workflowExecutionRoutes from '../modules/workflows/routes/workflow-execution.routes';
 import workflowWebSocketRoutes from '../modules/workflows/routes/workflow-websocket.routes';
 import workflowRoutes from '../modules/workflows/routes/workflow.routes';
@@ -78,6 +76,12 @@ export async function registerRoutes(fastify: FastifyInstance) {
 
   // Subscription routes (stubbed)
   await fastify.register(subscriptionRoutes, { prefix: '/api/v1/subscription' });
+
+  // Creator routes (earnings, workflows) - Fixes BUG-009
+  await fastify.register(creatorRoutes, { prefix: '/api/v1/creator' });
+
+  // Referral routes - Fixes BUG-009
+  await fastify.register(referralRoutes, { prefix: '/api/v1/referrals' });
 
   // Project routes (auth required)
   await fastify.register(projectRoutes, { prefix: '/api/v1/projects' });

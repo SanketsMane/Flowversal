@@ -1,33 +1,23 @@
 import { Pinecone } from '@pinecone-database/pinecone';
 import { databaseConfig } from '../config/database.config';
-
 let pineconeClient: Pinecone | null = null;
 let isConnected = false;
-
 export async function connectPinecone(): Promise<Pinecone> {
   if (pineconeClient && isConnected) {
-    console.log('Pinecone already connected');
     return pineconeClient;
   }
-
   try {
     const apiKey = databaseConfig.pinecone.apiKey;
-    
     // Debug: Log API key source (only first few chars for security)
     if (!apiKey) {
       throw new Error('Pinecone API key is missing! Check your .env file.');
     }
-    
     const keyPreview = apiKey.substring(0, 10) + '...';
-    console.log(`🔑 Using Pinecone API key from .env: ${keyPreview}`);
-    console.log(`📁 Pinecone Index: ${databaseConfig.pinecone.indexName}`);
-    
     // Initialize Pinecone client
     // SDK v6.1.3+ supports serverless keys (pcsk_...) with only API key
     // Legacy keys (pc-...) may still work but are deprecated
     // The new SDK doesn't require environment parameter in TypeScript types
     const isServerless = apiKey.startsWith('pcsk_');
-    
     if (isServerless) {
       // Serverless configuration - only API key needed
       pineconeClient = new Pinecone({
@@ -41,7 +31,6 @@ export async function connectPinecone(): Promise<Pinecone> {
         apiKey: apiKey
       });
     }
-
     // Test connection by listing indexes with timeout
     try {
       const indexList = await Promise.race([
@@ -50,7 +39,6 @@ export async function connectPinecone(): Promise<Pinecone> {
           setTimeout(() => reject(new Error('Pinecone connection timeout after 10 seconds')), 10000)
         )
       ]) as any;
-
       // Handle different API response formats
       let indexNames: string[] = [];
       if (Array.isArray(indexList)) {
@@ -60,15 +48,10 @@ export async function connectPinecone(): Promise<Pinecone> {
       } else if (indexList?.names && Array.isArray(indexList.names)) {
         indexNames = indexList.names;
       }
-
-      console.log('✅ Pinecone connected successfully');
-      console.log(`Available indexes: ${indexNames.length > 0 ? indexNames.join(', ') : 'none'}`);
-
       // Verify the configured index exists
       const indexExists = indexNames.some((name: string) => 
         name === databaseConfig.pinecone.indexName
       );
-
       if (!indexExists && indexNames.length > 0) {
         console.warn(
           `⚠️ Warning: Configured index "${databaseConfig.pinecone.indexName}" not found. Available indexes: ${indexNames.join(', ')}`
@@ -79,19 +62,16 @@ export async function connectPinecone(): Promise<Pinecone> {
           `⚠️ Warning: No indexes found. You may need to create an index "${databaseConfig.pinecone.indexName}" in your Pinecone dashboard.`
         );
       }
-
       isConnected = true;
       return pineconeClient;
     } catch (listError: any) {
       // If listing fails, still try to get the index (it might exist but listing failed)
       console.warn('⚠️ Could not list indexes, but continuing with connection...');
       console.warn(`Error: ${listError.message || listError}`);
-      
       // Try to access the index directly to verify connection
       try {
         // Just accessing the index doesn't verify it exists, but it initializes it
         pineconeClient.index(databaseConfig.pinecone.indexName);
-        console.log('✅ Pinecone client initialized (index access will be verified on first use)');
         isConnected = true;
         return pineconeClient;
       } catch (indexError: any) {
@@ -105,7 +85,6 @@ export async function connectPinecone(): Promise<Pinecone> {
       name: error.name,
       code: error.code,
     });
-    
     // Provide helpful error messages
     if (error.message?.includes('timeout')) {
       console.error('💡 Tip: Check your network connection and firewall settings');
@@ -116,29 +95,24 @@ export async function connectPinecone(): Promise<Pinecone> {
       console.error('💡 Tip: Check your PINECONE_INDEX_NAME matches an existing index');
       console.error('💡 Tip: Visit https://app.pinecone.io to verify your index name');
     }
-    
     isConnected = false;
     pineconeClient = null;
     throw error;
   }
 }
-
 export function getPineconeClient(): Pinecone {
   if (!pineconeClient) {
     throw new Error('Pinecone client not initialized. Call connectPinecone() first.');
   }
   return pineconeClient;
 }
-
 export function getPineconeIndex() {
   const client = getPineconeClient();
   return client.index(databaseConfig.pinecone.indexName);
 }
-
 export function getPineconeConnectionStatus(): boolean {
   return isConnected && pineconeClient !== null;
 }
-
 /**
  * Create a Pinecone index with model-based embeddings
  * Uses the new createIndexForModel API
@@ -152,7 +126,6 @@ export async function createPineconeIndex(options: {
   waitUntilReady?: boolean;
 }): Promise<void> {
   const client = getPineconeClient();
-  
   try {
     // Type assertion needed - createIndexForModel is available in newer SDK versions
     await (client as any).createIndexForModel({
@@ -165,12 +138,10 @@ export async function createPineconeIndex(options: {
       },
       waitUntilReady: options.waitUntilReady !== false,
     });
-    console.log(`✅ Created Pinecone index: ${options.name}`);
   } catch (error: any) {
     throw new Error(`Failed to create Pinecone index: ${error.message}`);
   }
 }
-
 /**
  * Upsert records to Pinecone index
  * Uses the new upsertRecords API with record format
@@ -184,16 +155,13 @@ export async function upsertPineconeRecords(
 ): Promise<void> {
   const index = getPineconeIndex();
   const targetIndex = namespace ? index.namespace(namespace) : index;
-  
   try {
     // Type assertion needed - upsertRecords is available in newer SDK versions
     await (targetIndex as any).upsertRecords(records);
-    console.log(`✅ Upserted ${records.length} records to Pinecone${namespace ? ` (namespace: ${namespace})` : ''}`);
   } catch (error: any) {
     throw new Error(`Failed to upsert records to Pinecone: ${error.message}`);
   }
 }
-
 /**
  * Semantic search using the new searchRecords API
  * Automatically handles text input and embedding generation
@@ -212,7 +180,6 @@ export async function searchPineconeRecords(
 ): Promise<any> {
   const index = getPineconeIndex();
   const targetIndex = options.namespace ? index.namespace(options.namespace) : index;
-  
   try {
     const searchOptions: any = {
       query: {
@@ -220,7 +187,6 @@ export async function searchPineconeRecords(
         inputs: { text: query },
       },
     };
-    
     // Add reranking if specified
     if (options.rerank) {
       searchOptions.rerank = {
@@ -229,7 +195,6 @@ export async function searchPineconeRecords(
         rankFields: options.rerank.rankFields || ['chunk_text'],
       };
     }
-    
     // Type assertion needed - searchRecords is available in newer SDK versions
     const results = await (targetIndex as any).searchRecords(searchOptions);
     return results;
@@ -237,14 +202,12 @@ export async function searchPineconeRecords(
     throw new Error(`Failed to search Pinecone records: ${error.message}`);
   }
 }
-
 /**
  * Get index statistics
  */
 export async function getPineconeIndexStats(namespace?: string): Promise<any> {
   const index = getPineconeIndex();
   const targetIndex = namespace ? index.namespace(namespace) : index;
-  
   try {
     const stats = await targetIndex.describeIndexStats();
     return stats;
@@ -252,7 +215,6 @@ export async function getPineconeIndexStats(namespace?: string): Promise<any> {
     throw new Error(`Failed to get Pinecone index stats: ${error.message}`);
   }
 }
-
 /**
  * Delete records by IDs
  */
@@ -262,12 +224,9 @@ export async function deletePineconeRecords(
 ): Promise<void> {
   const index = getPineconeIndex();
   const targetIndex = namespace ? index.namespace(namespace) : index;
-  
   try {
     await targetIndex.deleteMany(ids);
-    console.log(`✅ Deleted ${ids.length} records from Pinecone${namespace ? ` (namespace: ${namespace})` : ''}`);
   } catch (error: any) {
     throw new Error(`Failed to delete Pinecone records: ${error.message}`);
   }
 }
-

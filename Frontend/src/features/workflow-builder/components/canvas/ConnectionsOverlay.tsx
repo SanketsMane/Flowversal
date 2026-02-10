@@ -3,28 +3,21 @@
  * SVG overlay for main branch connection lines (Trigger → Steps → Steps)
  * Branch connections are handled separately by SmartBranchConnections
  */
-
 import { useState } from 'react';
 import { useTheme } from '@/core/theme/ThemeContext';
 import { useConnections, Connection } from '../../hooks/useConnections';
 import { ConnectionLine } from './ConnectionLine';
-
 export function ConnectionsOverlay() {
   const { connections } = useConnections();
   const [hoveredConnectionId, setHoveredConnectionId] = useState<string | null>(null);
   const { theme } = useTheme();
-
   const handleConnectionClick = (connection: Connection) => {
-    console.log('Connection clicked:', connection);
   };
-
   if (connections.length === 0) {
     return null;
   }
-
   // Theme-aware arrow fill color
   const arrowFill = theme === 'dark' ? '#00C6FF' : '#0072FF';
-
   return (
     <>
       {/* SVG overlay for main branch connections */}
@@ -46,7 +39,6 @@ export function ConnectionsOverlay() {
             <stop offset="0%" stopColor="#00C6FF" />
             <stop offset="100%" stopColor="#9D50BB" />
           </linearGradient>
-
           {/* Arrowhead marker - theme aware */}
           <marker
             id="arrowhead"
@@ -59,7 +51,6 @@ export function ConnectionsOverlay() {
           >
             <path d="M0,0 L0,6 L9,3 z" fill={arrowFill} />
           </marker>
-
           {/* Arrowhead for highlighted state */}
           <marker
             id="arrowhead-highlight"
@@ -73,7 +64,6 @@ export function ConnectionsOverlay() {
             <path d="M0,0 L0,6 L9,3 z" fill={arrowFill} opacity="1" />
           </marker>
         </defs>
-
         {/* Connection lines */}
         {connections.map((connection) => (
           <ConnectionLine
@@ -85,7 +75,6 @@ export function ConnectionsOverlay() {
           />
         ))}
       </svg>
-
       {/* Animation styles */}
       <style>{`
         @keyframes dash {

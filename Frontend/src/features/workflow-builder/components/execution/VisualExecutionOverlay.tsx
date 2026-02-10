@@ -3,13 +3,11 @@
  * Shows animated play/check/error icons on nodes during execution
  * Enhanced with WebSocket integration and data flow visualization (n8n-style)
  */
-
 import { CheckCircle, Loader2, XCircle } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useState } from 'react';
 import { ConnectionDataPreview } from '../connections/ConnectionDataPreview';
 import { DataFlowRenderer } from '../connections/DataFlowRenderer';
-
 export interface NodeExecutionState {
   id: string; // Node or trigger ID
   status: 'pending' | 'running' | 'success' | 'error';
@@ -20,7 +18,6 @@ export interface NodeExecutionState {
   duration?: number;
   error?: string;
 }
-
 export interface ConnectionDataFlow {
   connectionId: string;
   fromNodeId: string;
@@ -29,14 +26,12 @@ export interface ConnectionDataFlow {
   timestamp: number;
   active: boolean;
 }
-
 interface VisualExecutionOverlayProps {
   nodeStates: NodeExecutionState[];
   isExecuting: boolean;
   connectionDataFlows?: ConnectionDataFlow[];
   onConnectionHover?: (connectionId: string | null) => void;
 }
-
 export function VisualExecutionOverlay({ 
   nodeStates, 
   isExecuting,
@@ -44,18 +39,15 @@ export function VisualExecutionOverlay({
   onConnectionHover,
 }: VisualExecutionOverlayProps) {
   const [hoveredConnection, setHoveredConnection] = useState<string | null>(null);
-
   if (!isExecuting && nodeStates.length === 0 && connectionDataFlows.length === 0) {
     return null;
   }
-
   const handleConnectionHover = (connectionId: string | null) => {
     setHoveredConnection(connectionId);
     if (onConnectionHover) {
       onConnectionHover(connectionId);
     }
   };
-
   return (
     <div className="fixed inset-0 pointer-events-none z-[60]" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
       {/* Data Flow Visualization */}
@@ -66,7 +58,6 @@ export function VisualExecutionOverlay({
           onConnectionHover={handleConnectionHover}
         />
       )}
-
       {/* Connection Data Preview */}
       {hoveredConnection && (
         <ConnectionDataPreview
@@ -75,18 +66,15 @@ export function VisualExecutionOverlay({
           position={{ x: 0, y: 0 }} // Will be calculated based on connection position
         />
       )}
-
       {/* Node Execution Indicators */}
       <AnimatePresence>
         {nodeStates.map((nodeState) => {
-          console.log('[DEBUG] VisualExecutionOverlay: Rendering node indicator', { nodeId: nodeState.id, status: nodeState.status, position: nodeState.position });
           return <ExecutionIndicator key={nodeState.id} nodeState={nodeState} />;
         })}
       </AnimatePresence>
     </div>
   );
 }
-
 function ExecutionIndicator({ nodeState }: { nodeState: NodeExecutionState }) {
   const getIcon = () => {
     switch (nodeState.status) {
@@ -100,7 +88,6 @@ function ExecutionIndicator({ nodeState }: { nodeState: NodeExecutionState }) {
         return null;
     }
   };
-
   const getBgColor = () => {
     switch (nodeState.status) {
       case 'running':
@@ -113,7 +100,6 @@ function ExecutionIndicator({ nodeState }: { nodeState: NodeExecutionState }) {
         return 'bg-gray-500/20 border-gray-500';
     }
   };
-
   return (
     <motion.div
       initial={{ scale: 0, opacity: 0 }}
@@ -129,7 +115,6 @@ function ExecutionIndicator({ nodeState }: { nodeState: NodeExecutionState }) {
       className={`w-16 h-16 rounded-full border-2 ${getBgColor()} flex items-center justify-center backdrop-blur-sm`}
     >
       {getIcon()}
-      
       {/* Ripple effect for running state */}
       {nodeState.status === 'running' && (
         <>
@@ -147,7 +132,6 @@ function ExecutionIndicator({ nodeState }: { nodeState: NodeExecutionState }) {
           />
         </>
       )}
-
       {/* Success pulse */}
       {nodeState.status === 'success' && (
         <motion.div
@@ -157,7 +141,6 @@ function ExecutionIndicator({ nodeState }: { nodeState: NodeExecutionState }) {
           transition={{ duration: 0.6 }}
         />
       )}
-
       {/* Error shake */}
       {nodeState.status === 'error' && (
         <motion.div

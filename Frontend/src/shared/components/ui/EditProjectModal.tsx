@@ -2,33 +2,26 @@
  * Edit Project Modal
  * Allows editing project name, description, icon, and icon color
  */
-
 import { useState, useEffect } from 'react';
 import { X, Check } from 'lucide-react';
 import { useTheme } from '@/core/theme/ThemeContext';
 import { useProjectStore, Project } from '@/core/stores/projectStore';
 import { SimpleIconPicker, RenderIconByName } from './SimpleIconPicker';
-
 interface EditProjectModalProps {
   projectId: string;
   onClose: () => void;
 }
-
 export function EditProjectModal({ projectId, onClose }: EditProjectModalProps) {
   const { theme } = useTheme();
   const { projects, updateProject } = useProjectStore();
-  
   const project = projects.find(p => p.id === projectId);
-  
   const [formData, setFormData] = useState({
     name: project?.name || '',
     description: project?.description || '',
     icon: project?.icon || 'FolderKanban',
     iconColor: project?.iconColor || '#00C6FF'
   });
-
   const [showIconPicker, setShowIconPicker] = useState(false);
-
   // Update form when project changes
   useEffect(() => {
     if (project) {
@@ -40,16 +33,9 @@ export function EditProjectModal({ projectId, onClose }: EditProjectModalProps) 
       });
     }
   }, [project]);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.name.trim()) {
-      console.log('[EditProjectModal] Saving project:', projectId, {
-        name: formData.name.trim(),
-        description: formData.description.trim(),
-        icon: formData.icon,
-        iconColor: formData.iconColor
-      });
       updateProject(projectId, {
         name: formData.name.trim(),
         description: formData.description.trim(),
@@ -59,9 +45,7 @@ export function EditProjectModal({ projectId, onClose }: EditProjectModalProps) 
       onClose();
     }
   };
-
   if (!project) return null;
-
   // Theme colors
   const bgMain = theme === 'dark' ? 'bg-[#0E0E1F]' : 'bg-gray-50';
   const bgCard = theme === 'dark' ? 'bg-[#1A1A2E]' : 'bg-white';
@@ -69,7 +53,6 @@ export function EditProjectModal({ projectId, onClose }: EditProjectModalProps) 
   const textPrimary = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const textSecondary = theme === 'dark' ? 'text-[#CFCFE8]' : 'text-gray-600';
   const hoverBg = theme === 'dark' ? 'hover:bg-white/5' : 'hover:bg-gray-100';
-
   return (
     <div 
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
@@ -86,7 +69,6 @@ export function EditProjectModal({ projectId, onClose }: EditProjectModalProps) 
             <X className="w-5 h-5" />
           </button>
         </div>
-
         {/* Content */}
         <form onSubmit={handleSubmit}>
           <div className="p-6 space-y-6">
@@ -103,7 +85,6 @@ export function EditProjectModal({ projectId, onClose }: EditProjectModalProps) 
                 autoFocus
               />
             </div>
-
             {/* Project Description */}
             <div>
               <label className={`block text-sm ${textSecondary} mb-2`}>Description</label>
@@ -115,7 +96,6 @@ export function EditProjectModal({ projectId, onClose }: EditProjectModalProps) 
                 className={`w-full px-4 py-3 rounded-lg border ${borderColor} ${bgCard} ${textPrimary} placeholder:${textSecondary} focus:outline-none focus:ring-2 focus:ring-[#00C6FF] resize-none`}
               />
             </div>
-
             {/* Icon Selection */}
             <div>
               <label className={`block text-sm ${textSecondary} mb-2`}>Project Icon</label>
@@ -137,7 +117,6 @@ export function EditProjectModal({ projectId, onClose }: EditProjectModalProps) 
                   </div>
                   <span className="flex-1 text-left">Click to change icon and color</span>
                 </button>
-
                 {/* Icon Picker Dropdown */}
                 {showIconPicker && (
                   <div className={`absolute top-full left-0 mt-2 z-10 w-full ${bgCard} rounded-lg border ${borderColor} p-4 shadow-xl`}>
@@ -148,7 +127,6 @@ export function EditProjectModal({ projectId, onClose }: EditProjectModalProps) 
                         setShowIconPicker(false);
                       }}
                     />
-                    
                     {/* Color Picker */}
                     <div className="mt-4">
                       <label className={`block text-sm ${textSecondary} mb-2`}>Icon Color</label>
@@ -171,7 +149,6 @@ export function EditProjectModal({ projectId, onClose }: EditProjectModalProps) 
               </div>
             </div>
           </div>
-
           {/* Footer */}
           <div className={`border-t ${borderColor} p-6 flex gap-3 justify-end`}>
             <button

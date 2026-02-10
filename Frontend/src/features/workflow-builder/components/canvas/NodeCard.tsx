@@ -4,7 +4,6 @@
  * 
  * Displays a single workflow node with enable/disable, settings, and delete
  */
-
 import { useTheme } from '@/core/theme/ThemeContext';
 import { useSubStepStore } from '@/features/workflow-builder/stores/subStepStore';
 import {
@@ -29,9 +28,7 @@ import { DropIndicator } from '../dnd/DropIndicator';
 import { ExecutionStateBadge } from '../execution/ExecutionStateBadge';
 import { BranchConnectionPoints } from '../nodes/BranchConnectionPoints';
 import { BranchRouting } from '../nodes/BranchRouting';
-
 type ExecutionState = 'idle' | 'running' | 'success' | 'error';
-
 interface NodeCardProps {
   node: WorkflowNode;
   containerIndex: number;
@@ -45,7 +42,6 @@ interface NodeCardProps {
   // Node number for display (e.g., "1.3" for 3rd node in step 1)
   nodeNumber?: string;
 }
-
 export function NodeCard({ node, containerIndex, nodeIndex, onMove, subStepContext, nodeNumber }: NodeCardProps) {
   const { theme } = useTheme();
   const { toggleNode, deleteNode, updateNode, addNode, containers } = useWorkflowStore();
@@ -62,10 +58,8 @@ export function NodeCard({ node, containerIndex, nodeIndex, onMove, subStepConte
     duration?: number;
     error?: string;
   } | null>(null);
-
   // Get execution state from WebSocket (if available)
   const { nodeStates: executionNodeStates, backendExecutionId } = useWorkflowExecution();
-  
   // Update execution state from WebSocket
   useEffect(() => {
     if (backendExecutionId && executionNodeStates) {
@@ -77,7 +71,6 @@ export function NodeCard({ node, containerIndex, nodeIndex, onMove, subStepConte
           nodeState.status === 'running' ? 'running' :
           nodeState.status === 'success' ? 'success' :
           nodeState.status === 'error' ? 'error' : 'idle';
-
         // Update local execution state for UI
         setExecutionState(
           mappedState === 'pending' ? 'running' :
@@ -85,7 +78,6 @@ export function NodeCard({ node, containerIndex, nodeIndex, onMove, subStepConte
           mappedState === 'success' ? 'success' :
           mappedState === 'error' ? 'error' : 'idle'
         );
-
         // Store execution data for preview
         setNodeExecutionData({
           inputData: nodeState.inputData,
@@ -100,11 +92,9 @@ export function NodeCard({ node, containerIndex, nodeIndex, onMove, subStepConte
       }
     }
   }, [node.id, executionNodeStates, backendExecutionId]);
-  
   // Determine if we're in a sub-step context
   const isInSubStep = !!subStepContext?.isSubStep;
   const subStepId = subStepContext?.subStepId || '';
-  
   // Get container - for sub-steps, create a virtual one
   let container;
   if (isInSubStep) {
@@ -119,18 +109,14 @@ export function NodeCard({ node, containerIndex, nodeIndex, onMove, subStepConte
   } else {
     container = containers[containerIndex];
   }
-  
   // Safety check: if container is undefined, don't render
   if (!container) {
     console.error(`NodeCard: Container ${isInSubStep ? 'for sub-step ' + subStepId : 'at index ' + containerIndex} not found`);
     return null;
   }
-  
   const isSelected = isNodeSelected(container.id, node.id);
-
   // Get node definition from registry
   const nodeDef = NodeRegistry.get(node.type);
-  
   // Check if node has a custom canvas component
   if (nodeDef?.canvasComponent) {
     const CustomComponent = nodeDef.canvasComponent;
@@ -146,10 +132,8 @@ export function NodeCard({ node, containerIndex, nodeIndex, onMove, subStepConte
       />
     );
   }
-
   // Get icon from registry - defensive check to ensure we always have a valid icon
   let Icon = Box; // Default fallback
-  
   // Only use node.icon if it's a valid function (React component)
   if (typeof node.icon === 'function') {
     Icon = node.icon;
@@ -157,13 +141,11 @@ export function NodeCard({ node, containerIndex, nodeIndex, onMove, subStepConte
     // Otherwise try to get from registry
     Icon = nodeDef.icon;
   }
-  
   // Theme colors
   const bgColor = theme === 'dark' ? 'bg-[#1A1A2E]' : 'bg-white';
   const borderColor = theme === 'dark' ? 'border-[#2A2A3E]' : 'border-gray-200';
   const textPrimary = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const textSecondary = theme === 'dark' ? 'text-[#CFCFE8]' : 'text-gray-600';
-
   // Drag and drop
   const [{ isDragging }, drag, preview] = useDrag(() => ({
     type: 'NODE',
@@ -177,66 +159,47 @@ export function NodeCard({ node, containerIndex, nodeIndex, onMove, subStepConte
       isDragging: monitor.isDragging(),
     }),
   }), [containerIndex, nodeIndex, container.id, isInSubStep]);
-
   const [{ isOver }, drop] = useDrop(() => ({
     accept: 'NODE',
     hover: (item: { containerIndex: number; nodeIndex: number; containerId?: string; isSubStep?: boolean }, monitor) => {
       // Container isolation: ensure drag source and drop target are in same context
       // Check based on whether the DROP TARGET is in a sub-step or main workflow
       let isSameContainer = false;
-      
       if (isInSubStep) {
         // Drop target is in sub-step: only allow if drag source is also in sub-step with matching ID
         isSameContainer = item.isSubStep === true && item.containerId === container.id;
-        
         // Debug logging for sub-step drops
         if (item.isSubStep && item.containerId !== container.id) {
-          console.log('[NodeCard] Rejected: Different sub-step containers', {
-            dragFrom: item.containerId,
-            dropTo: container.id
-          });
         }
       } else {
         // Drop target is in main workflow: only allow if drag source is also in main workflow with matching containerIndex
         isSameContainer = !item.isSubStep && item.containerIndex === containerIndex;
-        
         // Debug logging for main workflow drops
         if (item.isSubStep) {
-          console.log('[NodeCard] Rejected: Cannot drag from sub-step to main workflow', {
-            dragFromSubStep: item.containerId,
-            dropToContainer: containerIndex
-          });
         }
       }
-        
       if (!isSameContainer || item.nodeIndex === nodeIndex) {
         setDropIndicatorPosition(null);
         return;
       }
-
       // Get the hover bounding rect
       const hoverBoundingRect = (monitor as any).targetMonitor?.getClientOffset 
         ? document.querySelector(`[data-node-id="${node.id}"]`)?.getBoundingClientRect()
         : null;
-      
       const clientOffset = monitor.getClientOffset();
-      
       if (!hoverBoundingRect || !clientOffset) {
         setDropIndicatorPosition(null);
         return;
       }
-
       // Determine if we're in the top half or bottom half of the node
       const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
       const hoverClientY = clientOffset.y - hoverBoundingRect.top;
-
       // Set drop indicator position
       if (hoverClientY < hoverMiddleY) {
         setDropIndicatorPosition('top');
       } else {
         setDropIndicatorPosition('bottom');
       }
-
       // Only trigger move if:
       // 1. Same container
       // 2. Different index
@@ -259,7 +222,6 @@ export function NodeCard({ node, containerIndex, nodeIndex, onMove, subStepConte
       isOver: monitor.isOver(),
     }),
   }), [containerIndex, nodeIndex, onMove, node.id, isInSubStep, container.id]);
-
   // Clear drop indicator when not hovering
   const handleMouseLeaveNode = () => {
     setIsHovered(false);
@@ -267,18 +229,15 @@ export function NodeCard({ node, containerIndex, nodeIndex, onMove, subStepConte
       setDropIndicatorPosition(null);
     }
   };
-
   const handleSettingsClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     selectNode(container.id, node.id);
   };
-
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     // Always show confirmation modal for both main workflow and substeps
     openDeleteNodeConfirm(container.id, node.id, node.label, isInSubStep, subStepId);
   };
-
   const handleToggle = (checked: boolean) => {
     if (isInSubStep) {
       subStepStore.toggleNodeInSubStep(subStepId, node.id);
@@ -286,13 +245,11 @@ export function NodeCard({ node, containerIndex, nodeIndex, onMove, subStepConte
       toggleNode(container.id, node.id);
     }
   };
-
   const handleStartEditing = (e: React.MouseEvent) => {
     e.stopPropagation();
     setEditedName(node.label);
     setIsEditingName(true);
   };
-
   const handleSaveEdit = (e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (editedName.trim()) {
@@ -304,13 +261,11 @@ export function NodeCard({ node, containerIndex, nodeIndex, onMove, subStepConte
     }
     setIsEditingName(false);
   };
-
   const handleCancelEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsEditingName(false);
     setEditedName('');
   };
-
   const handleDuplicate = (e: React.MouseEvent) => {
     e.stopPropagation();
     // Create a duplicate of the node
@@ -325,36 +280,27 @@ export function NodeCard({ node, containerIndex, nodeIndex, onMove, subStepConte
       addNode(container.id, duplicatedNode);
     }
   };
-
   // Handle play button click
   const handlePlayClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    
     setExecutionState('running');
-    
     // Simulate execution (replace with actual execution logic)
     await new Promise(resolve => setTimeout(resolve, 2000));
-    
     // Randomly succeed or fail for demo
     const success = Math.random() > 0.3;
     setExecutionState(success ? 'success' : 'error');
-    
     // Reset to idle after showing result
     setTimeout(() => {
       setExecutionState('idle');
     }, 1500);
   };
-
   // Check if this is a Prompt Builder node with tools
   const isPromptBuilder = node.type === 'prompt_builder';
   const tools = node.config.tools || [];
-
   // Check if this is a conditional node (If/Switch)
   const isConditional = node.type === 'if' || node.type === 'switch';
-
   // Get the container ID for branch routing
   const containerId = container?.id || '';
-
   return (
     <div
       ref={(node) => drag(drop(node))}
@@ -395,7 +341,6 @@ export function NodeCard({ node, containerIndex, nodeIndex, onMove, subStepConte
         ownerName={node.name}
         parentContainerId={container.id}
       />
-      
       {/* RIGHT SIDE: Output connection dot - connects to next node or step spine */}
       {/* Don't show regular output for If/Switch nodes - they use BranchOutputDots */}
       {!isConditional && (
@@ -406,15 +351,12 @@ export function NodeCard({ node, containerIndex, nodeIndex, onMove, subStepConte
           parentContainerId={container.id}
         />
       )}
-
       {/* Edit icon removed from hover - users can edit by clicking the card */}
-
       <div className="flex items-center gap-3">
         {/* Drag Handle */}
         <div ref={preview} className="cursor-move">
           <GripVertical className={`w-5 h-5 ${node.enabled === false ? 'text-gray-500' : textSecondary}`} />
         </div>
-
         {/* Icon - grayed out when disabled */}
         <div 
           className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
@@ -426,7 +368,6 @@ export function NodeCard({ node, containerIndex, nodeIndex, onMove, subStepConte
         >
           <Icon className="w-5 h-5 text-white" />
         </div>
-
         {/* Content */}
         <div className="flex-1 min-w-0">
           {isEditingName ? (
@@ -483,14 +424,12 @@ export function NodeCard({ node, containerIndex, nodeIndex, onMove, subStepConte
               </p>
             </div>
           )}
-          
           {/* Show tools count for Prompt Builder */}
           {isPromptBuilder && tools.length > 0 && (
             <p className="text-[#00C6FF] text-xs mt-1">
               {tools.length} tool{tools.length !== 1 ? 's' : ''} added
             </p>
           )}
-
           {/* Show branches for conditional nodes */}
           {isConditional && (
             <p className="text-[#9D50BB] text-xs mt-1">
@@ -498,7 +437,6 @@ export function NodeCard({ node, containerIndex, nodeIndex, onMove, subStepConte
             </p>
           )}
         </div>
-
         {/* Actions */}
         <div className="flex items-center gap-2">
           {/* Play Button with execution states */}
@@ -521,14 +459,12 @@ export function NodeCard({ node, containerIndex, nodeIndex, onMove, subStepConte
             {executionState === 'success' && <CheckCircle2 className="w-4 h-4" />}
             {executionState === 'error' && <XCircle className="w-4 h-4" />}
           </button>
-
           {/* Enable/Disable Toggle */}
           <Switch
             checked={node.enabled !== false}
             onCheckedChange={handleToggle}
             onClick={(e) => e.stopPropagation()}
           />
-
           {/* Settings Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -576,10 +512,8 @@ export function NodeCard({ node, containerIndex, nodeIndex, onMove, subStepConte
           </DropdownMenu>
         </div>
       </div>
-
       {/* Tool Drop Zone for Prompt Builder - REMOVED "Add Tools" button per requirements */}
       {/* Prompt Builder uses main Settings button instead */}
-
       {/* Setup Button for ALL nodes (except Form nodes which have their own) */}
       {!isConditional && node.type !== 'form' && (
         <div className={`mt-3 pt-3 border-t ${borderColor}`}>
@@ -596,7 +530,6 @@ export function NodeCard({ node, containerIndex, nodeIndex, onMove, subStepConte
           </button>
         </div>
       )}
-
       {/* Setup Button for Conditional nodes (If/Switch) */}
       {isConditional && (
         <div className={`mt-3 pt-3 border-t ${borderColor}`}>
@@ -613,19 +546,16 @@ export function NodeCard({ node, containerIndex, nodeIndex, onMove, subStepConte
           </button>
         </div>
       )}
-
       {/* Conditional Branches Preview */}
       {isConditional && (
         <div className={`${borderColor}`}>
           <BranchRouting node={node} containerId={containerId} />
         </div>
       )}
-
       {/* Branch Connection Points for If/Switch nodes */}
       {isConditional && (
         <BranchConnectionPoints node={node} containerId={containerId} />
       )}
-
       {/* Drop Indicators */}
       <DropIndicator position="top" isVisible={dropIndicatorPosition === 'top'} />
       <DropIndicator position="bottom" isVisible={dropIndicatorPosition === 'bottom'} />

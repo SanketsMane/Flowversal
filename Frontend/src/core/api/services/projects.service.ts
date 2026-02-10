@@ -4,23 +4,14 @@
  * Backend-agnostic service for managing projects, boards, and tasks.
  * Works with both Supabase Edge Functions and Node.js backend.
  */
-
 import { buildApiUrl, getAuthHeaders } from '@/core/api/api.config';
 import type { ApiResponse } from '@/core/api/types';
 import { projectId } from '@/shared/utils/supabase/info';
 import { authService } from './auth.service';
-
-console.log('[Projects Service] Initializing...');
-console.log('[Projects Service] Project ID:', projectId);
-
 // ============================================================================
 // API SERVICE CONFIGURATION
 // ============================================================================
-
 const API_BASE_URL = buildApiUrl('');
-
-console.log('[Projects Service] API Base URL:', API_BASE_URL);
-
 /**
  * Generic API call wrapper with logging and error handling
  */
@@ -31,7 +22,6 @@ async function apiCall<T>(
 ): Promise<ApiResponse<T>> {
   // Check if user is authenticated before making API calls
   let isAuthenticated = authService.isAuthenticated();
-
   // Attempt to refresh/hydrate session if not authenticated
   if (!isAuthenticated) {
     console.warn(`[API Service] ${method} ${endpoint} - not authenticated; trying to refresh session`);
@@ -45,12 +35,9 @@ async function apiCall<T>(
       isAuthenticated = authService.isAuthenticated();
     }
   }
-
   const getDirectToken = () => authService.getAccessToken();
-
   // Grab token early from authService if available
   let directToken = getDirectToken();
-
   if (!isAuthenticated && !directToken) {
     console.warn(`[API Service] Skipping ${method} ${endpoint} - User not authenticated after refresh/hydrate`);
     return {
@@ -59,18 +46,12 @@ async function apiCall<T>(
       details: 'User must be authenticated to make API calls'
     };
   }
-
   // Ensure endpoint starts with / and base URL doesn't end with /
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   const cleanBase = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
   const url = `${cleanBase}${cleanEndpoint}`;
-
-  console.log(`[API Service] ${method} ${endpoint}`);
-  console.log(`[API Service] Full URL: ${url}`);
   if (body) {
-    console.log(`[API Service] Request payload:`, JSON.stringify(body, null, 2));
   }
-
   try {
     const extractAuth = (bh: HeadersInit | undefined | null) => {
       if (!bh) return '';
@@ -81,17 +62,12 @@ async function apiCall<T>(
       }
       return (bh as Record<string, string>)['Authorization'] || '';
     };
-
     const buildHeaders = async () => {
       const freshToken = getDirectToken() || directToken || undefined;
       const baseHeaders = await getAuthHeaders(freshToken);
-      console.log(`[API Service] Base headers from getAuthHeaders:`, baseHeaders);
-
       let headers: Record<string, string> = {};
-
       // Extract Authorization
       let authHeader = extractAuth(baseHeaders);
-
       // Fallback: pull token directly from stored session if missing
       if (!authHeader) {
         try {
@@ -101,64 +77,45 @@ async function apiCall<T>(
             const token = session?.accessToken;
             if (token) {
               authHeader = `Bearer ${token}`;
-              console.log('[API Service] Using auth token from stored session fallback');
             }
           }
         } catch (err) {
           console.warn('[API Service] Failed to parse stored session for auth fallback', err);
         }
       }
-
       // Final fallback: use direct token from authService if still missing
       const finalDirect = getDirectToken();
       if (!authHeader && finalDirect) {
         authHeader = `Bearer ${finalDirect}`;
-        console.log('[API Service] Using authService access token fallback');
       }
-
-      console.log(`[API Service] Extracted auth header:`, authHeader ? 'Present' : 'Missing');
       if (authHeader) {
         headers['Authorization'] = authHeader;
       } else {
         console.warn('[API Service] Authorization header missing; request may be unauthorized');
       }
-
       // For requests with body, also include Content-Type
       if (body) {
         headers['Content-Type'] = 'application/json';
       }
-
-      console.log(`[API Service] Final headers being sent:`, headers);
       return headers;
     };
-
     let headers = await buildHeaders();
-
     const doFetch = async () =>
       fetch(url, {
         method,
         headers: Object.keys(headers).length > 0 ? headers : undefined,
         body: body ? JSON.stringify(body) : undefined,
       });
-
     let response = await doFetch();
-
-    console.log(`[API Service] ${method} ${endpoint} - Status:`, response.status);
-
     // If unauthorized, attempt one retry after refreshing headers/session (in case token just refreshed elsewhere)
     if (response.status === 401) {
       console.warn('[API Service] 401 Unauthorized, attempting refresh + header retry');
-
       // Try to refresh session
       await authService.refreshSession();
-
       // Rebuild headers after refresh
       headers = await buildHeaders();
-
       response = await doFetch();
-      console.log(`[API Service] ${method} ${endpoint} - Status after retry:`, response.status);
     }
-
     // Handle unauthorized explicitly
     if (response.status === 401) {
       console.warn('[API Service] Received 401 Unauthorized for', method, endpoint);
@@ -168,11 +125,8 @@ async function apiCall<T>(
         details: 'Authentication failed',
       };
     }
-
     // Try to get response text first
     const responseText = await response.text();
-    console.log(`[API Service] Response text:`, responseText);
-    
     let result;
     try {
       result = JSON.parse(responseText);
@@ -184,16 +138,12 @@ async function apiCall<T>(
         details: responseText.substring(0, 200),
       };
     }
-    
-    console.log(`[API Service] Response:`, JSON.stringify(result, null, 2));
-
     if (!response.ok) {
       // Handle backend/proxy unavailable gracefully
       const backendUnavailable =
         response.status === 503 &&
         (result?.error === 'Backend server is not available' ||
           result?.message?.toLowerCase?.().includes('backend server is not available'));
-
       if (backendUnavailable) {
         return {
           success: false,
@@ -201,20 +151,16 @@ async function apiCall<T>(
           details: result?.message || 'Proxy could not reach backend on port 3001',
         };
       }
-
       const errorMessage = result.error || result.message || 'Request failed';
       const errorDetails = result.details || result.code || undefined;
-
       console.error(`[API Service] ${method} ${endpoint} - Error:`, errorMessage);
       console.error(`[API Service] Full error object:`, result);
-
       return {
         success: false,
         error: errorMessage,
         details: errorDetails,
       };
     }
-
     // Ensure we always return ApiResponse<T>
     return {
       success: result?.success ?? true,
@@ -231,11 +177,9 @@ async function apiCall<T>(
     };
   }
 }
-
 // ============================================================================
 // PROJECT API
 // ============================================================================
-
 export interface Project {
   id: string;
   name: string;
@@ -247,7 +191,6 @@ export interface Project {
   updatedAt: string;
   userId: string;
 }
-
 export interface CreateProjectData {
   name: string;
   description?: string;
@@ -255,7 +198,6 @@ export interface CreateProjectData {
   iconColor?: string;
   configuration?: Record<string, any>;
 }
-
 export interface UpdateProjectData {
   name?: string;
   description?: string;
@@ -263,43 +205,33 @@ export interface UpdateProjectData {
   iconColor?: string;
   configuration?: Record<string, any>;
 }
-
 /**
  * Fetch all projects for the current user
  */
 export async function fetchProjects() {
-  console.log('[Projects Service] Fetching all projects');
   return apiCall<Project[]>('/projects', 'GET');
 }
-
 /**
  * Create a new project
  */
 export async function createProject(data: CreateProjectData) {
-  console.log('[Projects Service] Creating new project:', data.name);
   return apiCall<Project>('/projects', 'POST', data);
 }
-
 /**
  * Update an existing project
  */
 export async function updateProject(id: string, data: UpdateProjectData) {
-  console.log('[Projects Service] Updating project:', id);
   return apiCall<Project>(`/projects/${id}`, 'PUT', data);
 }
-
 /**
  * Delete a project
  */
 export async function deleteProject(id: string) {
-  console.log('[Projects Service] Deleting project:', id);
   return apiCall(`/projects/${id}`, 'DELETE');
 }
-
 // ============================================================================
 // BOARD API
 // ============================================================================
-
 export interface Board {
   id: string;
   name: string;
@@ -312,7 +244,6 @@ export interface Board {
   updatedAt: string;
   userId: string;
 }
-
 export interface CreateBoardData {
   name: string;
   description?: string;
@@ -321,7 +252,6 @@ export interface CreateBoardData {
   projectId: string;
   configuration?: Record<string, any>;
 }
-
 export interface UpdateBoardData {
   name?: string;
   description?: string;
@@ -329,44 +259,34 @@ export interface UpdateBoardData {
   iconColor?: string;
   configuration?: Record<string, any>;
 }
-
 /**
  * Fetch all boards (optionally filtered by project)
  */
 export async function fetchBoards(projectId?: string) {
   const endpoint = projectId ? `/projects/boards?projectId=${projectId}` : '/projects/boards';
-  console.log('[Boards Service] Fetching boards', projectId ? `for project ${projectId}` : '');
   return apiCall<Board[]>(endpoint, 'GET');
 }
-
 /**
  * Create a new board
  */
 export async function createBoard(data: CreateBoardData) {
-  console.log('[Boards Service] Creating new board:', data.name, 'in project:', data.projectId);
   return apiCall<Board>('/projects/boards', 'POST', data);
 }
-
 /**
  * Update an existing board
  */
 export async function updateBoard(id: string, data: UpdateBoardData) {
-  console.log('[Boards Service] Updating board:', id);
   return apiCall<Board>(`/projects/boards/${id}`, 'PUT', data);
 }
-
 /**
  * Delete a board
  */
 export async function deleteBoard(id: string) {
-  console.log('[Boards Service] Deleting board:', id);
   return apiCall(`/projects/boards/${id}`, 'DELETE');
 }
-
 // ============================================================================
 // TASK API
 // ============================================================================
-
 export interface Task {
   id: string;
   taskId: string;
@@ -390,7 +310,6 @@ export interface Task {
   updatedAt: string;
   userId: string;
 }
-
 export interface CreateTaskData {
   name: string;
   description?: string;
@@ -414,7 +333,6 @@ export interface CreateTaskData {
   selectedDays?: string[];
   startDate?: string;
 }
-
 export interface UpdateTaskData {
   name?: string;
   description?: string;
@@ -437,13 +355,11 @@ export interface UpdateTaskData {
   boardId?: string;
   projectId?: string;
 }
-
 export interface FetchTasksFilters {
   boardId?: string;
   projectId?: string;
   userId?: string;
 }
-
 /**
  * Fetch all tasks (with optional filters)
  */
@@ -452,61 +368,46 @@ export async function fetchTasks(filters?: FetchTasksFilters) {
   if (filters?.boardId) params.append('boardId', filters.boardId);
   if (filters?.projectId) params.append('projectId', filters.projectId);
   if (filters?.userId) params.append('userId', filters.userId);
-  
   const endpoint = `/projects/tasks${params.toString() ? `?${params.toString()}` : ''}`;
-  console.log('[Tasks Service] Fetching tasks with filters:', filters || 'none');
   return apiCall<Task[]>(endpoint, 'GET');
 }
-
 /**
  * Create a new task
  */
 export async function createTask(data: CreateTaskData) {
-  console.log('[Tasks Service] Creating new task:', data.name, 'in board:', data.boardId);
   return apiCall<Task>('/projects/tasks', 'POST', data);
 }
-
 /**
  * Update an existing task
  */
 export async function updateTask(id: string, data: UpdateTaskData) {
-  console.log('[Tasks Service] Updating task:', id, 'with data:', data);
   return apiCall<Task>(`/projects/tasks/${id}`, 'PUT', data);
 }
-
 /**
  * Delete a task
  */
 export async function deleteTask(id: string) {
-  console.log('[Tasks Service] Deleting task:', id);
   return apiCall(`/projects/tasks/${id}`, 'DELETE');
 }
-
 // ============================================================================
 // BULK OPERATIONS
 // ============================================================================
-
 /**
  * Fetch complete project data (project + boards + tasks)
  */
 export async function fetchCompleteProjectData(projectId: string) {
-  console.log('[Projects Service] Fetching complete data for project:', projectId);
-  
   const [projectsResult, boardsResult, tasksResult] = await Promise.all([
     fetchProjects(),
     fetchBoards(projectId),
     fetchTasks({ projectId }),
   ]);
-
   if (!projectsResult.success) {
     return { success: false, error: projectsResult.error };
   }
-
   const project = projectsResult.data?.find(p => p.id === projectId);
   if (!project) {
     return { success: false, error: 'Project not found' };
   }
-
   return {
     success: true,
     data: {
@@ -516,19 +417,15 @@ export async function fetchCompleteProjectData(projectId: string) {
     },
   };
 }
-
 /**
  * Fetch all data for the current user
  */
 export async function fetchAllUserData() {
-  console.log('[Projects Service] Fetching all user data');
-  
   const [projectsResult, boardsResult, tasksResult] = await Promise.all([
     fetchProjects(),
     fetchBoards(),
     fetchTasks(),
   ]);
-
   return {
     success: projectsResult.success && boardsResult.success && tasksResult.success,
     data: {

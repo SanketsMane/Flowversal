@@ -1,14 +1,13 @@
-import { TaskDetailModal } from '@/features/tasks/components/TaskDetailModal';
-import { TeamManagement } from '@/shared/components/ui/TeamManagement';
-import { SimpleCreateProjectModal } from '@/shared/components/ui/SimpleCreateProjectModal';
-import { SimpleCreateBoardModal } from '@/shared/components/ui/SimpleCreateBoardModal';
-import { ProjectTemplateGallery } from '@/features/project-templates';
-import { ProjectSettings } from '@/shared/components/ui/ProjectSettings';
-import { BoardSetupWizard } from '@/shared/components/ui/BoardSetupWizard';
-import { EditProjectModal } from '@/shared/components/ui/EditProjectModal';
-import { EditBoardModal } from '@/shared/components/ui/EditBoardModal';
 import { Task } from '@/core/stores/projectStore';
-
+import { ProjectTemplateGallery } from '@/features/project-templates';
+import { TaskDetailModal } from '@/features/tasks/components/TaskDetailModal';
+import { BoardSetupWizard } from '@/shared/components/ui/BoardSetupWizard';
+import { EditBoardModal } from '@/shared/components/ui/EditBoardModal';
+import { EditProjectModal } from '@/shared/components/ui/EditProjectModal';
+import { ProjectSettings } from '@/shared/components/ui/ProjectSettings';
+import { SimpleCreateBoardModal } from '@/shared/components/ui/SimpleCreateBoardModal';
+import { SimpleCreateProjectModal } from '@/shared/components/ui/SimpleCreateProjectModal';
+import { TeamManagement } from '@/shared/components/ui/TeamManagement';
 interface ModalRendererProps {
   // Task modal
   selectedTask: Task | null;
@@ -17,7 +16,6 @@ interface ModalRendererProps {
   onTaskModalClose: () => void;
   onTaskUpdate: (taskId: string, updates: any) => void;
   onTaskDelete: (taskId: string) => void;
-
   // Modal states
   showTeamManagement: boolean;
   showTemplateGallery: boolean;
@@ -27,7 +25,6 @@ interface ModalRendererProps {
   showEditBoard: boolean;
   showCreateProject: boolean;
   showCreateBoard: boolean;
-
   // Modal data
   selectedProjectForSettings: string | null;
   selectedBoardForWizard: string | null;
@@ -36,7 +33,6 @@ interface ModalRendererProps {
   selectedProjectId: string;
   selectedBoardId: string;
   isInitialBoardSetup: boolean;
-
   // Modal handlers
   onCloseTeamManagement: () => void;
   onCloseTemplateGallery: () => void;
@@ -46,12 +42,10 @@ interface ModalRendererProps {
   onCloseEditBoard: () => void;
   onCloseCreateProject: () => void;
   onCloseCreateBoard: () => void;
-
   // Additional handlers for create modals
   onCreateProject: (projectData: { name: string; description: string; icon: string; iconColor: string }) => void;
   onCreateBoard: (boardData: { name: string; icon: string; iconColor: string }) => void;
 }
-
 interface ModalRendererProps {
   // Task modal
   selectedTask: Task | null;
@@ -60,7 +54,6 @@ interface ModalRendererProps {
   onTaskModalClose: () => void;
   onTaskUpdate: (taskId: string, updates: any) => void;
   onTaskDelete: (taskId: string) => void;
-
   // Modal states
   showTeamManagement: boolean;
   showTemplateGallery: boolean;
@@ -70,7 +63,6 @@ interface ModalRendererProps {
   showEditBoard: boolean;
   showCreateProject: boolean;
   showCreateBoard: boolean;
-
   // Modal data
   selectedProjectForSettings: string | null;
   selectedBoardForWizard: string | null;
@@ -79,7 +71,6 @@ interface ModalRendererProps {
   selectedProjectId: string;
   selectedBoardId: string;
   isInitialBoardSetup: boolean;
-
   // Modal handlers
   onCloseTeamManagement: () => void;
   onCloseTemplateGallery: () => void;
@@ -89,12 +80,10 @@ interface ModalRendererProps {
   onCloseEditBoard: () => void;
   onCloseCreateProject: () => void;
   onCloseCreateBoard: () => void;
-
   // Additional handlers for create modals
   onCreateProject: (projectData: { name: string; description: string; icon: string; iconColor: string }) => void;
   onCreateBoard: (boardData: { name: string; icon: string; iconColor: string }) => void;
 }
-
 export function ModalRenderer({
   selectedTask,
   isCreatingTask,
@@ -143,7 +132,6 @@ export function ModalRenderer({
           boardId={selectedBoardId}
         />
       )}
-
       {/* Create Project Modal */}
       {showCreateProject && (
         <SimpleCreateProjectModal
@@ -152,7 +140,6 @@ export function ModalRenderer({
           onSave={onCreateProject}
         />
       )}
-
       {/* Create Board Modal */}
       {showCreateBoard && (
         <SimpleCreateBoardModal
@@ -162,7 +149,6 @@ export function ModalRenderer({
           projectId={selectedProjectId}
         />
       )}
-
       {/* Team Management Modal */}
       {showTeamManagement && (
         <TeamManagement
@@ -170,14 +156,12 @@ export function ModalRenderer({
           onClose={onCloseTeamManagement}
         />
       )}
-
       {/* Template Gallery Modal */}
       {showTemplateGallery && (
         <ProjectTemplateGallery
           onClose={onCloseTemplateGallery}
         />
       )}
-
       {/* Project Settings Modal */}
       {showProjectSettings && selectedProjectForSettings && (
         <ProjectSettings
@@ -186,7 +170,6 @@ export function ModalRenderer({
           onClose={onCloseProjectSettings}
         />
       )}
-
       {/* Setup Wizard Modal */}
       {showSetupWizard && selectedBoardForWizard && (
         <BoardSetupWizard
@@ -196,22 +179,19 @@ export function ModalRenderer({
           onClose={onCloseSetupWizard}
         />
       )}
-
       {/* Edit Project Modal */}
       {showEditProject && selectedProjectForEdit && (
-        <>
-          {console.log('[ModalRenderer] Rendering EditProjectModal for:', selectedProjectForEdit)}
-          <EditProjectModal
-            projectId={selectedProjectForEdit}
-            onClose={onCloseEditProject}
-          />
-        </>
+        <EditProjectModal
+          projectId={selectedProjectForEdit}
+          isOpen={showEditProject}
+          onClose={onCloseEditProject}
+        />
       )}
-
       {/* Edit Board Modal */}
       {showEditBoard && selectedBoardForEdit && (
         <EditBoardModal
           boardId={selectedBoardForEdit}
+          isOpen={showEditBoard}
           onClose={onCloseEditBoard}
         />
       )}

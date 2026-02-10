@@ -1,136 +1,79 @@
 /**
  * Authentication Middleware
- * Handles JWT verification and demo mode authentication
+ * Production-secure JWT verification - NO DEMO/TEST USERS
+ * Author: Sanket
  */
 
-import { supabase } from './utils.config.ts';
 import type { AuthResult, User } from './types.ts';
-import { logInfo, logSuccess, logWarning, logError } from './utils.helpers.ts';
+import { supabase } from './utils.config.ts';
+import { logError, logInfo, logSuccess } from './utils.helpers.ts';
 
 const SERVICE = 'AuthMiddleware';
 
 // ============================================================================
-// Demo Users Configuration
-// ============================================================================
-
-const DEMO_USERS = {
-  'justin-access-token': {
-    id: 'justin-user-id',
-    email: 'justin@gmail.com',
-    user_metadata: { name: 'Justin', role: 'admin' },
-  },
-  'demo-access-token': {
-    id: 'demo-user-id',
-    email: 'demo@demo.com',
-    user_metadata: { name: 'Demo User', role: 'admin' },
-  },
-};
-
-// ============================================================================
-// Authentication Middleware
+// Strict Authentication Only - No Fallbacks
 // ============================================================================
 
 /**
  * Verify user authentication from Authorization header
- * Supports both demo tokens and real Supabase JWT tokens
- * Falls back to Justin demo user if authentication fails
+ * Production mode: Returns error if authentication fails
+ * NO demo users, NO fallbacks, STRICT validation only
  */
 export async function verifyAuth(authHeader: string | null | undefined): Promise<AuthResult> {
   logInfo(SERVICE, 'Starting authentication verification');
-  logInfo(SERVICE, `Header present: ${authHeader ? 'YES' : 'NO'}`);
-
-  // No authorization header - use demo user
+  
+  // No authorization header - reject
   if (!authHeader) {
-    logWarning(SERVICE, 'No authorization header, using Justin demo user');
-    return { user: DEMO_USERS['justin-access-token'] };
+    logError(SERVICE, 'Missing Authorization header');
+    return { error: 'Missing Authorization header', status: 401 };
   }
 
   // Parse Bearer token
   const parts = authHeader.split(' ');
   if (parts.length !== 2 || parts[0] !== 'Bearer') {
-    logWarning(SERVICE, 'Invalid authorization format, using Justin demo user');
-    return { user: DEMO_USERS['justin-access-token'] };
-  }
-
-  const token = parts[1]?.trim();
-  logInfo(SERVICE, `Token extracted (length: ${token?.length})`);
-
-  // Check for demo tokens
-  if (DEMO_USERS[token as keyof typeof DEMO_USERS]) {
-    logSuccess(SERVICE, `Demo token matched: ${token}`);
-    return { user: DEMO_USERS[token as keyof typeof DEMO_USERS] };
-  }
-
-  // Additional pattern-based fallback for demo mode
-  if (token?.includes('justin') || token?.includes('demo')) {
-    logWarning(SERVICE, 'Token contains demo/justin pattern, using fallback');
-    return { user: DEMO_USERS['justin-access-token'] };
-  }
-
-  // Try Supabase JWT verification
-  logInfo(SERVICE, 'Attempting Supabase JWT verification');
-  try {
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-
-    if (error) {
-      logWarning(SERVICE, `Supabase auth error: ${error.message}`);
-      logWarning(SERVICE, 'Falling back to Justin demo user');
-      return { user: DEMO_USERS['justin-access-token'] };
-    }
-
-    if (!user) {
-      logWarning(SERVICE, 'No user found, falling back to Justin demo user');
-      return { user: DEMO_USERS['justin-access-token'] };
-    }
-
-    logSuccess(SERVICE, `Supabase auth successful: ${user.email}`);
-    return { user: user as User };
-  } catch (err: any) {
-    logError(SERVICE, 'Exception during auth verification', err);
-    logWarning(SERVICE, 'Falling back to Justin demo user');
-    return { user: DEMO_USERS['justin-access-token'] };
-  }
-}
-
-/**
- * Strict authentication - returns error instead of falling back to demo
- * Use for production endpoints that require real authentication
- */
-export async function verifyAuthStrict(authHeader: string | null | undefined): Promise<AuthResult> {
-  logInfo(SERVICE, 'Starting STRICT authentication verification');
-
-  if (!authHeader) {
-    return { error: 'Missing Authorization header', status: 401 };
-  }
-
-  const parts = authHeader.split(' ');
-  if (parts.length !== 2 || parts[0] !== 'Bearer') {
+    logError(SERVICE, 'Invalid Authorization format - expected "Bearer <token>"');
     return { error: 'Invalid Authorization format', status: 401 };
   }
 
   const token = parts[1]?.trim();
-
-  // In strict mode, demo tokens are still allowed
-  if (DEMO_USERS[token as keyof typeof DEMO_USERS]) {
-    logSuccess(SERVICE, `Demo token matched (strict): ${token}`);
-    return { user: DEMO_USERS[token as keyof typeof DEMO_USERS] };
+  
+  if (!token || token.length === 0) {
+    logError(SERVICE, 'Empty authorization token');
+    return { error: 'Invalid authorization token', status: 401 };
   }
 
-  // Verify with Supabase
+  logInfo(SERVICE, `Verifying JWT token (length: ${token.length})`);
+
+  // Verify with Supabase - only valid JWT tokens allowed
   try {
     const { data: { user }, error } = await supabase.auth.getUser(token);
 
-    if (error || !user) {
-      logError(SERVICE, 'Strict auth failed', error);
-      return { error: 'Unauthorized', status: 401 };
+    if (error) {
+      logError(SERVICE, `Supabase auth error: ${error.message}`);
+      return { error: 'Invalid or expired token', status: 401 };
     }
 
-    logSuccess(SERVICE, `Strict auth successful: ${user.email}`);
+    if (!user) {
+      logError(SERVICE, 'No user found for provided token');
+      return { error: 'Unauthorized - user not found', status: 401 };
+    }
+
+    logSuccess(SERVICE, `Authentication successful: ${user.email}`);
     return { user: user as User };
+    
   } catch (err: any) {
-    logError(SERVICE, 'Exception during strict auth', err);
-    return { error: 'Authentication failed', status: 401 };
+    logError(SERVICE, 'Exception during authentication', err);
+    return { error: 'Authentication failed', status: 500 };
   }
+}
+
+/**
+ * Strict authentication (same as verifyAuth now - kept for compatibility)
+ * Use for production endpoints that require real authentication
+ */
+export async function verifyAuthStrict(authHeader: string | null | undefined): Promise<AuthResult> {
+  // In production mode, both functions behave identically - strict auth only
+  return verifyAuth(authHeader);
 }
 
 /**

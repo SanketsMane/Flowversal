@@ -4,7 +4,6 @@
  * 
  * Main canvas area displaying triggers and workflow steps
  */
-
 import { useTheme } from '@/core/theme/ThemeContext';
 import { useSubStepStore } from '@/features/workflow-builder/stores/subStepStore';
 import { Plus, Rocket } from 'lucide-react';
@@ -23,10 +22,8 @@ import { SubStepContainer } from '../substeps/SubStepContainer';
 import { InfiniteCanvas } from './InfiniteCanvas';
 import { StepContainer } from './StepContainer';
 import { TriggerSection } from './TriggerSection';
-
 // Lazy load heavy components
 const UnifiedNodePickerModal = lazy(() => import('./UnifiedNodePickerModal').then(module => ({ default: module.UnifiedNodePickerModal })));
-
 // Loading fallback component
 const ModalLoadingFallback = () => (
   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -38,7 +35,6 @@ const ModalLoadingFallback = () => (
     </div>
   </div>
 );
-
 export function WorkflowCanvas() {
   const { theme } = useTheme();
   // CRITICAL: Use selector to ensure re-renders when containers change
@@ -56,31 +52,23 @@ export function WorkflowCanvas() {
   const canvasRef = useRef<HTMLDivElement>(null);
   const [connectionDataFlows, setConnectionDataFlows] = useState<ConnectionDataFlow[]>([]);
   const [hoveredConnection, setHoveredConnection] = useState<string | null>(null);
-
   // Convert backend node states array to NodeExecutionState format
   const backendNodeStates = useMemo(() => {
     if (!backendNodeStatesArray || backendNodeStatesArray.length === 0) {
-      console.log('[DEBUG] WorkflowCanvas: No backend node states', { backendNodeStatesArray });
       return [];
     }
-
-    console.log('[DEBUG] WorkflowCanvas: Processing backend node states', { count: backendNodeStatesArray.length, states: backendNodeStatesArray });
-
     return backendNodeStatesArray.map((ns) => {
       const element = document.querySelector(`[data-node-id="${ns.id}"]`);
       let position = { x: 0, y: 0 };
-      
       if (element) {
         const rect = element.getBoundingClientRect();
         position = {
           x: rect.left + rect.width / 2,
           y: rect.top + rect.height / 2,
         };
-        console.log('[DEBUG] WorkflowCanvas: Found node element', { nodeId: ns.id, position });
       } else {
         console.warn('[DEBUG] WorkflowCanvas: Node element not found', { nodeId: ns.id, selector: `[data-node-id="${ns.id}"]` });
       }
-
       return {
         id: ns.id,
         status: ns.status,
@@ -93,31 +81,17 @@ export function WorkflowCanvas() {
       };
     });
   }, [backendNodeStatesArray]);
-
   // Debug logging when containers change
   React.useEffect(() => {
-    console.log('🎨 WorkflowCanvas: Containers changed!', {
-      count: containers.length,
-      containers: containers.map((c, i) => ({
-        index: i,
-        id: c.id,
-        title: c.title,
-        nodes: c.nodes?.length || 0,
-      })),
-    });
   }, [containers]);
-
   const borderColor = theme === 'dark' ? 'border-[#2A2A3E]' : 'border-gray-200';
   const bgInput = theme === 'dark' ? 'bg-[#0E0E1F]' : 'bg-white';
   const textSecondary = theme === 'dark' ? 'text-[#CFCFE8]' : 'text-gray-600';
-
   // Check if Form Submit trigger exists
   const hasFormSubmitTrigger = triggers.some(trigger => trigger.type === 'form_submit');
-
   // Merge execution states from both hooks (prioritize WebSocket data)
   const mergedNodeStates = useMemo(() => {
     const statesMap = new Map<string, NodeExecutionState>();
-    
     // Add states from useVisualExecution (legacy/simulation)
     nodeStates.forEach((ns) => {
       statesMap.set(ns.id, {
@@ -127,25 +101,15 @@ export function WorkflowCanvas() {
         type: ns.type,
       });
     });
-
     // Override with WebSocket states (real-time data takes priority)
     backendNodeStates.forEach((ns) => {
       statesMap.set(ns.id, ns);
     });
-
     const merged = Array.from(statesMap.values());
-    console.log('[DEBUG] WorkflowCanvas: Merged node states', { 
-      legacyCount: nodeStates.length, 
-      backendCount: backendNodeStates.length, 
-      mergedCount: merged.length,
-      mergedStates: merged 
-    });
     return merged;
   }, [nodeStates, backendNodeStates]);
-
   // Determine if execution is active
   const isExecutionActive = isExecuting || isBackendExecuting;
-
   const handleAddStep = () => {
     const newContainer: Container = {
       id: `container-${Date.now()}`,
@@ -157,7 +121,6 @@ export function WorkflowCanvas() {
     };
     addContainer(newContainer);
   };
-
   return (
     <>
       {/* Main Canvas Content - Wrapped in InfiniteCanvas */}
@@ -165,10 +128,8 @@ export function WorkflowCanvas() {
         <div className="p-8 min-h-full ml-32 infinite-canvas-content max-w-3xl" ref={canvasRef} style={{ position: 'relative' }}>
           {/* Trigger Section */}
           <TriggerSection />
-
           {/* REMOVED: Vertical Line Connector - Not needed with manual connection dots system */}
           {/* Users create connections manually by dragging from connection dots */}
-
           {/* Step Containers */}
           <div className="space-y-6 mt-8">
             {containers.map((container, index) => (
@@ -178,12 +139,10 @@ export function WorkflowCanvas() {
                   containerIndex={index} 
                   stepNumber={index + 1}
                 />
-                
                 {/* REMOVED: Connector lines between steps - Not needed with manual connection dots */}
               </React.Fragment>
             ))}
           </div>
-
           {/* Sub-Step Containers - Absolutely Positioned */}
           {subStepContainers.map((subStep) => {
             // Calculate substep number based on parent node's position within the container
@@ -202,7 +161,6 @@ export function WorkflowCanvas() {
               <SubStepContainer key={subStep.id} subStep={subStep} stepNumber={stepNumber} />
             );
           })}
-
           {/* Add Step Button */}
           <div className="flex justify-center mt-8">
             <button
@@ -220,7 +178,6 @@ export function WorkflowCanvas() {
               <span>Add Step</span>
             </button>
           </div>
-
           {/* Empty State - Show if no trigger and no steps */}
           {triggers.length === 0 && containers.length === 0 && (
             <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
@@ -236,23 +193,17 @@ export function WorkflowCanvas() {
             </div>
           )}
         </div>
-
         {/* OLD: Manual Connection Layer - DISABLED (replaced by ManualConnectionRenderer) */}
         {/* <ManualConnectionLayer /> */}
-        
         {/* OLD: Sequential Connection Layer - DISABLED (using ConnectionPoint system instead) */}
         {/* <SequentialConnectionLayer /> */}
-        
         {/* NEW: Manual Connection Renderer - Render manual connections with hover effects */}
         <ManualConnectionRenderer />
-        
         {/* REMOVED: Sub-Step Connection Renderer - Not needed, users use manual connection dots */}
         {/* <SubStepConnectionRenderer /> */}
       </InfiniteCanvas>
-
       {/* Form Field Manager - If Form Submit trigger exists */}
       {hasFormSubmitTrigger && <FormFieldManagerContainer />}
-
       {/* Modals */}
       <Suspense fallback={<ModalLoadingFallback />}>
         <UnifiedNodePickerModal isOpen={isNodePickerOpen} onClose={closeNodePicker} />
@@ -260,7 +211,6 @@ export function WorkflowCanvas() {
       <FieldTypeSelectorModal />
       <FieldPropertiesModal />
       <ConditionBuilderModal />
-
       {/* Visual Execution Overlay with WebSocket integration */}
       <VisualExecutionOverlay 
         nodeStates={mergedNodeStates} 

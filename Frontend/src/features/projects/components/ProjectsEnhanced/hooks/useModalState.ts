@@ -1,5 +1,4 @@
 import { useState } from 'react';
-
 export interface ModalState {
   showCreateProject: boolean;
   showCreateBoard: boolean;
@@ -15,7 +14,6 @@ export interface ModalState {
   selectedBoardForEdit: string | null;
   isInitialBoardSetup: boolean;
 }
-
 export function useModalState() {
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [showCreateBoard, setShowCreateBoard] = useState(false);
@@ -30,7 +28,6 @@ export function useModalState() {
   const [selectedProjectForEdit, setSelectedProjectForEdit] = useState<string | null>(null);
   const [selectedBoardForEdit, setSelectedBoardForEdit] = useState<string | null>(null);
   const [isInitialBoardSetup, setIsInitialBoardSetup] = useState(false);
-
   const modalState: ModalState = {
     showCreateProject,
     showCreateBoard,
@@ -46,7 +43,6 @@ export function useModalState() {
     selectedBoardForEdit,
     isInitialBoardSetup,
   };
-
   const modalHandlers = {
     setShowCreateProject,
     setShowCreateBoard,
@@ -61,7 +57,6 @@ export function useModalState() {
     setSelectedProjectForEdit,
     setSelectedBoardForEdit,
     setIsInitialBoardSetup,
-
     // Convenience handlers
     openCreateProject: () => setShowCreateProject(true),
     openCreateBoard: () => setShowCreateBoard(true),
@@ -77,7 +72,6 @@ export function useModalState() {
       setShowSetupWizard(true);
     },
     openEditProject: (projectId: string) => {
-      console.log('[ModalState] Opening edit project modal for:', projectId);
       setSelectedProjectForEdit(projectId);
       setShowEditProject(true);
     },
@@ -85,7 +79,6 @@ export function useModalState() {
       setSelectedBoardForEdit(boardId);
       setShowEditBoard(true);
     },
-
     closeAllModals: () => {
       setShowCreateProject(false);
       setShowCreateBoard(false);
@@ -101,28 +94,23 @@ export function useModalState() {
       setSelectedBoardForEdit(null);
       setIsInitialBoardSetup(false);
     },
-
     closeEditProject: () => {
       setShowEditProject(false);
       setSelectedProjectForEdit(null);
     },
-
     closeEditBoard: () => {
       setShowEditBoard(false);
       setSelectedBoardForEdit(null);
     },
-
     closeProjectSettings: () => {
       setShowProjectSettings(false);
       setSelectedProjectForSettings(null);
     },
-
     closeSetupWizard: () => {
       setShowSetupWizard(false);
       setSelectedBoardForWizard(null);
       setIsInitialBoardSetup(false);
     },
   };
-
   return { modalState, modalHandlers };
 }
