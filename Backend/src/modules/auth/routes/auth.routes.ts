@@ -97,7 +97,6 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         message: 'Failed to sign up',
       });
     }
-    }
   });
 
   // Login with email/password - With rate limiting
@@ -192,6 +191,13 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
   // Fixes BUG-007: Session forgery prevention
   fastify.get('/me', { preHandler: [fastify.authenticate] }, async (request, reply) => {
     try {
+      if (!request.user) {
+        return reply.code(401).send({
+          success: false,
+          error: 'Unauthorized',
+          message: 'User not authenticated',
+        });
+      }
       const userId = request.user.id;
       
       // Fetch fresh user data from Neon
@@ -209,8 +215,8 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       let mongoUser;
       try {
         mongoUser = await userService.getOrCreateUserFromNeon(user);
-      } catch (err) {
-        fastify.log.warn('Could not sync mongo user in /me', err);
+      } catch (err: any) {
+        fastify.log.warn({ err }, 'Could not sync mongo user in /me');
       }
 
       return reply.send({
@@ -317,6 +323,13 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
     '/change-password',
     { preHandler: [fastify.authenticate] },
     async (request, reply) => {
+      if (!request.user) {
+        return reply.code(401).send({
+          success: false,
+          error: 'Unauthorized',
+          message: 'User not authenticated',
+        });
+      }
       const { currentPassword, newPassword } = request.body || {};
       const userId = request.user.id;
 
