@@ -2,7 +2,6 @@
  * Analytics Page
  * Comprehensive analytics with revenue, user behavior, and trends
  */
-
 import { useThemeStore } from '@/core/stores/admin/themeStore';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
@@ -44,15 +43,12 @@ import {
     XAxis,
     YAxis,
 } from 'recharts';
-
 type TimeRange = '7d' | '30d' | '90d' | '1y';
-
 export const AnalyticsPage: React.FC = () => {
   const { theme } = useThemeStore();
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
   // Initialize specific features
   const [selectedMetric, setSelectedMetric] = useState<'revenue' | 'users' | 'engagement'>('revenue');
-
   // Use empty/zero structure instead of mock data
   const analytics = {
     revenue: {
@@ -79,18 +75,14 @@ export const AnalyticsPage: React.FC = () => {
     userBehavior: [] as any[],
     insights: [] as any[],
   };
-  
   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const mutedColor = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
   const cardBg = theme === 'dark' ? 'bg-[#1A1A2E] border-white/10' : 'bg-white border-gray-200';
   const bgColor = theme === 'dark' ? 'bg-[#0E0E1F]' : 'bg-gray-50';
-
   const exportData = () => {
     // Export analytics data as CSV
-    console.log('Exporting analytics data...');
     alert('Analytics exported to CSV!');
   };
-
   return (
     <div className={`min-h-screen ${bgColor} ${textColor} p-8`}>
       {/* Header */}
@@ -127,7 +119,6 @@ export const AnalyticsPage: React.FC = () => {
           </div>
         </div>
       </div>
-
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -156,7 +147,6 @@ export const AnalyticsPage: React.FC = () => {
             icon={<Clock className="w-5 h-5" />}
           />
         </div>
-
         {/* Revenue Chart */}
         <Card className={cardBg + " p-6"}>
           <div className="flex items-center justify-between mb-6">
@@ -218,7 +208,6 @@ export const AnalyticsPage: React.FC = () => {
              )}
           </div>
         </Card>
-
         {/* User Growth & Conversion */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className={cardBg + " p-6"}>
@@ -260,7 +249,6 @@ export const AnalyticsPage: React.FC = () => {
             ) : ( <p>No user growth data available</p> )}
             </div>
           </Card>
-
           <Card className={cardBg + " p-6"}>
             <h2 className="text-xl mb-6 flex items-center gap-2">
               <Target className="w-5 h-5" />
@@ -303,7 +291,6 @@ export const AnalyticsPage: React.FC = () => {
             </div>
           </Card>
         </div>
-
         {/* Subscription & Engagement */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className={cardBg + " p-6"}>
@@ -341,7 +328,6 @@ export const AnalyticsPage: React.FC = () => {
             ) : ( <p>No plan data available</p> )}
             </div>
           </Card>
-
           <Card className={cardBg + " p-6"}>
             <h2 className="text-xl mb-6 flex items-center gap-2">
               <Activity className="w-5 h-5" />
@@ -370,7 +356,6 @@ export const AnalyticsPage: React.FC = () => {
               )}
             </div>
           </Card>
-
           <Card className={cardBg + " p-6"}>
             <h2 className="text-xl mb-6 flex items-center gap-2">
               <BarChart3 className="w-5 h-5" />
@@ -405,7 +390,6 @@ export const AnalyticsPage: React.FC = () => {
             </div>
           </Card>
         </div>
-
         {/* Engagement Metrics */}
         <Card className={cardBg + " p-6"}>
           <h2 className="text-xl mb-6 flex items-center gap-2">
@@ -434,7 +418,6 @@ export const AnalyticsPage: React.FC = () => {
             </ResponsiveContainer>
             ) : ( <p>No engagement data available</p> )}
             </div>
-
             <div className="h-[300px] flex items-center justify-center text-gray-500">
             {analytics.userBehavior.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
@@ -462,7 +445,6 @@ export const AnalyticsPage: React.FC = () => {
             </div>
           </div>
         </Card>
-
         {/* Key Insights */}
         <Card className={cardBg + " p-6"}>
           <h2 className="text-xl mb-6">🔍 Key Insights</h2>
@@ -494,7 +476,6 @@ export const AnalyticsPage: React.FC = () => {
     </div>
   );
 };
-
 // Helper Components
 const RevenueCard: React.FC<{
   title: string;
@@ -505,7 +486,6 @@ const RevenueCard: React.FC<{
   const { theme } = useThemeStore();
   const isPositive = change >= 0;
   const cardBg = theme === 'dark' ? 'bg-[#1A1A2E] border-white/10' : 'bg-white border-gray-200';
-
   return (
     <Card className={`${cardBg} p-4`}>
       <div className="flex items-center justify-between mb-3">

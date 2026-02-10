@@ -2,12 +2,10 @@
  * Advanced Filters Component
  * Filters by Members, Status, Priority, Labels, and Due Date
  */
-
 import { useState, useEffect, useRef } from 'react';
 import { Filter, X, Users, Flag, CheckSquare, Tag, Calendar, Clock } from 'lucide-react';
 import { useTheme } from '@/core/theme/ThemeContext';
 import { Portal } from './Portal';
-
 export interface FilterOptions {
   members: string[];
   statuses: string[];
@@ -15,7 +13,6 @@ export interface FilterOptions {
   labels: string[];
   dueDateRange: 'all' | 'overdue' | 'today' | 'week' | 'month' | 'no-date';
 }
-
 interface AdvancedFiltersProps {
   isOpen: boolean;
   onClose: () => void;
@@ -27,7 +24,6 @@ interface AdvancedFiltersProps {
   availableLabels: Array<{ id: string; name: string; color: string }>;
   buttonRef?: React.RefObject<HTMLButtonElement>;
 }
-
 export function AdvancedFilters({
   isOpen,
   onClose,
@@ -39,19 +35,15 @@ export function AdvancedFilters({
   availableLabels,
   buttonRef
 }: AdvancedFiltersProps) {
-  console.log('🔥 AdvancedFilters CALLED with isOpen:', isOpen);
-  
   const { theme } = useTheme();
   const panelRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState({ top: 0, left: 0 });
-
   const bgMain = theme === 'dark' ? 'bg-[#0E0E1F]' : 'bg-white';
   const bgCard = theme === 'dark' ? 'bg-[#1A1A2E]' : 'bg-gray-50';
   const textPrimary = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const textSecondary = theme === 'dark' ? 'text-[#CFCFE8]' : 'text-gray-600';
   const borderColor = theme === 'dark' ? 'border-white/10' : 'border-gray-200';
   const hoverBg = theme === 'dark' ? 'hover:bg-white/5' : 'hover:bg-gray-100';
-
   // Close when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -59,25 +51,21 @@ export function AdvancedFilters({
       if (buttonRef?.current && buttonRef.current.contains(event.target as Node)) {
         return; // Don't close if clicking the button
       }
-      
       if (panelRef.current && !panelRef.current.contains(event.target as Node)) {
         onClose();
       }
     }
-
     if (isOpen) {
       // Add a small delay to prevent immediate closing
       const timeoutId = setTimeout(() => {
         document.addEventListener('mousedown', handleClickOutside);
       }, 100);
-      
       return () => {
         clearTimeout(timeoutId);
         document.removeEventListener('mousedown', handleClickOutside);
       };
     }
   }, [isOpen, onClose, buttonRef]);
-
   const toggleMember = (memberId: string) => {
     onFiltersChange({
       ...filters,
@@ -86,7 +74,6 @@ export function AdvancedFilters({
         : [...filters.members, memberId]
     });
   };
-
   const toggleStatus = (status: string) => {
     onFiltersChange({
       ...filters,
@@ -95,7 +82,6 @@ export function AdvancedFilters({
         : [...filters.statuses, status]
     });
   };
-
   const togglePriority = (priority: string) => {
     onFiltersChange({
       ...filters,
@@ -104,7 +90,6 @@ export function AdvancedFilters({
         : [...filters.priorities, priority]
     });
   };
-
   const toggleLabel = (label: string) => {
     onFiltersChange({
       ...filters,
@@ -113,20 +98,16 @@ export function AdvancedFilters({
         : [...filters.labels, label]
     });
   };
-
   const setDueDateRange = (range: 'all' | 'overdue' | 'today' | 'week' | 'month' | 'no-date') => {
     onFiltersChange({
       ...filters,
       dueDateRange: range
     });
   };
-
   const clearAll = () => {
     onFiltersChange({ members: [], statuses: [], priorities: [], labels: [], dueDateRange: 'all' });
   };
-
   const activeFiltersCount = filters.members.length + filters.statuses.length + filters.priorities.length + filters.labels.length + (filters.dueDateRange !== 'all' ? 1 : 0);
-
   // Calculate position - MUST be before early return
   useEffect(() => {
     const updatePosition = () => {
@@ -138,26 +119,18 @@ export function AdvancedFilters({
         });
       }
     };
-
     if (isOpen) {
       updatePosition();
       // Update position on scroll
       window.addEventListener('scroll', updatePosition, true);
       window.addEventListener('resize', updatePosition);
-      
       return () => {
         window.removeEventListener('scroll', updatePosition, true);
         window.removeEventListener('resize', updatePosition);
       };
     }
   }, [isOpen, buttonRef]);
-
-  console.log('AdvancedFilters render state:', { isOpen, position });
-
   if (!isOpen) return null;
-
-  console.log('AdvancedFilters rendering, isOpen:', isOpen);
-
   return (
     <Portal>
       <div
@@ -185,7 +158,6 @@ export function AdvancedFilters({
             <X className="w-4 h-4" />
           </button>
         </div>
-
         {/* Filters Content */}
         <div className="max-h-96 overflow-y-auto">
           {/* Members Filter */}
@@ -211,7 +183,6 @@ export function AdvancedFilters({
               ))}
             </div>
           </div>
-
           {/* Status Filter */}
           <div className={`p-4 border-b ${borderColor}`}>
             <div className="flex items-center gap-2 mb-3">
@@ -232,7 +203,6 @@ export function AdvancedFilters({
               ))}
             </div>
           </div>
-
           {/* Priority Filter */}
           <div className="p-4">
             <div className="flex items-center gap-2 mb-3">
@@ -246,7 +216,6 @@ export function AdvancedFilters({
                   priority === 'High' ? 'text-orange-500' :
                   priority === 'Medium' ? 'text-yellow-500' :
                   'text-gray-500';
-                
                 return (
                   <label key={priority} className={`flex items-center gap-3 p-2 rounded-lg ${hoverBg} cursor-pointer`}>
                     <input
@@ -262,7 +231,6 @@ export function AdvancedFilters({
               })}
             </div>
           </div>
-
           {/* Labels Filter */}
           <div className="p-4">
             <div className="flex items-center gap-2 mb-3">
@@ -286,7 +254,6 @@ export function AdvancedFilters({
               ))}
             </div>
           </div>
-
           {/* Due Date Filter */}
           <div className="p-4">
             <div className="flex items-center gap-2 mb-3">
@@ -351,7 +318,6 @@ export function AdvancedFilters({
             </div>
           </div>
         </div>
-
         {/* Footer */}
         <div className={`p-4 border-t ${borderColor} flex items-center justify-between`}>
           <button

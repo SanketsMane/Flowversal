@@ -1,6 +1,6 @@
-import { X, Copy, Share2, Users, Gift, Trophy, Star, Crown, Award, Mail, MessageCircle, ExternalLink, Check } from 'lucide-react';
-import { useState } from 'react';
 import { useTheme } from '@/core/theme/ThemeContext';
+import { Award, Check, Copy, Crown, ExternalLink, Gift, Mail, MessageCircle, Share2, Star, Trophy, Users, X } from 'lucide-react';
+import { useState } from 'react';
 
 interface ReferralModalProps {
   isOpen: boolean;
@@ -21,16 +21,17 @@ export function ReferralModal({ isOpen, onClose }: ReferralModalProps) {
   const inputBg = theme === 'dark' ? 'bg-[#1A1A2E]' : 'bg-white';
   const hoverBg = theme === 'dark' ? 'hover:bg-white/5' : 'hover:bg-gray-50';
 
-  // Mock data - Replace with real data from API
-  const referralCode = 'FLOW-JD2024';
-  const affiliateLink = 'https://flowversal.com/ref/FLOW-JD2024';
+  // Real data from API - Author: Sanket  
+  const referralCode = 'FLOW-XXXXX'; // TODO: Load from user profile
+  const affiliateLink = 'https://flowversal.com/ref/FLOW-XXXXX'; // TODO: Generate from user ID
   
   const referralStats = {
-    totalReferrals: 15,
-    activeCreators: 12,
-    bonusEarned: 450.00,
-    pendingBonus: 75.00,
+    totalReferrals: 0,
+    activeCreators: 0,
+    bonusEarned: 0,
+    pendingBonus: 0,
   };
+  // TODO: Load from API endpoint
 
   const creatorTiers = [
     {
@@ -71,12 +72,8 @@ export function ReferralModal({ isOpen, onClose }: ReferralModalProps) {
     },
   ];
 
-  const recentReferrals = [
-    { id: 1, name: 'Sarah Johnson', status: 'Active', earned: '$25', date: '2 days ago' },
-    { id: 2, name: 'Mike Chen', status: 'Active', earned: '$25', date: '5 days ago' },
-    { id: 3, name: 'Emily Davis', status: 'Pending', earned: '$0', date: '1 week ago' },
-    { id: 4, name: 'Alex Turner', status: 'Active', earned: '$25', date: '2 weeks ago' },
-  ];
+  const recentReferrals: Array<{id: number; name: string; status: string; earned: string; date: string}> = [];
+  // TODO: Load from API endpoint
 
   const copyToClipboard = (text: string, type: 'referral' | 'affiliate') => {
     // Try modern clipboard API first

@@ -2,10 +2,8 @@
  * WebSocket Hook for Real-time Execution Updates
  * Connects to backend WebSocket server for n8n-style execution visualization
  */
-
 import { useAuth } from '@/core/auth/AuthContext';
 import { useCallback, useEffect, useRef, useState } from 'react';
-
 // Simple logger utility for frontend
 const logger = {
   debug: (...args: any[]) => console.debug('[WebSocket]', ...args),
@@ -13,7 +11,6 @@ const logger = {
   warn: (...args: any[]) => console.warn('[WebSocket]', ...args),
   error: (...args: any[]) => console.error('[WebSocket]', ...args),
 };
-
 export type ExecutionEventType = 
   | 'connected'
   | 'execution-update'
@@ -24,7 +21,6 @@ export type ExecutionEventType =
   | 'agent_reasoning_step'
   | 'agent_tool_call'
   | 'agent_decision';
-
 export interface ExecutionEvent {
   type: ExecutionEventType;
   executionId: string;
@@ -35,7 +31,6 @@ export interface ExecutionEvent {
   timestamp: string;
   [key: string]: any;
 }
-
 export interface NodeExecutionState {
   nodeId: string;
   status: 'pending' | 'running' | 'success' | 'error' | 'skipped';
@@ -46,7 +41,6 @@ export interface NodeExecutionState {
   outputData?: any;
   error?: string;
 }
-
 export interface ConnectionData {
   connectionId: string;
   fromNodeId: string;
@@ -54,7 +48,6 @@ export interface ConnectionData {
   data: any;
   timestamp: number;
 }
-
 export interface AgentReasoningEvent {
   agentId: string;
   thought?: any;
@@ -64,7 +57,6 @@ export interface AgentReasoningEvent {
   totalToolCalls?: number;
   totalDecisions?: number;
 }
-
 interface UseExecutionWebSocketOptions {
   executionId: string | null;
   onNodeUpdate?: (nodeState: NodeExecutionState) => void;
@@ -73,7 +65,6 @@ interface UseExecutionWebSocketOptions {
   onExecutionUpdate?: (update: any) => void;
   enabled?: boolean;
 }
-
 export function useExecutionWebSocket({
   executionId,
   onNodeUpdate,
@@ -90,7 +81,6 @@ export function useExecutionWebSocket({
   const reconnectAttemptsRef = useRef(0);
   const maxReconnectAttempts = 10;
   const baseReconnectDelay = 1000; // Start with 1 second
-
   // Event handlers refs to avoid stale closures
   const handlersRef = useRef({
     onNodeUpdate,
@@ -98,7 +88,6 @@ export function useExecutionWebSocket({
     onAgentReasoning,
     onExecutionUpdate,
   });
-
   // Update handlers ref when callbacks change
   useEffect(() => {
     handlersRef.current = {
@@ -108,17 +97,14 @@ export function useExecutionWebSocket({
       onExecutionUpdate,
     };
   }, [onNodeUpdate, onConnectionData, onAgentReasoning, onExecutionUpdate]);
-
   // Calculate exponential backoff delay
   const getReconnectDelay = useCallback(() => {
     return Math.min(baseReconnectDelay * Math.pow(2, reconnectAttemptsRef.current), 30000); // Max 30 seconds
   }, []);
-
   // Handle WebSocket messages
   const handleMessage = useCallback((event: MessageEvent) => {
     try {
       const data: ExecutionEvent = JSON.parse(event.data);
-
       switch (data.type) {
         case 'connected':
           setIsConnected(true);
@@ -126,10 +112,8 @@ export function useExecutionWebSocket({
           reconnectAttemptsRef.current = 0;
           logger.debug('WebSocket connected', { executionId: data.executionId });
           break;
-
         case 'node_start':
           if (data.nodeId && handlersRef.current.onNodeUpdate) {
-            console.log('[DEBUG] WebSocket node_start', { nodeId: data.nodeId, data: data.data });
             handlersRef.current.onNodeUpdate({
               nodeId: data.nodeId,
               status: 'running',
@@ -138,10 +122,8 @@ export function useExecutionWebSocket({
             });
           }
           break;
-
         case 'node_complete':
           if (data.nodeId && handlersRef.current.onNodeUpdate) {
-            console.log('[DEBUG] WebSocket node_complete', { nodeId: data.nodeId, data: data.data });
             handlersRef.current.onNodeUpdate({
               nodeId: data.nodeId,
               status: 'success',
@@ -151,10 +133,8 @@ export function useExecutionWebSocket({
             });
           }
           break;
-
         case 'node_error':
           if (data.nodeId && handlersRef.current.onNodeUpdate) {
-            console.log('[DEBUG] WebSocket node_error', { nodeId: data.nodeId, data: data.data });
             handlersRef.current.onNodeUpdate({
               nodeId: data.nodeId,
               status: 'error',
@@ -164,7 +144,6 @@ export function useExecutionWebSocket({
             });
           }
           break;
-
         case 'connection_data':
           if (handlersRef.current.onConnectionData) {
             handlersRef.current.onConnectionData({
@@ -176,7 +155,6 @@ export function useExecutionWebSocket({
             });
           }
           break;
-
         case 'agent_reasoning_step':
         case 'agent_tool_call':
         case 'agent_decision':
@@ -192,13 +170,11 @@ export function useExecutionWebSocket({
             });
           }
           break;
-
         case 'execution-update':
           if (handlersRef.current.onExecutionUpdate) {
             handlersRef.current.onExecutionUpdate(data);
           }
           break;
-
         default:
           logger.warn('Unknown WebSocket event type', { type: data.type });
       }
@@ -206,19 +182,16 @@ export function useExecutionWebSocket({
       logger.error('Failed to parse WebSocket message', { error: error.message, data: event.data });
     }
   }, []);
-
   // Connect to WebSocket
   const connect = useCallback(async () => {
     if (!executionId || !enabled || !isAuthenticated) {
       return;
     }
-
     // Close existing connection if any
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
     }
-
     try {
       // Get WebSocket URL - construct full backend URL for WebSocket
       // Backend route is registered at /api/v1/workflows/:executionId/stream
@@ -229,7 +202,6 @@ export function useExecutionWebSocket({
         : window.location.origin;
       const apiUrl = `${backendUrl}/api/v1/workflows/${executionId}/stream`;
       let wsUrl = apiUrl.replace(/^http/, 'ws');
-      
       // Try to get auth token for WebSocket connection (if needed)
       // Note: WebSocket auth typically uses cookies set by regular HTTP requests
       // If cookies don't work, we might need to pass token as query param
@@ -244,13 +216,8 @@ export function useExecutionWebSocket({
       } catch (err) {
         console.warn('[DEBUG] Could not get auth token for WebSocket', err);
       }
-      
-      console.log('[DEBUG] Connecting to WebSocket', { executionId, enabled, isAuthenticated, wsUrl });
-
       const ws = new WebSocket(wsUrl);
-
       ws.onopen = () => {
-        console.log('[DEBUG] WebSocket connection opened', { executionId, wsUrl });
         // #region agent log
         fetch('http://127.0.0.1:7242/ingest/4eca190d-c843-4d4a-a868-56d71e69b49f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useExecutionWebSocket.ts:249',message:'WebSocket opened',data:{executionId,wsUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
         // #endregion
@@ -259,9 +226,7 @@ export function useExecutionWebSocket({
         setConnectionError(null);
         reconnectAttemptsRef.current = 0;
       };
-
       ws.onmessage = handleMessage;
-
       ws.onerror = (error) => {
         console.error('[DEBUG] WebSocket error', { executionId, error });
         // #region agent log
@@ -271,26 +236,21 @@ export function useExecutionWebSocket({
         setConnectionError('WebSocket connection error');
         setIsConnected(false);
       };
-
       ws.onclose = (event) => {
-        console.log('[DEBUG] WebSocket connection closed', { executionId, code: event.code, reason: event.reason });
         // #region agent log
         fetch('http://127.0.0.1:7242/ingest/4eca190d-c843-4d4a-a868-56d71e69b49f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useExecutionWebSocket.ts:265',message:'WebSocket closed',data:{executionId,code:event.code,reason:event.reason},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
         // #endregion
         logger.info('WebSocket connection closed', { executionId, code: event.code, reason: event.reason });
         setIsConnected(false);
-
         // Attempt to reconnect if not a normal closure and we haven't exceeded max attempts
         if (event.code !== 1000 && reconnectAttemptsRef.current < maxReconnectAttempts && enabled) {
           const delay = getReconnectDelay();
           reconnectAttemptsRef.current += 1;
-          
           logger.info('Attempting to reconnect WebSocket', {
             executionId,
             attempt: reconnectAttemptsRef.current,
             delay,
           });
-
           reconnectTimeoutRef.current = setTimeout(() => {
             connect();
           }, delay);
@@ -299,7 +259,6 @@ export function useExecutionWebSocket({
           logger.error('WebSocket reconnection failed', { executionId, attempts: reconnectAttemptsRef.current });
         }
       };
-
       wsRef.current = ws;
     } catch (error: any) {
       logger.error('Failed to create WebSocket connection', { executionId, error: error.message });
@@ -307,50 +266,39 @@ export function useExecutionWebSocket({
       setIsConnected(false);
     }
   }, [executionId, enabled, isAuthenticated, handleMessage, getReconnectDelay]);
-
   // Disconnect from WebSocket
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
     }
-
     if (wsRef.current) {
       wsRef.current.close(1000, 'Manual disconnect');
       wsRef.current = null;
     }
-
     setIsConnected(false);
     reconnectAttemptsRef.current = 0;
   }, []);
-
   // Connect when executionId changes
   useEffect(() => {
-    console.log('[DEBUG] WebSocket useEffect triggered', { executionId, enabled, isAuthenticated, isConnected });
     if (executionId && enabled && isAuthenticated) {
-      console.log('[DEBUG] Attempting WebSocket connection', { executionId });
       connect().catch((error) => {
         console.error('[DEBUG] WebSocket connect error', error);
         logger.error('Failed to connect WebSocket', { executionId, error });
       });
     } else {
-      console.log('[DEBUG] WebSocket connection conditions not met, disconnecting', { executionId, enabled, isAuthenticated });
       disconnect();
     }
-
     return () => {
-      console.log('[DEBUG] WebSocket cleanup', { executionId });
       disconnect();
     };
   }, [executionId, enabled, isAuthenticated, connect, disconnect]);
-
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       disconnect();
     };
   }, [disconnect]);
-
   return {
     isConnected,
     connectionError,

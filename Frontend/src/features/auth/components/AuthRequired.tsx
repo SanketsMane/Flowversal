@@ -5,9 +5,9 @@
  */
 
 import React, { useState } from 'react';
-import { Login } from './Login';
-import { Signup } from '@/shared/components/ui/Signup';
 import { ForgotPassword } from './ForgotPassword';
+import { Login } from './Login';
+import { Signup } from './Signup';
 
 type AuthScreen = 'login' | 'signup' | 'forgot';
 

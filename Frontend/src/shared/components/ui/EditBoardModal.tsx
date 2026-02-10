@@ -2,33 +2,26 @@
  * Edit Board Modal
  * Allows editing board name, icon, and icon color
  */
-
 import { useState, useEffect } from 'react';
 import { X, Check } from 'lucide-react';
 import { useTheme } from '@/core/theme/ThemeContext';
 import { useProjectStore, Board } from '@/core/stores/projectStore';
 import { SimpleIconPicker, RenderIconByName } from './SimpleIconPicker';
-
 interface EditBoardModalProps {
   boardId: string;
   onClose: () => void;
 }
-
 export function EditBoardModal({ boardId, onClose }: EditBoardModalProps) {
   const { theme } = useTheme();
   const { boards, updateBoard } = useProjectStore();
-  
   const board = boards.find(b => b.id === boardId);
-  
   const [formData, setFormData] = useState({
     name: board?.name || '',
     description: board?.description || '',
     icon: board?.icon || 'LayoutGrid',
     iconColor: board?.iconColor || '#00C6FF'
   });
-
   const [showIconPicker, setShowIconPicker] = useState(false);
-
   // Update form when board changes
   useEffect(() => {
     if (board) {
@@ -40,16 +33,9 @@ export function EditBoardModal({ boardId, onClose }: EditBoardModalProps) {
       });
     }
   }, [board]);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.name.trim()) {
-      console.log('[EditBoardModal] Saving board:', boardId, {
-        name: formData.name.trim(),
-        description: formData.description.trim(),
-        icon: formData.icon,
-        iconColor: formData.iconColor
-      });
       updateBoard(boardId, {
         name: formData.name.trim(),
         description: formData.description.trim(),
@@ -59,9 +45,7 @@ export function EditBoardModal({ boardId, onClose }: EditBoardModalProps) {
       onClose();
     }
   };
-
   if (!board) return null;
-
   // Theme colors
   const bgMain = theme === 'dark' ? 'bg-[#0E0E1F]' : 'bg-gray-50';
   const bgCard = theme === 'dark' ? 'bg-[#1A1A2E]' : 'bg-white';
@@ -69,7 +53,6 @@ export function EditBoardModal({ boardId, onClose }: EditBoardModalProps) {
   const textPrimary = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const textSecondary = theme === 'dark' ? 'text-[#CFCFE8]' : 'text-gray-600';
   const hoverBg = theme === 'dark' ? 'hover:bg-white/5' : 'hover:bg-gray-100';
-
   return (
     <div 
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
@@ -86,7 +69,6 @@ export function EditBoardModal({ boardId, onClose }: EditBoardModalProps) {
             <X className="w-5 h-5" />
           </button>
         </div>
-
         {/* Content */}
         <form onSubmit={handleSubmit}>
           <div className="p-6 space-y-6">
@@ -103,7 +85,6 @@ export function EditBoardModal({ boardId, onClose }: EditBoardModalProps) {
                 autoFocus
               />
             </div>
-
             {/* Board Description */}
             <div>
               <label className={`block text-sm ${textSecondary} mb-2`}>Description</label>
@@ -115,7 +96,6 @@ export function EditBoardModal({ boardId, onClose }: EditBoardModalProps) {
                 className={`w-full px-4 py-3 rounded-lg border ${borderColor} ${bgCard} ${textPrimary} placeholder:${textSecondary} focus:outline-none focus:ring-2 focus:ring-[#00C6FF] resize-none`}
               />
             </div>
-
             {/* Icon Selection */}
             <div>
               <label className={`block text-sm ${textSecondary} mb-2`}>Board Icon</label>
@@ -137,7 +117,6 @@ export function EditBoardModal({ boardId, onClose }: EditBoardModalProps) {
                   </div>
                   <span className="flex-1 text-left">Click to change icon and color</span>
                 </button>
-
                 {/* Icon Picker Dropdown */}
                 {showIconPicker && (
                   <div className={`absolute top-full left-0 mt-2 z-10 w-full ${bgCard} rounded-lg border ${borderColor} p-4 shadow-xl`}>
@@ -148,7 +127,6 @@ export function EditBoardModal({ boardId, onClose }: EditBoardModalProps) {
                         setShowIconPicker(false);
                       }}
                     />
-                    
                     {/* Color Picker */}
                     <div className="mt-4">
                       <label className={`block text-sm ${textSecondary} mb-2`}>Icon Color</label>
@@ -171,7 +149,6 @@ export function EditBoardModal({ boardId, onClose }: EditBoardModalProps) {
               </div>
             </div>
           </div>
-
           {/* Footer */}
           <div className={`border-t ${borderColor} p-6 flex gap-3 justify-end`}>
             <button

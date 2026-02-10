@@ -1,12 +1,12 @@
-import { Search, MessageSquare, Bell, Sun, Moon, CreditCard, Settings, Shield, Menu, X, BarChart3, Gift } from 'lucide-react';
-import flowversalLogoDark from 'figma:asset/6002bc04b2fb15d40304d81c459c74499954d9ad.png';
-import flowversalLogoLight from 'figma:asset/a343b12e588be649c0fd15261a16aac9163083d0.png';
 import { useTheme } from '@/core/theme/ThemeContext';
-import { useState, useRef, useEffect } from 'react';
-import { UpdateProfileModal } from '@/shared/components/ui/UpdateProfileModal';
 import { ChangePasswordModal } from '@/shared/components/ui/ChangePasswordModal';
 import { MyDashboardModal } from '@/shared/components/ui/MyDashboardModal';
 import { ReferralModal } from '@/shared/components/ui/ReferralModal';
+import { UpdateProfileModal } from '@/shared/components/ui/UpdateProfileModal';
+import flowversalLogoDark from 'figma:asset/6002bc04b2fb15d40304d81c459c74499954d9ad.png';
+import flowversalLogoLight from 'figma:asset/a343b12e588be649c0fd15261a16aac9163083d0.png';
+import { BarChart3, Bell, CreditCard, Gift, Menu, MessageSquare, Moon, Search, Settings, Shield, Sun, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 interface TopNavBarProps {
   onChatClick?: () => void;
@@ -54,36 +54,14 @@ export function TopNavBar({ onChatClick, onSubscriptionClick, onMobileMenuClick 
     };
   }, []);
 
-  const notifications = [
-    {
-      id: 1,
-      title: 'Workflow Published',
-      message: 'Your "AI Content Generator" workflow has been published successfully.',
-      time: '2 min ago',
-      unread: true,
-    },
-    {
-      id: 2,
-      title: 'New Task Assigned',
-      message: 'You have been assigned to "Update Dashboard UI" task.',
-      time: '1 hour ago',
-      unread: true,
-    },
-    {
-      id: 3,
-      title: 'Comment on Task',
-      message: 'Sarah commented on your task "Design Review".',
-      time: '3 hours ago',
-      unread: false,
-    },
-    {
-      id: 4,
-      title: 'Workflow Approved',
-      message: 'Your workflow submission has been approved by admin.',
-      time: '1 day ago',
-      unread: false,
-    },
-  ];
+  const notifications: Array<{
+    id: number;
+    title: string;
+    message: string;
+    time: string;
+    unread: boolean;
+  }> = [];
+  // TODO: Replace with real notifications from backend API
 
   return (
     <>

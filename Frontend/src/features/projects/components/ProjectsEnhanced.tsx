@@ -7,7 +7,6 @@
  * - Task move/copy between projects
  * - My Tasks organized by time segments
  */
-
 import { useModal } from '@/core/stores/ModalContext';
 import { Task, useProjectStore } from '@/core/stores/projectStore';
 import { useTheme } from '@/core/theme/ThemeContext';
@@ -19,53 +18,43 @@ import { BoardTabs, HomeView, ModalRenderer, MyTasksPanel, ProjectBoardSelector,
 import { useDropdownState } from './ProjectsEnhanced/hooks/useDropdownState';
 import { useModalState } from './ProjectsEnhanced/hooks/useModalState';
 import { useProjectFiltering } from './ProjectsEnhanced/hooks/useProjectFiltering';
-
 const LOGGED_IN_USER_ID = '4'; // Justin (justin@gmail.com)
 const SELECTION_STORAGE_KEY = 'flowversal_project_selection';
-
 interface DeepLinkTarget {
   projectName: string;
   boardName: string;
   taskId: string;
 }
-
 interface ProjectsProps {
   externalNewTaskTrigger?: number;
   externalTeamManagementTrigger?: number;
   externalTemplateGalleryTrigger?: number;
   deepLinkTarget?: DeepLinkTarget;
 }
-
 export function Projects({ externalNewTaskTrigger, externalTeamManagementTrigger, externalTemplateGalleryTrigger, deepLinkTarget }: ProjectsProps = {}) {
   const { theme } = useTheme();
   const { showError } = useModal();
   const { projects, boards, tasks, updateTask, addTask, addBoard, addProject, getBoardsByProject, getTasksByBoard } = useProjectStore();
-
-  
   // Main view state
   const [mainView, setMainView] = useState<'home' | 'board' | 'my-tasks'>(projects.length === 0 ? 'home' : 'board');
   const [selectedProjectId, setSelectedProjectId] = useState<string>(projects[0]?.id || '');
   const [selectedBoardId, setSelectedBoardId] = useState<string>('');
   const hasProjects = projects.length > 0;
   const [hasUserSetMainView, setHasUserSetMainView] = useState(false);
-  
   // Board view state
   const [activeTab, setActiveTab] = useState<'active' | 'backlogs' | 'archive'>('active');
   const [view, setView] = useState<'list' | 'kanban' | 'chart'>('kanban');
   const [archiveFilter, setArchiveFilter] = useState<'all' | 'Done' | 'Cancelled'>('all');
-  
   // UI state
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isCreatingTask, setIsCreatingTask] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  
   const [showFilters, setShowFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
   const [selectedPriority, setSelectedPriority] = useState<string[]>([]);
   const [showMyTasks, setShowMyTasks] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('dueDate');
-  
   // Advanced filter state
   const [advancedFilters, setAdvancedFilters] = useState<FilterOptions>({
     members: [],
@@ -74,9 +63,7 @@ export function Projects({ externalNewTaskTrigger, externalTeamManagementTrigger
     labels: [],
     dueDateRange: 'all'
   });
-
   // no additional refs needed
-  
   // Modal and dropdown state
   const { modalState, modalHandlers } = useModalState();
   const {
@@ -89,7 +76,6 @@ export function Projects({ externalNewTaskTrigger, externalTeamManagementTrigger
   const [newTaskStatus, setNewTaskStatus] = useState('To do');
   const hasHandledDeepLink = useRef(false);
   const selectionLoadedRef = useRef(false);
-
   // Auto-select project/board (use saved selection if available), keep user on Board view when data exists
   useEffect(() => {
     if (!projects.length) {
@@ -98,7 +84,6 @@ export function Projects({ externalNewTaskTrigger, externalTeamManagementTrigger
       if (mainView !== 'home') setMainView('home');
       return;
     }
-
     // Load saved selection once
     if (!selectionLoadedRef.current) {
       selectionLoadedRef.current = true;
@@ -122,7 +107,6 @@ export function Projects({ externalNewTaskTrigger, externalTeamManagementTrigger
         // ignore parse errors
       }
     }
-
     // Fallback to first project/board
     if (!selectedProjectId && projects[0]) {
       setSelectedProjectId(projects[0].id);
@@ -136,7 +120,6 @@ export function Projects({ externalNewTaskTrigger, externalTeamManagementTrigger
       setMainView('board');
     }
   }, [projects, boards, selectedProjectId, selectedBoardId, mainView, getBoardsByProject, hasUserSetMainView]);
-
   // Persist selection
   useEffect(() => {
     if (selectedProjectId) {
@@ -150,7 +133,6 @@ export function Projects({ externalNewTaskTrigger, externalTeamManagementTrigger
       }
     }
   }, [selectedProjectId, selectedBoardId]);
-
   // Auto-select first board when project changes or boards load
   useEffect(() => {
     if (selectedProjectId) {
@@ -162,35 +144,29 @@ export function Projects({ externalNewTaskTrigger, externalTeamManagementTrigger
       }
     }
   }, [selectedProjectId, getBoardsByProject, boards]);
-
   // Deep link: /Project Name/Board Name/Task ID
   useEffect(() => {
     if (hasHandledDeepLink.current) return;
     if (!deepLinkTarget) return;
-
     const { projectName, boardName, taskId } = deepLinkTarget;
-
     const project = projects.find(
       (p) =>
         p.name === projectName ||
         encodeURIComponent(p.name) === encodeURIComponent(projectName)
     );
     if (!project) return;
-
     const board = boards.find(
       (b) =>
         b.projectId === project.id &&
         (b.name === boardName || encodeURIComponent(b.name) === encodeURIComponent(boardName))
     );
     if (!board) return;
-
     const task = tasks.find(
       (t) =>
         (t.taskId && t.taskId.toLowerCase() === taskId.toLowerCase()) ||
         (t.id && t.id.toLowerCase() === taskId.toLowerCase())
     );
     if (!task) return;
-
     setSelectedProjectId(project.id);
     setSelectedBoardId(board.id);
     setMainView('board');
@@ -198,7 +174,6 @@ export function Projects({ externalNewTaskTrigger, externalTeamManagementTrigger
     setIsCreatingTask(false);
     hasHandledDeepLink.current = true;
   }, [deepLinkTarget, projects, boards, tasks, setSelectedProjectId, setSelectedBoardId, setMainView, setSelectedTask]);
-
   // Keep selections sensible when projects are missing/added
   useEffect(() => {
     if (!projects.length) {
@@ -209,56 +184,45 @@ export function Projects({ externalNewTaskTrigger, externalTeamManagementTrigger
       }
       return;
     }
-
     if (!selectedProjectId) {
       setSelectedProjectId(projects[0].id);
     }
   }, [projects, selectedProjectId, mainView]);
-
   // Handle external triggers
   useEffect(() => {
     if (externalNewTaskTrigger) {
       handleCreateTask();
     }
   }, [externalNewTaskTrigger]);
-
   useEffect(() => {
     if (externalTeamManagementTrigger) {
       modalHandlers.openTeamManagement();
     }
   }, [externalTeamManagementTrigger, modalHandlers]);
-
   useEffect(() => {
     if (externalTemplateGalleryTrigger) {
       modalHandlers.openTemplateGallery();
     }
   }, [externalTemplateGalleryTrigger, modalHandlers]);
-
-
   const handleDrop = (taskId: string, newStatus: string, targetIndex?: number) => {
     const task = tasks.find(t => t.id === taskId);
     if (!task) return;
-
     // Update status first
     updateTask(taskId, { status: newStatus });
-
     // If targetIndex is provided, we need to reorder within the same status
     if (targetIndex !== undefined) {
       // Get all tasks with the new status (including the one we just moved)
       const tasksInStatus = tasks
         .filter(t => t.status === newStatus || t.id === taskId)
         .map(t => t.id === taskId ? { ...t, status: newStatus } : t);
-      
       // Find current and target positions
       const currentIndex = tasksInStatus.findIndex(t => t.id === taskId);
       if (currentIndex === -1 || currentIndex === targetIndex) return;
-
       // Reorder by updating a position field
       // Note: This is a visual reorder. For persistence, you'd need to add an 'order' field to Task
       const reordered = [...tasksInStatus];
       const [moved] = reordered.splice(currentIndex, 1);
       reordered.splice(targetIndex, 0, moved);
-      
       // Update order field for all affected tasks
       reordered.forEach((t, idx) => {
         if (t.id === taskId || idx === targetIndex || idx === currentIndex) {
@@ -267,7 +231,6 @@ export function Projects({ externalNewTaskTrigger, externalTeamManagementTrigger
       });
     }
   };
-
   // ORIGINAL INLINE TASK CREATION
   const handleCreateTask = (status: string = 'To do') => {
     setNewTaskStatus(status);
@@ -289,12 +252,10 @@ export function Projects({ externalNewTaskTrigger, externalTeamManagementTrigger
     } as Task);
     setIsCreatingTask(true);
   };
-
   const handleTaskUpdate = (taskId: string, updates: any) => {
     // Check if this is a new task (ID starts with 'new-' or task doesn't exist)
     const isNewTask = taskId.startsWith('new-') || isCreatingTask;
     const existingTask = !isNewTask ? tasks.find(t => t.id === taskId) : null;
-    
     // Map TaskDetailModal fields to Task fields - include ALL fields
     const mappedUpdates = {
       taskId: updates.taskId || `TSK-${String(tasks.length + 1).padStart(3, '0')}`,
@@ -318,10 +279,8 @@ export function Projects({ externalNewTaskTrigger, externalTeamManagementTrigger
       reminder: updates.reminder || 'None',
       startDate: updates.startDate || undefined,
     };
-    
     if (existingTask && !isNewTask) {
       // Update existing task
-      console.log('[ProjectsEnhanced] Updating task:', taskId);
       updateTask(taskId, mappedUpdates).catch((error) => {
         console.error('[ProjectsEnhanced] Failed to update task:', error);
         showError('Update Failed', 'Failed to update task. Please try again.');
@@ -330,7 +289,6 @@ export function Projects({ externalNewTaskTrigger, externalTeamManagementTrigger
       // Create new task
       const taskBoardId = updates.boardId || selectedBoardId;
       const taskProjectId = updates.projectId || selectedProjectId;
-      
       if (!taskBoardId || !taskProjectId) {
         console.error('[ProjectsEnhanced] Cannot create task: missing boardId or projectId', {
           boardId: taskBoardId,
@@ -342,12 +300,6 @@ export function Projects({ externalNewTaskTrigger, externalTeamManagementTrigger
         setIsCreatingTask(false);
         return;
       }
-      
-      console.log('[ProjectsEnhanced] Creating new task:', mappedUpdates.name, {
-        boardId: taskBoardId,
-        projectId: taskProjectId,
-      });
-      
       addTask({
         ...mappedUpdates,
         boardId: taskBoardId,
@@ -361,23 +313,17 @@ export function Projects({ externalNewTaskTrigger, externalTeamManagementTrigger
     }
     setIsCreatingTask(false);
   };
-
   const handleTaskDelete = async (taskId: string) => {
     try {
-      console.log('[ProjectsEnhanced] Deleting task:', taskId);
       await useProjectStore.getState().deleteTask(taskId);
-      console.log('[ProjectsEnhanced] Task deleted successfully');
     } catch (error) {
       console.error('[ProjectsEnhanced] Failed to delete task:', error);
       showError('Delete Failed', 'Failed to delete task. Please try again.');
     }
   };
-
   const handleCreateProject = async (projectData: { name: string; description: string; icon: string; iconColor: string }) => {
     try {
-      console.log('[ProjectsEnhanced] Creating project:', projectData.name);
       const newProjectId = await addProject(projectData);
-      console.log('[ProjectsEnhanced] Project created with ID:', newProjectId);
       setSelectedProjectId(newProjectId);
       setMainView('home');
     } catch (error) {
@@ -385,19 +331,15 @@ export function Projects({ externalNewTaskTrigger, externalTeamManagementTrigger
       showError('Create Failed', 'Failed to create project. Please try again.');
     }
   };
-
   const handleCreateBoard = async (boardData: { name: string; icon: string; iconColor: string }) => {
     if (selectedProjectId) {
       try {
-        console.log('[ProjectsEnhanced] Creating board:', boardData.name, 'in project:', selectedProjectId);
         const newBoardId = await addBoard({
           ...boardData,
           projectId: selectedProjectId,
         });
-        console.log('[ProjectsEnhanced] Board created with ID:', newBoardId);
         setSelectedBoardId(newBoardId);
         setMainView('board');
-
         // Open setup wizard for newly created board
         setTimeout(() => {
           modalHandlers.openSetupWizard(newBoardId, true);
@@ -408,43 +350,31 @@ export function Projects({ externalNewTaskTrigger, externalTeamManagementTrigger
       }
     }
   };
-
   const handleDeleteProject = async (projectId: string) => {
-    console.log('[ProjectsEnhanced] handleDeleteProject called with:', projectId);
     try {
-      console.log('[ProjectsEnhanced] Deleting project:', projectId);
       await useProjectStore.getState().deleteProject(projectId);
-
       // If deleted project was selected, clear selection
       if (selectedProjectId === projectId) {
         setSelectedProjectId(projects[0]?.id || '');
         setSelectedBoardId('');
       }
-
-      console.log('[ProjectsEnhanced] Project deleted successfully');
     } catch (error) {
       console.error('[ProjectsEnhanced] Failed to delete project:', error);
       showError('Delete Failed', 'Failed to delete project. Please try again.');
     }
   };
-
   const handleDeleteBoard = async (boardId: string) => {
     try {
-      console.log('[ProjectsEnhanced] Deleting board:', boardId);
       await useProjectStore.getState().deleteBoard(boardId);
-
       // If deleted board was selected, clear selection
       if (selectedBoardId === boardId) {
         setSelectedBoardId('');
       }
-
-      console.log('[ProjectsEnhanced] Board deleted successfully');
     } catch (error) {
       console.error('[ProjectsEnhanced] Failed to delete board:', error);
       showError('Delete Failed', 'Failed to delete board. Please try again.');
     }
   };
-
 const statusColors: Record<string, string> = {
   'Backlog': '#94A3B8',
   'Todo': '#F59E0B', // Use normalized status
@@ -454,14 +384,12 @@ const statusColors: Record<string, string> = {
   'Done': '#10B981',
   'Cancelled': '#0F172A' // dark dot for cancelled
 };
-
   const priorityColors: Record<string, string> = {
     'Critical': 'text-red-500',
     'High': 'text-orange-500',
     'Medium': 'text-yellow-500',
     'Low': 'text-gray-500'
   };
-
 const columns: { status: string; title: string; color: string }[] = [
   { status: 'Backlog', title: 'Backlog', color: statusColors['Backlog'] },
   { status: 'Todo', title: 'To do', color: statusColors['Todo'] }, // Use normalized status
@@ -471,7 +399,6 @@ const columns: { status: string; title: string; color: string }[] = [
   { status: 'Done', title: 'Done', color: statusColors['Done'] },
   { status: 'Cancelled', title: 'Cancelled', color: statusColors['Cancelled'] },
 ];
-
 const { filteredTasks, archiveTasksByMonth, myTasksSegments } = useProjectFiltering({
   tasks,
   mainView,
@@ -486,11 +413,9 @@ const { filteredTasks, archiveTasksByMonth, myTasksSegments } = useProjectFilter
   sortBy,
   getBoardsTasks: getTasksByBoard,
 });
-
   const selectedProject = projects.find(p => p.id === selectedProjectId);
   const selectedBoard = boards.find(b => b.id === selectedBoardId);
   const projectBoards = selectedProjectId ? getBoardsByProject(selectedProjectId) : [];
-
   const activeTasks = tasks.filter(t => t.projectId === selectedProjectId && t.status !== 'Done').length;
   const completedTasks = tasks.filter(t => t.projectId === selectedProjectId && t.status === 'Done').length;
   const boardSummaries = projectBoards.map((board) => {
@@ -505,7 +430,6 @@ const { filteredTasks, archiveTasksByMonth, myTasksSegments } = useProjectFilter
       completed: boardTasks.filter((task) => task.status === 'Done').length,
     };
   });
-
   // Status counts for chart view
   const statusCounts = columns.map(col => ({
     status: col.status,
@@ -513,7 +437,6 @@ const { filteredTasks, archiveTasksByMonth, myTasksSegments } = useProjectFilter
     color: col.color
   }));
   const maxCount = Math.max(...statusCounts.map(s => s.count), 1);
-
   const bgMain = theme === 'dark' ? 'bg-[#0E0E1F]' : 'bg-white';
   const bgCard = theme === 'dark' ? 'bg-[#1A1A2E]' : 'bg-white';
   const bgPanel = theme === 'dark' ? 'bg-[#252540]' : 'bg-gray-100';
@@ -521,7 +444,6 @@ const { filteredTasks, archiveTasksByMonth, myTasksSegments } = useProjectFilter
   const textSecondary = theme === 'dark' ? 'text-[#CFCFE8]' : 'text-gray-600';
   const borderColor = theme === 'dark' ? 'border-white/5' : 'border-gray-200';
   const hoverBg = theme === 'dark' ? 'hover:bg-white/5' : 'hover:bg-gray-100';
-
   return (
     <>
       <div 
@@ -574,7 +496,6 @@ const { filteredTasks, archiveTasksByMonth, myTasksSegments } = useProjectFilter
             borderColor={borderColor}
             hoverBg={hoverBg}
           />
-
           {/* View Navigation */}
           <ViewNavigation
             mainView={mainView}
@@ -588,7 +509,6 @@ const { filteredTasks, archiveTasksByMonth, myTasksSegments } = useProjectFilter
             hoverBg={hoverBg}
           />
         </div>
-
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto">
           {/* HOME VIEW */}
@@ -627,7 +547,6 @@ const { filteredTasks, archiveTasksByMonth, myTasksSegments } = useProjectFilter
               hoverBg={hoverBg}
             />
           )}
-
           {/* BOARD VIEW - PRESERVES ALL ORIGINAL FUNCTIONALITY */}
           {mainView === 'board' && (
             <>
@@ -706,7 +625,6 @@ const { filteredTasks, archiveTasksByMonth, myTasksSegments } = useProjectFilter
               )}
             </>
           )}
-
           {/* MY TASKS VIEW - TIME SEGMENTS */}
           {mainView === 'my-tasks' && (
             <MyTasksPanel
@@ -723,10 +641,8 @@ const { filteredTasks, archiveTasksByMonth, myTasksSegments } = useProjectFilter
               onSelectTask={setSelectedTask}
             />
           )}
-
         </div>
       </div>
-
       <ModalRenderer
         selectedTask={selectedTask}
         isCreatingTask={isCreatingTask}

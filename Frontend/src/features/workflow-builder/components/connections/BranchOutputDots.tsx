@@ -5,7 +5,6 @@
  * Half-in, half-out positioning on right edge
  * UPDATED: Added [+] button on hover to add sub-steps + Delete button for switch cases
  */
-
 import { useState } from 'react';
 import { Plus, X } from 'lucide-react';
 import { useTheme } from '@/core/theme/ThemeContext';
@@ -13,7 +12,6 @@ import { useConnectionStore } from '@/features/workflow-builder/stores/connectio
 import { useSubStepStore } from '@/features/workflow-builder/stores/subStepStore';
 import { useViewport } from '../../contexts/ViewportContext';
 import { useUIStore } from '../../stores/uiStore';
-
 interface BranchOutputDotsProps {
   nodeId: string;
   nodeType: 'if' | 'switch';
@@ -23,23 +21,19 @@ interface BranchOutputDotsProps {
   onAddBranch?: () => void; // For switch nodes to add more branches
   onDeleteBranch?: (branch: string) => void; // For switch nodes to delete a branch
 }
-
 export function BranchOutputDots({ nodeId, nodeType, ownerType, branches, parentContainerId, onAddBranch, onDeleteBranch }: BranchOutputDotsProps) {
   const { theme } = useTheme();
   const { updateViewport, viewport } = useViewport();
   const [hoveringBranch, setHoveringBranch] = useState<string | null>(null);
   const dragConnection = useConnectionStore((state) => state.dragConnection);
   const connections = useConnectionStore((state) => state.connections);
-
   const bgColor = theme === 'dark' ? '#1A1A2E' : '#FFFFFF';
-  
   // Get connection count for a specific branch
   const getConnectionCount = (branch: string) => {
     return connections.filter(c => 
       c.sourceId === nodeId && c.branchOutput === branch
     ).length;
   };
-
   // Colors for different branch types
   const getBranchColor = (branch: string) => {
     if (nodeType === 'if') {
@@ -49,7 +43,6 @@ export function BranchOutputDots({ nodeId, nodeType, ownerType, branches, parent
     // Switch node - all purple for consistency
     return theme === 'dark' ? '#9D50BB' : '#8B3AA8';
   };
-
   const getBranchLabel = (branch: string) => {
     if (nodeType === 'if') {
       return branch === 'true' ? 'True' : 'False';
@@ -65,51 +58,41 @@ export function BranchOutputDots({ nodeId, nodeType, ownerType, branches, parent
     }
     return branch; // Fallback to original name
   };
-
   const handleMouseDown = (e: React.MouseEvent, branchOutput: string) => {
     e.preventDefault();
     e.stopPropagation();
-    
     // Direct store access - no destructuring
     const store = useConnectionStore.getState();
     store.startDragConnection(nodeId, ownerType, branchOutput);
     store.updateDragPosition({ x: e.clientX, y: e.clientY });
-
     // Auto-scroll state
     let autoScrollInterval: number | null = null;
     const EDGE_THRESHOLD = 120; // Pixels from edge to trigger scroll (increased from 100)
     const MIN_SCROLL_SPEED = 5; // Minimum scroll speed
     const MAX_SCROLL_SPEED = 25; // Maximum scroll speed (increased from 15)
-
     const handleMouseMove = (e: MouseEvent) => {
       const store = useConnectionStore.getState();
       store.updateDragPosition({ x: e.clientX, y: e.clientY });
-      
       // Auto-scroll logic
       const canvasElement = document.querySelector('.infinite-canvas-content') as HTMLElement;
       if (!canvasElement) return;
-      
       const canvasRect = canvasElement.getBoundingClientRect();
       const mouseX = e.clientX;
       const mouseY = e.clientY;
-      
       // Calculate distances from edges
       const distanceFromLeft = mouseX - canvasRect.left;
       const distanceFromRight = canvasRect.right - mouseX;
       const distanceFromTop = mouseY - canvasRect.top;
       const distanceFromBottom = canvasRect.bottom - mouseY;
-      
       // Clear existing interval
       if (autoScrollInterval) {
         cancelAnimationFrame(autoScrollInterval);
         autoScrollInterval = null;
       }
-      
       // Calculate progressive scroll speeds based on distance from edge
       // Closer to edge = faster scroll
       let scrollX = 0;
       let scrollY = 0;
-      
       if (distanceFromLeft < EDGE_THRESHOLD && distanceFromLeft > 0) {
         // Progressive speed: closer to edge = faster
         const intensity = 1 - (distanceFromLeft / EDGE_THRESHOLD);
@@ -118,7 +101,6 @@ export function BranchOutputDots({ nodeId, nodeType, ownerType, branches, parent
         const intensity = 1 - (distanceFromRight / EDGE_THRESHOLD);
         scrollX = MIN_SCROLL_SPEED + (MAX_SCROLL_SPEED - MIN_SCROLL_SPEED) * intensity;
       }
-      
       if (distanceFromTop < EDGE_THRESHOLD && distanceFromTop > 0) {
         const intensity = 1 - (distanceFromTop / EDGE_THRESHOLD);
         scrollY = -(MIN_SCROLL_SPEED + (MAX_SCROLL_SPEED - MIN_SCROLL_SPEED) * intensity);
@@ -126,7 +108,6 @@ export function BranchOutputDots({ nodeId, nodeType, ownerType, branches, parent
         const intensity = 1 - (distanceFromBottom / EDGE_THRESHOLD);
         scrollY = MIN_SCROLL_SPEED + (MAX_SCROLL_SPEED - MIN_SCROLL_SPEED) * intensity;
       }
-      
       // Apply scrolling using viewport transform
       if (scrollX !== 0 || scrollY !== 0) {
         const autoScroll = () => {
@@ -141,24 +122,19 @@ export function BranchOutputDots({ nodeId, nodeType, ownerType, branches, parent
         autoScrollInterval = requestAnimationFrame(autoScroll);
       }
     };
-
     const handleMouseUp = (e: MouseEvent) => {
       const store = useConnectionStore.getState();
-      
       // Clear auto-scroll
       if (autoScrollInterval) {
         cancelAnimationFrame(autoScrollInterval);
         autoScrollInterval = null;
       }
-      
       // Check if dropped on a valid LEFT side target
       const targetElement = document.elementFromPoint(e.clientX, e.clientY);
       const targetPoint = targetElement?.closest('[data-connection-point][data-side="left"]');
-      
       if (targetPoint) {
         const targetId = targetPoint.getAttribute('data-owner-id');
         const targetType = targetPoint.getAttribute('data-owner-type') as 'trigger' | 'step' | 'node';
-        
         if (targetId && targetType && targetId !== nodeId) {
           store.endDragConnection(targetId, targetType);
           window.removeEventListener('mousemove', handleMouseMove);
@@ -166,43 +142,28 @@ export function BranchOutputDots({ nodeId, nodeType, ownerType, branches, parent
           return;
         }
       }
-      
       // No valid target - cancel
       store.cancelDragConnection();
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
   };
-
   const isDragging = (branch: string) => {
     return dragConnection.isActive && 
            dragConnection.sourceId === nodeId && 
            dragConnection.branchOutput === branch;
   };
-
   // Handle adding sub-step for a specific branch
   const handleAddSubStep = (e: React.MouseEvent, branch: string) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    console.log('🎯 [+] button clicked for branch!', { nodeId, branch, parentContainerId });
-    
     if (parentContainerId) {
       // Open the node picker modal with branch substep context
       // This will allow the user to select which node to add to the new sub-step
       const uiStore = useUIStore.getState();
       const branchLabel = getBranchLabel(branch);
-      
-      console.log('✅ Opening node picker for branch sub-step:', { 
-        nodeId, 
-        branch, 
-        branchLabel,
-        parentContainerId 
-      });
-      
       uiStore.openNodePicker(
         'branch-substep',       // source: indicates we're adding a substep from a branch
         parentContainerId,      // containerId: the parent container
@@ -210,18 +171,14 @@ export function BranchOutputDots({ nodeId, nodeType, ownerType, branches, parent
         branch,                 // branchId: the specific branch (true/false/case1/default)
         undefined               // insertIndex: not needed
       );
-      
-      console.log('✅ Node picker opened for branch sub-step creation!');
     } else {
       console.warn('⚠️ No parentContainerId provided');
     }
   };
-
   // Calculate vertical spacing for dots
   const dotSpacing = 56; // Increased gap between dots for [+] button
   const totalHeight = (branches.length - 1) * dotSpacing;
   const startOffset = -totalHeight / 2;
-
   return (
     <div
       className="absolute z-10"
@@ -237,10 +194,8 @@ export function BranchOutputDots({ nodeId, nodeType, ownerType, branches, parent
         const isHovering = hoveringBranch === branch;
         const isDrag = isDragging(branch);
         const offsetY = startOffset + (index * dotSpacing);
-        
         // Can delete this case if it's a switch node AND it's not 'default'
         const canDelete = nodeType === 'switch' && branch !== 'default';
-
         return (
           <div
             key={`${nodeId}-${branch}-${index}`}
@@ -273,7 +228,6 @@ export function BranchOutputDots({ nodeId, nodeType, ownerType, branches, parent
               onMouseDown={(e) => handleMouseDown(e, branch)}
               title={getConnectionCount(branch) > 0 ? `${getConnectionCount(branch)} connection${getConnectionCount(branch) > 1 ? 's' : ''}` : 'Drag to create connection'}
             />
-
             {/* Label - now participates in hover */}
             <span
               className="text-xs font-medium whitespace-nowrap"
@@ -286,7 +240,6 @@ export function BranchOutputDots({ nodeId, nodeType, ownerType, branches, parent
             >
               {branchLabel}
             </span>
-
             {/* [+] Add Sub-Step Button on hover */}
             {isHovering && parentContainerId && (
               <button
@@ -301,7 +254,6 @@ export function BranchOutputDots({ nodeId, nodeType, ownerType, branches, parent
                 <Plus className="w-4 h-4 text-white" style={{ strokeWidth: 3 }} />
               </button>
             )}
-            
             {/* [X] Delete Case Button on hover - only for switch nodes with >1 case */}
             {isHovering && canDelete && onDeleteBranch && (
               <button

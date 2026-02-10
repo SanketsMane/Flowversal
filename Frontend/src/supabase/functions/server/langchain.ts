@@ -2,59 +2,43 @@
  * LangChain AI Agent API Routes
  * Provides intelligent AI capabilities for Flowversal
  */
-
-import { Hono } from "npm:hono";
 import { createClient } from "@supabase/supabase-js";
+import { Hono } from "npm:hono";
 import * as kv from "./kv_store.tsx";
-
 const langchainRoutes = new Hono();
-
 // Initialize Supabase client
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
-
-// Verify user authentication helper
+// Verify user authentication helper - Production secure
+// Author: Sanket - No demo users, strict validation
 async function verifyAuth(authHeader: string | undefined) {
   if (!authHeader) {
-    console.warn('[Langchain API] No authorization header, using demo user');
-    return { user: { id: 'justin-user-id', email: 'justin@gmail.com' } };
-  }
-
-  const accessToken = authHeader.split(' ')[1];
-  if (!accessToken) {
-    console.warn('[Langchain API] Invalid authorization header, using demo user');
-    return { user: { id: 'justin-user-id', email: 'justin@gmail.com' } };
-  }
-
-  // Demo mode: Accept demo tokens
-  if (accessToken === 'justin-access-token') {
-    console.log('[Langchain API] ✅ Justin demo token accepted');
-    return { user: { id: 'justin-user-id', email: 'justin@gmail.com' } };
+    console.error('[Langchain API] Missing authorization header');
+    return { error: 'Unauthorized - missing auth header', status: 401 };
   }
   
-  if (accessToken === 'demo-access-token') {
-    console.log('[Langchain API] ✅ Demo token accepted');
-    return { user: { id: 'demo-user-id', email: 'demo@demo.com' } };
+  const accessToken = authHeader.split(' ')[1];
+  if (!accessToken) {
+    console.error('[Langchain API] Invalid authorization format');
+    return { error: 'Unauthorized - invalid auth format', status: 401 };
   }
 
-  // Try Supabase verification
+  // Verify with Supabase - strict validation only
   try {
     const { data: { user }, error } = await supabase.auth.getUser(accessToken);
     
     if (error || !user) {
-      console.warn('[Langchain API] ⚠️ Invalid JWT, falling back to demo user');
-      console.warn('[Langchain API] Error:', error?.message);
-      return { user: { id: 'justin-user-id', email: 'justin@gmail.com' } };
+      console.error('[Langchain API] Invalid or expired JWT:', error?.message);
+      return { error: 'Unauthorized - invalid token', status: 401 };
     }
-
+    
     return { user };
   } catch (err) {
-    console.error('[Langchain API] ❌ Auth error:', err);
-    return { user: { id: 'justin-user-id', email: 'justin@gmail.com' } };
+    console.error('[Langchain API] Authentication error:', err);
+    return { error: 'Authentication failed', status: 500 };
   }
 }
-
 /**
  * Chat Completion Endpoint
  * Route: POST /make-server-020d2c80/langchain/chat
@@ -67,13 +51,10 @@ langchainRoutes.post('/chat', async (c) => {
     if (authResult.error) {
       return c.json({ success: false, error: authResult.error }, authResult.status);
     }
-
     const { message, model = 'gpt-4', conversationId, context } = await c.req.json();
-
     if (!message) {
       return c.json({ success: false, error: 'Message is required' }, 400);
     }
-
     // Get OpenAI API key from environment
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openaiApiKey) {
@@ -82,21 +63,18 @@ langchainRoutes.post('/chat', async (c) => {
         error: 'OpenAI API key not configured. Please add OPENAI_API_KEY to your environment variables.' 
       }, 500);
     }
-
     // Store conversation history
     let conversationHistory: any[] = [];
     if (conversationId) {
       const historyData = await kv.get(`conversation:${conversationId}`);
       conversationHistory = historyData ? JSON.parse(historyData) : [];
     }
-
     // Add user message to history
     conversationHistory.push({
       role: 'user',
       content: message,
       timestamp: new Date().toISOString()
     });
-
     // Prepare messages for OpenAI
     const messages = [
       {
@@ -108,7 +86,6 @@ langchainRoutes.post('/chat', async (c) => {
         content: msg.content
       }))
     ];
-
     // Call OpenAI API
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -126,7 +103,6 @@ langchainRoutes.post('/chat', async (c) => {
         max_tokens: 2000
       })
     });
-
     if (!response.ok) {
       const error = await response.json();
       console.error('OpenAI API error:', error);
@@ -135,25 +111,20 @@ langchainRoutes.post('/chat', async (c) => {
         error: error.error?.message || 'Failed to get AI response' 
       }, 500);
     }
-
     const data = await response.json();
     const aiResponse = data.choices[0]?.message?.content;
-
     if (!aiResponse) {
       return c.json({ success: false, error: 'No response from AI' }, 500);
     }
-
     // Add AI response to history
     conversationHistory.push({
       role: 'assistant',
       content: aiResponse,
       timestamp: new Date().toISOString()
     });
-
     // Save conversation history
     const newConversationId = conversationId || `conv-${Date.now()}`;
     await kv.set(`conversation:${newConversationId}`, JSON.stringify(conversationHistory));
-
     return c.json({
       success: true,
       response: aiResponse,
@@ -161,7 +132,6 @@ langchainRoutes.post('/chat', async (c) => {
       model: data.model,
       usage: data.usage
     });
-
   } catch (error: any) {
     console.error('Chat endpoint error:', error);
     return c.json({ 
@@ -170,7 +140,6 @@ langchainRoutes.post('/chat', async (c) => {
     }, 500);
   }
 });
-
 /**
  * Workflow Generation Endpoint
  * Route: POST /make-server-020d2c80/langchain/generate-workflow
@@ -183,13 +152,10 @@ langchainRoutes.post('/generate-workflow', async (c) => {
     if (authResult.error) {
       return c.json({ success: false, error: authResult.error }, authResult.status);
     }
-
     const { description, model = 'gpt-4' } = await c.req.json();
-
     if (!description) {
       return c.json({ success: false, error: 'Workflow description is required' }, 400);
     }
-
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openaiApiKey) {
       return c.json({ 
@@ -197,10 +163,8 @@ langchainRoutes.post('/generate-workflow', async (c) => {
         error: 'OpenAI API key not configured. Please add OPENAI_API_KEY to your environment variables.' 
       }, 500);
     }
-
     // System prompt for workflow generation
     const systemPrompt = `You are a workflow automation expert. Generate a detailed workflow configuration based on the user's description.
-
 Return a JSON object with the following structure:
 {
   "name": "Workflow Name",
@@ -221,7 +185,6 @@ Return a JSON object with the following structure:
     { "from": "node-id", "to": "node-id" }
   ]
 }
-
 Available node types:
 - action: Execute an action (send email, create record, etc.)
 - condition: If/else logic
@@ -231,9 +194,7 @@ Available node types:
 - form: Collect user input
 - loop: Iterate over data
 - delay: Wait for a specified time
-
 Be creative and practical. Include proper connections and positioning.`;
-
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -250,7 +211,6 @@ Be creative and practical. Include proper connections and positioning.`;
         response_format: { type: "json_object" }
       })
     });
-
     if (!response.ok) {
       const error = await response.json();
       console.error('OpenAI API error:', error);
@@ -259,17 +219,14 @@ Be creative and practical. Include proper connections and positioning.`;
         error: error.error?.message || 'Failed to generate workflow' 
       }, 500);
     }
-
     const data = await response.json();
     const workflowConfig = JSON.parse(data.choices[0]?.message?.content || '{}');
-
     return c.json({
       success: true,
       workflow: workflowConfig,
       model: data.model,
       usage: data.usage
     });
-
   } catch (error: any) {
     console.error('Generate workflow endpoint error:', error);
     return c.json({ 
@@ -278,7 +235,6 @@ Be creative and practical. Include proper connections and positioning.`;
     }, 500);
   }
 });
-
 /**
  * AI Agent Execution Endpoint
  * Route: POST /make-server-020d2c80/langchain/execute-agent
@@ -291,13 +247,10 @@ langchainRoutes.post('/execute-agent', async (c) => {
     if (authResult.error) {
       return c.json({ success: false, error: authResult.error }, authResult.status);
     }
-
     const { task, tools = [], context, model = 'gpt-4' } = await c.req.json();
-
     if (!task) {
       return c.json({ success: false, error: 'Task is required' }, 400);
     }
-
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openaiApiKey) {
       return c.json({ 
@@ -305,19 +258,15 @@ langchainRoutes.post('/execute-agent', async (c) => {
         error: 'OpenAI API key not configured' 
       }, 500);
     }
-
     // System prompt for AI agent
     const systemPrompt = `You are an AI agent capable of reasoning, planning, and using tools to accomplish tasks.
-
 Available tools: ${tools.join(', ')}
-
 For each task:
 1. Analyze the task
 2. Break it down into steps
 3. Determine which tools to use
 4. Execute the plan
 5. Return the results
-
 Return a JSON object with:
 {
   "reasoning": "Your thought process",
@@ -325,7 +274,6 @@ Return a JSON object with:
   "toolsUsed": ["tool1", "tool2"],
   "result": "Final result or answer"
 }`;
-
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -342,7 +290,6 @@ Return a JSON object with:
         response_format: { type: "json_object" }
       })
     });
-
     if (!response.ok) {
       const error = await response.json();
       return c.json({ 
@@ -350,17 +297,14 @@ Return a JSON object with:
         error: error.error?.message || 'Failed to execute agent' 
       }, 500);
     }
-
     const data = await response.json();
     const agentResult = JSON.parse(data.choices[0]?.message?.content || '{}');
-
     return c.json({
       success: true,
       result: agentResult,
       model: data.model,
       usage: data.usage
     });
-
   } catch (error: any) {
     console.error('Execute agent endpoint error:', error);
     return c.json({ 
@@ -369,7 +313,6 @@ Return a JSON object with:
     }, 500);
   }
 });
-
 /**
  * RAG Search Endpoint
  * Route: POST /make-server-020d2c80/langchain/rag-search
@@ -382,13 +325,10 @@ langchainRoutes.post('/rag-search', async (c) => {
     if (authResult.error) {
       return c.json({ success: false, error: authResult.error }, authResult.status);
     }
-
     const { query, collection = 'workflows', limit = 5, userId } = await c.req.json();
-
     if (!query) {
       return c.json({ success: false, error: 'Search query is required' }, 400);
     }
-
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openaiApiKey) {
       return c.json({ 
@@ -396,9 +336,7 @@ langchainRoutes.post('/rag-search', async (c) => {
         error: 'OpenAI API key not configured' 
       }, 500);
     }
-
     const pineconeApiKey = Deno.env.get('PINECONE_API_KEY');
-
     // Generate embedding for the query
     const embeddingResponse = await fetch('https://api.openai.com/v1/embeddings', {
       method: 'POST',
@@ -411,7 +349,6 @@ langchainRoutes.post('/rag-search', async (c) => {
         input: query
       })
     });
-
     if (!embeddingResponse.ok) {
       const error = await embeddingResponse.json();
       console.error('OpenAI embedding error:', error);
@@ -420,13 +357,10 @@ langchainRoutes.post('/rag-search', async (c) => {
         error: error.error?.message || 'Failed to generate embedding' 
       }, 500);
     }
-
     const embeddingData = await embeddingResponse.json();
     const queryEmbedding = embeddingData.data[0].embedding;
-
     let results = [];
     let usedPinecone = false;
-
     // Try Pinecone first for vector similarity search
     if (pineconeApiKey) {
       try {
@@ -436,7 +370,6 @@ langchainRoutes.post('/rag-search', async (c) => {
           limit,
           userId
         );
-
         // Fetch full workflow data from KV store for each result
         results = await Promise.all(
           pineconeResults.map(async (match: any) => {
@@ -456,21 +389,15 @@ langchainRoutes.post('/rag-search', async (c) => {
             }
           })
         );
-
         results = results.filter((r: any) => r !== null);
         usedPinecone = true;
-        console.log(`Pinecone RAG search returned ${results.length} results`);
-
       } catch (pineconeError: any) {
         console.warn('Pinecone search failed, falling back to text search:', pineconeError.message);
       }
     }
-
     // Fallback to text-based search if Pinecone not available or failed
     if (!usedPinecone || results.length === 0) {
-      console.log('Using fallback text-based search');
       const allWorkflows = await kv.getByPrefix('workflow:');
-      
       results = allWorkflows
         .map((item: any) => {
           try {
@@ -486,7 +413,6 @@ langchainRoutes.post('/rag-search', async (c) => {
         .sort((a: any, b: any) => b.relevanceScore - a.relevanceScore)
         .slice(0, limit);
     }
-
     return c.json({
       success: true,
       results,
@@ -494,7 +420,6 @@ langchainRoutes.post('/rag-search', async (c) => {
       count: results.length,
       searchMethod: usedPinecone ? 'semantic-search' : 'text-search'
     });
-
   } catch (error: any) {
     console.error('RAG search endpoint error:', error);
     return c.json({ 
@@ -503,7 +428,6 @@ langchainRoutes.post('/rag-search', async (c) => {
     }, 500);
   }
 });
-
 /**
  * Index Workflow Endpoint
  * Route: POST /make-server-020d2c80/langchain/index-workflow
@@ -516,33 +440,26 @@ langchainRoutes.post('/index-workflow', async (c) => {
     if (authResult.error) {
       return c.json({ success: false, error: authResult.error }, authResult.status);
     }
-
     const { workflowId, name, description, tags } = await c.req.json();
-
     if (!workflowId || !name) {
       return c.json({ success: false, error: 'workflowId and name are required' }, 400);
     }
-
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     const pineconeApiKey = Deno.env.get('PINECONE_API_KEY');
-
     if (!openaiApiKey) {
       return c.json({ 
         success: false, 
         error: 'OpenAI API key not configured' 
       }, 500);
     }
-
     if (!pineconeApiKey) {
       return c.json({ 
         success: false, 
         error: 'Pinecone API key not configured. Workflow saved but not indexed for semantic search.' 
       }, 200);
     }
-
     // Create searchable text from workflow
     const searchableText = `${name} ${description || ''} ${tags?.join(' ') || ''}`;
-
     // Generate embedding
     const embeddingResponse = await fetch('https://api.openai.com/v1/embeddings', {
       method: 'POST',
@@ -555,7 +472,6 @@ langchainRoutes.post('/index-workflow', async (c) => {
         input: searchableText
       })
     });
-
     if (!embeddingResponse.ok) {
       const error = await embeddingResponse.json();
       console.error('OpenAI embedding error:', error);
@@ -564,10 +480,8 @@ langchainRoutes.post('/index-workflow', async (c) => {
         error: error.error?.message || 'Failed to generate embedding' 
       }, 500);
     }
-
     const embeddingData = await embeddingResponse.json();
     const embedding = embeddingData.data[0].embedding;
-
     // Store in Pinecone
     const { storeWorkflowEmbedding } = await import('./pinecone.ts');
     await storeWorkflowEmbedding(workflowId, embedding, {
@@ -577,15 +491,11 @@ langchainRoutes.post('/index-workflow', async (c) => {
       tags: tags || [],
       workflowId,
     });
-
-    console.log(`Workflow ${workflowId} indexed successfully`);
-
     return c.json({
       success: true,
       workflowId,
       message: 'Workflow indexed for semantic search'
     });
-
   } catch (error: any) {
     console.error('Index workflow endpoint error:', error);
     return c.json({ 
@@ -594,7 +504,6 @@ langchainRoutes.post('/index-workflow', async (c) => {
     }, 500);
   }
 });
-
 /**
  * Semantic Analysis Endpoint
  * Route: POST /make-server-020d2c80/langchain/analyze
@@ -607,13 +516,10 @@ langchainRoutes.post('/analyze', async (c) => {
     if (authResult.error) {
       return c.json({ success: false, error: authResult.error }, authResult.status);
     }
-
     const { text, analysisType = 'all' } = await c.req.json();
-
     if (!text) {
       return c.json({ success: false, error: 'Text is required' }, 400);
     }
-
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openaiApiKey) {
       return c.json({ 
@@ -621,7 +527,6 @@ langchainRoutes.post('/analyze', async (c) => {
         error: 'OpenAI API key not configured' 
       }, 500);
     }
-
     const systemPrompt = `Analyze the following text and return a JSON object with:
 {
   "sentiment": "positive|negative|neutral",
@@ -632,7 +537,6 @@ langchainRoutes.post('/analyze', async (c) => {
   "summary": "Brief summary",
   "actionItems": ["action1", "action2"]
 }`;
-
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -649,7 +553,6 @@ langchainRoutes.post('/analyze', async (c) => {
         response_format: { type: "json_object" }
       })
     });
-
     if (!response.ok) {
       const error = await response.json();
       return c.json({ 
@@ -657,17 +560,14 @@ langchainRoutes.post('/analyze', async (c) => {
         error: error.error?.message || 'Failed to analyze text' 
       }, 500);
     }
-
     const data = await response.json();
     const analysis = JSON.parse(data.choices[0]?.message?.content || '{}');
-
     return c.json({
       success: true,
       analysis,
       model: data.model,
       usage: data.usage
     });
-
   } catch (error: any) {
     console.error('Analyze endpoint error:', error);
     return c.json({ 
@@ -676,5 +576,4 @@ langchainRoutes.post('/analyze', async (c) => {
     }, 500);
   }
 });
-
 export default langchainRoutes;

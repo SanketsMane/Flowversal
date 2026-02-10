@@ -3,7 +3,6 @@
  * Workflow routing controls for If/Switch nodes
  * Branch containers are rendered separately outside the node
  */
-
 import { useTheme } from '@/core/theme/ThemeContext';
 import { WorkflowNode, BranchRoute } from '../../types/node.types';
 import { useWorkflowStore, useUIStore } from '../../stores';
@@ -12,24 +11,19 @@ import { Plus, Settings } from 'lucide-react';
 import { useEffect } from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { calculateBranchPositions } from '../../utils/branchPositioning';
-
 interface BranchRoutingProps {
   node: WorkflowNode;
   containerId: string;
 }
-
 export function BranchRouting({ node, containerId }: BranchRoutingProps) {
   const { theme } = useTheme();
   const { updateNode } = useWorkflowStore();
   const { updateNodeInSubStep, subStepContainers } = useSubStepStore();
   const { openConditionBuilder } = useUIStore();
-
   const textSecondary = theme === 'dark' ? 'text-[#CFCFE8]' : 'text-gray-600';
   const borderColor = theme === 'dark' ? 'border-[#2A2A3E]' : 'border-gray-200';
-
   // Check if containerId is a sub-step
   const isSubStep = subStepContainers.some(s => s.id === containerId);
-
   // Initialize routes if not present
   useEffect(() => {
     if (!node.routes || node.routes.length === 0) {
@@ -64,11 +58,9 @@ export function BranchRouting({ node, containerId }: BranchRoutingProps) {
           targetStepId: null,
         },
       ];
-
       // Create branches at the same time with HORIZONTAL ROW ON THE RIGHT
       // ALL branches on RIGHT side, same Y level (horizontal)
       // Branches will be positioned by BranchPositionManager
-      
       const initialBranches = defaultRoutes.map((route, index) => {
         return {
           id: route.id,
@@ -81,13 +73,6 @@ export function BranchRouting({ node, containerId }: BranchRoutingProps) {
           },
         };
       }) as any;
-
-      console.log('🔥 BranchRouting: Creating routes and branches at (0,0) for BranchPositionManager', { 
-        defaultRoutes, 
-        initialBranches,
-        positions: initialBranches.map((b: any) => ({ id: b.id, pos: b.position }))
-      });
-      
       // Update both routes and branches in a single call
       if (isSubStep) {
         updateNodeInSubStep(containerId, node.id, { 
@@ -102,9 +87,7 @@ export function BranchRouting({ node, containerId }: BranchRoutingProps) {
       }
     }
   }, [node.id, node.type, node.routes, containerId, updateNode, updateNodeInSubStep, isSubStep]);
-
   const routes = node.routes || [];
-
   // Add new case (for switch nodes only)
   const handleAddCase = () => {
     // Find the highest case number
@@ -114,11 +97,9 @@ export function BranchRouting({ node, containerId }: BranchRoutingProps) {
         return match ? parseInt(match[1]) : 0;
       })
       .filter(n => n > 0);
-    
     const nextCaseNumber = existingCaseNumbers.length > 0 
       ? Math.max(...existingCaseNumbers) + 1 
       : 1;
-    
     const newRoute: BranchRoute = {
       id: `${node.id}-case${nextCaseNumber}`,
       type: `case${nextCaseNumber}`,
@@ -126,11 +107,9 @@ export function BranchRouting({ node, containerId }: BranchRoutingProps) {
       action: 'continue',
       targetStepId: null,
     };
-
     // Add new case at the END (after all existing cases, but default stays first)
     // Order: Default, Case 1, Case 2, Case 3, ...
     const newRoutes = [...routes, newRoute];
-    
     // Also add a corresponding branch - append to end
     const newBranches = [
       ...(node.branches || []),
@@ -145,7 +124,6 @@ export function BranchRouting({ node, containerId }: BranchRoutingProps) {
         },
       } as any
     ];
-    
     if (isSubStep) {
       updateNodeInSubStep(containerId, node.id, { 
         routes: newRoutes,
@@ -158,7 +136,6 @@ export function BranchRouting({ node, containerId }: BranchRoutingProps) {
       });
     }
   };
-
   // Get branch colors for info display
   const getBranchColor = (type: string) => {
     switch (type) {
@@ -172,7 +149,6 @@ export function BranchRouting({ node, containerId }: BranchRoutingProps) {
         return 'text-blue-500 bg-blue-500/10 border-blue-500/30';
     }
   };
-
   return (
     <div className="space-y-3">
       {/* Branch Summary */}
@@ -188,7 +164,6 @@ export function BranchRouting({ node, containerId }: BranchRoutingProps) {
           {routes.map((route) => {
             const colorClass = getBranchColor(route.type);
             const nodeCount = node.branches?.find(b => b.id === route.id)?.nodes.length || 0;
-            
             return (
               <div
                 key={route.id}
@@ -203,7 +178,6 @@ export function BranchRouting({ node, containerId }: BranchRoutingProps) {
           })}
         </div>
       </div>
-
       {/* Add Case Button (for switch nodes only) */}
       {node.type === 'switch' && routes.length < 6 && (
         <Button

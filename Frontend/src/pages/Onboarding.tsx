@@ -18,7 +18,6 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import React, { useState } from 'react';
-
 interface OnboardingData {
   referralSource: string;
   automationExperience: string;
@@ -27,11 +26,9 @@ interface OnboardingData {
   techStack: string[];
   automationGoal: string;
 }
-
 interface OnboardingProps {
   onComplete: () => void;
 }
-
 export function Onboarding({ onComplete }: OnboardingProps) {
   const { theme } = useTheme();
   const { user, logout } = useAuth();
@@ -45,22 +42,12 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     techStack: [],
     automationGoal: ''
   });
-
   const totalSteps = 5;
-
   // ⚠️ DEVELOPMENT WARNING: Display security bypass notice
   React.useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
-      console.log('═══════════════════════════════════════════════════════════════');
-      console.log('⚠️  ONBOARDING: Using temporary auth bypass in development');
-      console.log('═══════════════════════════════════════════════════════════════');
-      console.log('Backend is accepting requests without proper authentication.');
-      console.log('This is a TEMPORARY fix and MUST be removed before production!');
-      console.log('See App/Backend/TEMPORARY_FIXES.md for details.');
-      console.log('═══════════════════════════════════════════════════════════════');
     }
   }, []);
-
   const handleNext = () => {
     if (step < totalSteps) {
       setStep(step + 1);
@@ -68,18 +55,14 @@ export function Onboarding({ onComplete }: OnboardingProps) {
       handleSubmit();
     }
   };
-
   const handleBack = () => {
     if (step > 1) {
       setStep(step - 1);
     }
   };
-
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      console.log('[Onboarding] Submitting data:', data);
-      
       const response = await api.post(API_ENDPOINTS.users.onboarding, {
         referralSource: data.referralSource,
         automationExperience: data.automationExperience,
@@ -89,13 +72,9 @@ export function Onboarding({ onComplete }: OnboardingProps) {
         automationGoal: data.automationGoal,
         onboardingCompleted: true
       });
-
       if (!response.success) {
         throw new Error(response.error || 'Failed to save onboarding data');
       }
-
-      console.log('[Onboarding] ✅ Onboarding completed successfully!');
-        
       // Update the local session to mark onboarding as completed
       try {
         const sessionStr = localStorage.getItem('flowversal_auth_session');
@@ -109,11 +88,8 @@ export function Onboarding({ onComplete }: OnboardingProps) {
       } catch (error) {
         console.error('[Onboarding] ❌ Failed to update local session:', error);
       }
-      
-      console.log('[Onboarding] 🔄 Reloading page to show main app...');
       alert('🎉 Welcome to Flowversal! Your account is now set up.');
       onComplete();
-
     } catch (error: any) {
       console.error('Onboarding error:', error);
       alert(`Error saving onboarding data: ${error.message || error}`);
@@ -121,11 +97,9 @@ export function Onboarding({ onComplete }: OnboardingProps) {
       setLoading(false);
     }
   };
-
   const updateData = (key: keyof OnboardingData, value: any) => {
     setData(prev => ({ ...prev, [key]: value }));
   };
-
   const toggleTechStack = (app: string) => {
     setData(prev => {
       const exists = prev.techStack.includes(app);
@@ -136,13 +110,11 @@ export function Onboarding({ onComplete }: OnboardingProps) {
       }
     });
   };
-
   const bgMain = theme === 'dark' ? 'bg-[#0E0E1F]' : 'bg-gray-50';
   const textPrimary = theme === 'dark' ? 'text-white' : 'text-gray-900';
   const textSecondary = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
   const cardBg = theme === 'dark' ? 'bg-[#1A1A2E]' : 'bg-white';
   const borderColor = theme === 'dark' ? 'border-white/10' : 'border-gray-200';
-
   // Step 1 Options
   const discoveryOptions = [
     { label: 'Search engines (Google, Bing, etc.)', icon: Search, value: 'search' },
@@ -155,17 +127,14 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     { label: 'Online community', icon: Globe, value: 'community' },
     { label: 'Other', icon: Share2, value: 'other' },
   ];
-
   // Step 2 Options
   const experienceOptions = [
     { label: 'I have no experience with automation', value: 'none' },
     { label: 'I have used other integration or automation platforms', value: 'intermediate' },
     { label: 'I have built custom integrations myself', value: 'expert' },
   ];
-
   // Step 3 Options (Org Size)
   const sizeOptions = ['Only Me', '2 - 10', '11 - 50', '51 - 100', '101 - 200', '201 - 500', '501 - 1000', '1001 - 5000', '5001 - 10000', '10000+'];
-
   // Step 4 Options (Tech Stack) - Using generic icons/names
   const techStackOptions = [
     { name: 'Flowversal AI Agents', icon: Zap },
@@ -187,7 +156,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     { name: 'YouTube', icon: Youtube },
     { name: 'Facebook Pages', icon: Share2 },
   ];
-
   const ProgressBar = () => (
     <div className="flex gap-2 mb-12 justify-center w-full max-w-3xl mx-auto px-4">
       {[...Array(totalSteps)].map((_, i) => (
@@ -202,7 +170,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
       ))}
     </div>
   );
-
   return (
     <div className={`min-h-screen ${bgMain} flex flex-col items-center pt-20 px-4 transition-colors duration-300`}>
       {/* Header */}
@@ -214,9 +181,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
           </div>
         </div>
       </div>
-
       <ProgressBar />
-
       <div className="w-full max-w-3xl">
         <AnimatePresence mode="wait">
           {step === 1 && (
@@ -229,7 +194,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
             >
               <h2 className={`${textSecondary} text-xs font-bold uppercase tracking-wider mb-2`}>DISCOVERY</h2>
               <h3 className={`${textPrimary} text-xl font-semibold mb-6`}>How did you hear about Flowversal? *</h3>
-              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {discoveryOptions.map((option) => (
                   <button
@@ -250,7 +214,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
               </div>
             </motion.div>
           )}
-
           {step === 2 && (
             <motion.div
               key="step2"
@@ -261,7 +224,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
             >
               <h2 className={`${textSecondary} text-xs font-bold uppercase tracking-wider mb-2`}>EXPERIENCE</h2>
               <h3 className={`${textPrimary} text-xl font-semibold mb-6`}>How would you describe your experience with automating workflows? *</h3>
-              
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {experienceOptions.map((option) => (
                   <button
@@ -279,7 +241,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
               </div>
             </motion.div>
           )}
-
           {step === 3 && (
             <motion.div
               key="step3"
@@ -290,7 +251,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
             >
               <h2 className={`${textSecondary} text-xs font-bold uppercase tracking-wider mb-2`}>COMPANY DETAILS</h2>
               <h3 className={`${textPrimary} text-xl font-semibold mb-6`}>Tell us about your organization *</h3>
-              
               <div className="space-y-8">
                 <div>
                   <label className={`block ${textPrimary} text-sm font-medium mb-3`}>What size is your organization?</label>
@@ -310,7 +270,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
                     ))}
                   </div>
                 </div>
-
                 <div>
                   <label className={`block ${textPrimary} text-sm font-medium mb-3`}>Organization Name</label>
                   <input
@@ -324,7 +283,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
               </div>
             </motion.div>
           )}
-
           {step === 4 && (
             <motion.div
               key="step4"
@@ -335,7 +293,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
             >
               <h2 className={`${textSecondary} text-xs font-bold uppercase tracking-wider mb-2`}>YOUR TECH STACK</h2>
               <h3 className={`${textPrimary} text-xl font-semibold mb-6`}>Which of these popular apps are you planning to use in your automations?</h3>
-              
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                 {techStackOptions.map((app) => {
                   const isSelected = data.techStack.includes(app.name);
@@ -362,7 +319,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
                   );
                 })}
               </div>
-              
               <div className="mt-6">
                 <label className={`block ${textSecondary} text-sm mb-2`}>Other apps you are planning to use:</label>
                 <input
@@ -373,7 +329,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
               </div>
             </motion.div>
           )}
-
           {step === 5 && (
             <motion.div
               key="step5"
@@ -384,21 +339,18 @@ export function Onboarding({ onComplete }: OnboardingProps) {
             >
               <h2 className={`${textSecondary} text-xs font-bold uppercase tracking-wider mb-2`}>YOUR GOAL</h2>
               <h3 className={`${textPrimary} text-xl font-semibold mb-6`}>What do you want to automate with Flowversal?</h3>
-              
               <textarea
                 value={data.automationGoal}
                 onChange={(e) => updateData('automationGoal', e.target.value)}
                 placeholder="Example: I want to use AI to automatically generate social media posts..."
                 className={`w-full h-40 p-4 rounded-lg border ${borderColor} ${cardBg} ${textPrimary} focus:outline-none focus:border-[#00C6FF] transition-all resize-none`}
               />
-              
               <p className={`mt-4 ${textSecondary} text-sm`}>
                 Please provide detailed information about your specific use case, which will help us recommend the most relevant resources for you.
               </p>
             </motion.div>
           )}
         </AnimatePresence>
-
         <div className="flex justify-between mt-12 mb-20">
           {step > 1 && (
             <button
@@ -408,7 +360,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
               Back
             </button>
           )}
-          
           <div className={step === 1 ? 'ml-auto' : ''}>
             <button
               onClick={handleNext}
@@ -434,7 +385,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
             </button>
           </div>
         </div>
-        
         <div className="text-center pb-8">
           <button 
             onClick={() => logout()}

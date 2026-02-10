@@ -8,7 +8,6 @@
  * This file serves as the main entry point for the workflow builder feature.
  * It exports all public APIs, types, hooks, stores, and components.
  */
-
 // ========== TYPES ==========
 export type {
   // Workflow Types
@@ -72,7 +71,6 @@ export type {
   VariablePickerConfig,
   VariableInsertEvent,
 } from './types';
-
 // ========== STORES ==========
 export { 
   useWorkflowStore,
@@ -83,13 +81,11 @@ export {
   useVariableStore,
   useVariables,
 } from './store';
-
 // ========== HOOKS ==========
 export {
   useWorkflow,
   useSelection,
 } from './hooks';
-
 // ========== REGISTRIES ==========
 export {
   TriggerRegistry,
@@ -97,43 +93,34 @@ export {
   ToolRegistry,
   initializeAllRegistries,
 } from './registries';
-
 export type {
   TriggerDefinition,
   NodeDefinition,
   ToolDefinition,
 } from './registries';
-
 // ========== COMPONENTS (Phase 2, 3, 4) ==========
 export * from './components';
-
 // ========== DRAG & DROP CONTEXT (Phase 4 Part 1) ==========
 export {
   DndContextProvider,
   useDndContext,
 } from './context/DndContext';
-
 // ========== UTILITIES ==========
 export * from './utils/dnd.utils';
-
 // Variable Utilities (Phase 4 Part 3)
 export * from './utils/variable.parser';
 export * from './utils/variable.resolver';
 export * from './utils/variable.transformations';
-
 // ========== EXECUTION ENGINE (Phase 4 Part 2) ==========
 export { ExecutionEngine } from './engine/ExecutionEngine';
-
 // ========== MAIN COMPONENT ==========
 // New modular WorkflowBuilder component (replaces WorkflowBuilderV2/WorkflowBuilderMerged)
 export { WorkflowBuilder } from './WorkflowBuilder';
 export { default } from './WorkflowBuilder';
-
 /**
  * Feature Initialization
  * Call this once at app startup to initialize all registries
  */
 export function initializeWorkflowBuilder() {
   // Registries are auto-initialized on import
-  console.log('🚀 Workflow Builder Feature Initialized');
 }

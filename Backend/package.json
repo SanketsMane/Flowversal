@@ -17,7 +17,10 @@
     "format:check": "prettier --check \"src/**/*.{ts,js,json}\"",
     "dev:seed": "cross-env NODE_OPTIONS=--max-old-space-size=4096 ts-node src/scripts/dev-utils.ts seed",
     "dev:reset": "cross-env NODE_OPTIONS=--max-old-space-size=4096 ts-node src/scripts/dev-utils.ts reset",
-    "dev:health": "cross-env NODE_OPTIONS=--max-old-space-size=4096 ts-node src/scripts/dev-utils.ts health"
+    "dev:health": "cross-env NODE_OPTIONS=--max-old-space-size=4096 ts-node src/scripts/dev-utils.ts health",
+    "verify:connections": "cross-env NODE_OPTIONS=--max-old-space-size=4096 ts-node src/scripts/verify-connections.ts",
+    "validate:env": "cross-env NODE_OPTIONS=--max-old-space-size=4096 ts-node src/scripts/validate-env.ts",
+    "cleanup:console": "node scripts/cleanup-console-logs.js"
   },
   "keywords": [
     "fastify",

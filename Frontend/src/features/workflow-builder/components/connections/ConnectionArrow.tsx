@@ -2,10 +2,8 @@
  * Connection Arrow Component
  * Enhanced arrow with hover effects and animations
  */
-
 import React from 'react';
 import { useTheme } from '../../../../components/ThemeContext';
-
 interface ConnectionArrowProps {
   startX: number;
   startY: number;
@@ -17,7 +15,6 @@ interface ConnectionArrowProps {
   strokeWidth?: number;
   onClick?: () => void;
 }
-
 export function ConnectionArrow({
   startX,
   startY,
@@ -31,12 +28,10 @@ export function ConnectionArrow({
 }: ConnectionArrowProps) {
   const { theme } = useTheme();
   const [isHovered, setIsHovered] = React.useState(false);
-
   const defaultColor = theme === 'dark' ? '#4A4A6A' : '#D1D5DB';
   const activeColor = theme === 'dark' ? '#818CF8' : '#6366F1';
   const hoverColor = theme === 'dark' ? '#A78BFA' : '#8B5CF6';
   const executingColor = theme === 'dark' ? '#34D399' : '#10B981';
-
   // Determine the stroke color
   const strokeColor = isExecuting 
     ? executingColor 
@@ -45,36 +40,20 @@ export function ConnectionArrow({
       : isHovered 
         ? hoverColor 
         : color || defaultColor;
-
   // Calculate control points for curved path
   const dx = endX - startX;
   const dy = endY - startY;
   const controlOffset = Math.min(Math.abs(dx) * 0.5, 100);
-  
   const controlPoint1X = startX + controlOffset;
   const controlPoint1Y = startY;
   const controlPoint2X = endX - controlOffset;
   const controlPoint2Y = endY;
-
   // 🐛 DEBUG: Connection line coordinates
-  console.log('🔵 CONNECTION LINE:', {
-    start: { x: startX, y: startY },
-    end: { x: endX, y: endY },
-    distance: { dx, dy },
-    controlOffset,
-    controlPoints: {
-      cp1: { x: controlPoint1X, y: controlPoint1Y },
-      cp2: { x: controlPoint2X, y: controlPoint2Y },
-    }
-  });
-
   // Create SVG path
   const path = `M ${startX} ${startY} C ${controlPoint1X} ${controlPoint1Y}, ${controlPoint2X} ${controlPoint2Y}, ${endX} ${endY}`;
-
   // Calculate arrow head angle
   const angle = Math.atan2(endY - controlPoint2Y, endX - controlPoint2X);
   const arrowSize = 8;
-
   return (
     <g
       onMouseEnter={() => setIsHovered(true)}
@@ -90,7 +69,6 @@ export function ConnectionArrow({
         strokeWidth={20}
         style={{ pointerEvents: 'stroke' }}
       />
-
       {/* Animated background glow for executing state */}
       {isExecuting && (
         <path
@@ -104,7 +82,6 @@ export function ConnectionArrow({
           }}
         />
       )}
-
       {/* Main path */}
       <path
         d={path}
@@ -116,7 +93,6 @@ export function ConnectionArrow({
           filter: isHovered || isExecuting ? `drop-shadow(0 0 4px ${strokeColor})` : 'none',
         }}
       />
-
       {/* Arrow head */}
       <polygon
         points={`
@@ -130,7 +106,6 @@ export function ConnectionArrow({
           filter: isHovered || isExecuting ? `drop-shadow(0 0 4px ${strokeColor})` : 'none',
         }}
       />
-
       {/* Animated dot traveling along path when executing */}
       {isExecuting && (
         <>
@@ -139,7 +114,6 @@ export function ConnectionArrow({
           </circle>
         </>
       )}
-
       {/* Pulse effect on hover */}
       {isHovered && (
         <circle

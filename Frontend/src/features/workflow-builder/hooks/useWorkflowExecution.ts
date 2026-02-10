@@ -3,7 +3,6 @@
  * Integrates execution with registry and stats tracking
  * NOW USES REAL BACKEND API
  */
-
 import { useAuthStore } from '@/core/stores/core/authStore';
 import { useExecutionStore } from '@/core/stores/core/executionStore';
 import { useUserStore } from '@/core/stores/core/userStore';
@@ -17,13 +16,11 @@ import { useExecutionStore as useExecutionStoreModule } from '../stores/executio
 import { useUIStore } from '../stores/uiStore';
 import { useWorkflowStore } from '../stores/workflowStore';
 import { NodeExecutionState, useExecutionWebSocket } from './useExecutionWebSocket';
-
 export function useWorkflowExecution() {
   const [isExecuting, setIsExecuting] = useState(false);
   const [currentExecutionId, setCurrentExecutionId] = useState<string | null>(null);
   const [currentBackendExecutionId, setCurrentBackendExecutionId] = useState<string | null>(null);
   const [nodeStates, setNodeStates] = useState<Map<string, NodeExecutionState>>(new Map());
-  
   const workflowState = useWorkflowStore();
   const executionStoreModule = useExecutionStoreModule();
   const executionStore = useExecutionStore();
@@ -32,12 +29,10 @@ export function useWorkflowExecution() {
   const authStore = useAuthStore();
   const uiStore = useUIStore();
   const agentStore = useAgentStore();
-
   // Get node position helper
   const getNodePosition = useCallback((nodeId: string, type: 'trigger' | 'node'): { x: number; y: number } => {
     const element = document.querySelector(`[data-node-id="${nodeId}"]`) || 
                    document.querySelector(`[data-trigger-id="${nodeId}"]`);
-    
     if (element) {
       const rect = element.getBoundingClientRect();
       return {
@@ -45,10 +40,8 @@ export function useWorkflowExecution() {
         y: rect.top + rect.height / 2,
       };
     }
-    
     return { x: 0, y: 0 };
   }, []);
-
   // WebSocket integration for real-time updates
   const { isConnected: wsConnected } = useExecutionWebSocket({
     executionId: currentBackendExecutionId,
@@ -57,17 +50,14 @@ export function useWorkflowExecution() {
     // Debug logging for WebSocket connection
     // #endregion
     onNodeUpdate: (nodeState) => {
-      console.log('[DEBUG] Node update received', { nodeId: nodeState.nodeId, status: nodeState.status, nodeState });
       setNodeStates((prev) => {
         const updated = new Map(prev);
         updated.set(nodeState.nodeId, nodeState);
-        console.log('[DEBUG] Node states updated', { totalNodes: updated.size, nodeIds: Array.from(updated.keys()), allStates: Array.from(updated.values()) });
         return updated;
       });
     },
     onConnectionData: (data) => {
       // Handle connection data flow visualization
-      console.log('[Execution] Connection data:', data);
       // Connection data flows will be handled by WorkflowCanvas component
     },
     onAgentReasoning: (event) => {
@@ -109,7 +99,6 @@ export function useWorkflowExecution() {
       }
     },
   });
-
   // Cleanup polling on unmount
   useEffect(() => {
     return () => {
@@ -118,7 +107,6 @@ export function useWorkflowExecution() {
       }
     };
   }, [currentBackendExecutionId]);
-
   const executeWorkflow = async (workflowId?: string) => {
     const user = authStore.user;
     if (!user) {
@@ -126,25 +114,19 @@ export function useWorkflowExecution() {
       uiStore.showNotification('Please wait for authentication to complete and try again', 'error');
       return null;
     }
-
     // Get access token
     const headers = await getAuthHeaders();
     const accessToken = headers['Authorization']?.replace('Bearer ', '') || '';
-
     setIsExecuting(true);
-
     try {
       // Get workflow data
       const workflowName = workflowState.workflowName;
       const triggers = workflowState.triggers;
       const containers = workflowState.containers;
-      
       // Calculate total steps
       const totalSteps = containers.reduce((sum, container) => sum + container.nodes.length, 0);
-      
       // Determine trigger type
       const triggerType = triggers.length > 0 ? triggers[0].type : 'Manual';
-
       // Create local execution log for UI
       const localExecutionId = executionStore.addExecution({
         workflowId: workflowId || 'unsaved-workflow',
@@ -159,17 +141,11 @@ export function useWorkflowExecution() {
         aiTokensUsed: 0,
         apiCallsMade: 0,
       });
-
       setCurrentExecutionId(localExecutionId);
-
       // Call backend API to execute workflow
-      console.log('[Workflow Execution] Starting execution via backend API...', { workflowId, isUnsaved: !workflowId });
-      
       // #region agent log
-      console.log('[DEBUG] Before API call', { workflowId, hasAccessToken: !!accessToken, isUnsaved: !workflowId });
       fetch('http://127.0.0.1:7242/ingest/4eca190d-c843-4d4a-a868-56d71e69b49f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useWorkflowExecution.ts:168',message:'Before API call',data:{workflowId,hasAccessToken:!!accessToken,isUnsaved:!workflowId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
       // #endregion
-      
       let result;
       if (workflowId) {
         // Execute saved workflow
@@ -199,12 +175,9 @@ export function useWorkflowExecution() {
           accessToken
         );
       }
-
       // #region agent log
-      console.log('[DEBUG] After API call', { success: result.success, executionId: result.executionId, error: result.error, resultData: result.data });
       fetch('http://127.0.0.1:7242/ingest/4eca190d-c843-4d4a-a868-56d71e69b49f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useWorkflowExecution.ts:177',message:'After API call',data:{success:result.success,executionId:result.executionId,error:result.error},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
       // #endregion
-
       if (!result.success || !result.executionId) {
         // #region agent log
         console.error('[DEBUG] API call failed', { success: result.success, executionId: result.executionId, error: result.error, resultData: result.data });
@@ -212,26 +185,18 @@ export function useWorkflowExecution() {
         // #endregion
         throw new Error(result.error || 'Failed to start workflow execution');
       }
-
       const backendExecutionId = result.executionId;
-      console.log('[Workflow Execution] Backend execution started:', backendExecutionId);
-      console.log('[DEBUG] Setting backend execution ID for WebSocket', { backendExecutionId, isExecuting, currentBackendExecutionId });
-      
       // Set execution ID - this will trigger WebSocket connection via useExecutionWebSocket hook
       setCurrentBackendExecutionId(backendExecutionId);
-      
       // #region agent log
       fetch('http://127.0.0.1:7242/ingest/4eca190d-c843-4d4a-a868-56d71e69b49f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'useWorkflowExecution.ts:184',message:'Execution ID set',data:{backendExecutionId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
       // #endregion
-
       // WebSocket connection is handled by useExecutionWebSocket hook
       // Give WebSocket a moment to connect, then check connection status
       // Note: wsConnected state might not update immediately, so we check after a delay
       const pollingFallbackTimeout = setTimeout(() => {
-        console.log('[DEBUG] Checking WebSocket connection after delay', { wsConnected, backendExecutionId, currentBackendExecutionId });
         // Note: wsConnected might be stale here due to closure, but the WebSocket hook should handle connection
         // We'll rely on the WebSocket hook's connection status
-        console.log('[DEBUG] WebSocket connection check complete - relying on hook for connection status');
           // Set up status polling as fallback
           executionStatusService.setAccessToken(accessToken);
           executionStatusService.startPolling(backendExecutionId, {
@@ -247,7 +212,6 @@ export function useWorkflowExecution() {
             aiTokensUsed: status.aiTokensUsed || 0,
             apiCallsMade: status.apiCallsMade || 0,
           });
-
           // Update UI notification for progress
           if (status.stepsExecuted && status.totalSteps) {
             const progress = Math.round((status.stepsExecuted / status.totalSteps) * 100);
@@ -258,12 +222,9 @@ export function useWorkflowExecution() {
           }
         },
         onComplete: (status: ExecutionStatus) => {
-          console.log('[Workflow Execution] Execution completed:', status);
-          
           const success = status.status === 'completed';
           const duration = status.duration || (status.completedAt ? 
             new Date(status.completedAt).getTime() - new Date(status.startedAt).getTime() : 0);
-
           // Complete local execution
           executionStore.completeExecution(
             localExecutionId,
@@ -278,29 +239,24 @@ export function useWorkflowExecution() {
               code: status.error?.code || 'EXECUTION_ERROR'
             }
           );
-
           // Update AI tokens used
           executionStore.updateExecution(localExecutionId, {
             aiTokensUsed: status.aiTokensUsed || 0,
             apiCallsMade: status.apiCallsMade || 0,
           });
-
           // Update workflow stats if workflow is saved
           if (workflowId) {
             workflowRegistry.updateExecutionStats(workflowId, duration, success);
             workflowRegistry.incrementExecutionCount(workflowId);
           }
-
           // Update user stats
           userStore.incrementWorkflowExecuted(user.id);
           if (status.aiTokensUsed && status.aiTokensUsed > 0) {
             userStore.addAITokenUsage(user.id, status.aiTokensUsed);
           }
-
           setIsExecuting(false);
           setCurrentExecutionId(null);
           setCurrentBackendExecutionId(null);
-
           // Show completion notification
           uiStore.showNotification(
             success 
@@ -311,23 +267,19 @@ export function useWorkflowExecution() {
         },
         onError: (error: Error) => {
           console.error('[Workflow Execution] Polling error:', error);
-          
           executionStore.completeExecution(
             localExecutionId,
             'failed',
             undefined,
             { message: error.message, step: 'Status polling', code: 'POLLING_ERROR' }
           );
-
           setIsExecuting(false);
           setCurrentExecutionId(null);
           setCurrentBackendExecutionId(null);
-
           uiStore.showNotification(`Execution error: ${error.message}`, 'error');
         },
       });
       }, 2000);
-
       return {
         success: true,
         executionId: localExecutionId,
@@ -335,7 +287,6 @@ export function useWorkflowExecution() {
       };
     } catch (error: any) {
       console.error('[Workflow Execution] Execution failed:', error);
-      
       if (currentExecutionId) {
         executionStore.completeExecution(
           currentExecutionId,
@@ -344,17 +295,13 @@ export function useWorkflowExecution() {
           { message: error.message || 'Execution error', step: 'Unknown', code: 'EXECUTION_ERROR' }
         );
       }
-      
       setIsExecuting(false);
       setCurrentExecutionId(null);
       setCurrentBackendExecutionId(null);
-      
       uiStore.showNotification(`Failed to execute workflow: ${error.message || 'Unknown error'}`, 'error');
-      
       return null;
     }
   };
-
   const cancelExecution = async () => {
     if (!currentBackendExecutionId) {
       // If no backend execution, just cancel local
@@ -368,28 +315,22 @@ export function useWorkflowExecution() {
       }
       return;
     }
-
     // Stop backend execution
     try {
       const headers = await getAuthHeaders();
       const accessToken = headers['Authorization']?.replace('Bearer ', '') || '';
-      
       const result = await stopExecutionAPI(currentBackendExecutionId, accessToken);
-      
       if (result.success) {
         executionStatusService.stopPolling(currentBackendExecutionId);
-        
         if (currentExecutionId) {
           executionStore.updateExecution(currentExecutionId, {
             status: 'canceled',
             completedAt: Date.now(),
           });
         }
-        
         setIsExecuting(false);
         setCurrentExecutionId(null);
         setCurrentBackendExecutionId(null);
-        
         uiStore.showNotification('Execution stopped successfully', 'success');
       } else {
         uiStore.showNotification(`Failed to stop execution: ${result.error}`, 'error');
@@ -399,7 +340,6 @@ export function useWorkflowExecution() {
       uiStore.showNotification(`Failed to stop execution: ${error.message}`, 'error');
     }
   };
-
   // Convert nodeStates Map to array format for VisualExecutionOverlay
   // Use useMemo to recalculate when nodeStates changes
   const nodeStatesArray = useMemo(() => {
@@ -407,7 +347,6 @@ export function useWorkflowExecution() {
       // Try to get position - if element doesn't exist yet, return 0,0
       // Position will be recalculated on next render when DOM is ready
       const position = getNodePosition(state.nodeId, 'node');
-      
       // Log if position is 0,0 (element not found)
       if (position.x === 0 && position.y === 0) {
         console.warn('[DEBUG] Node position not found (element may not be rendered yet)', { 
@@ -416,7 +355,6 @@ export function useWorkflowExecution() {
           nodeStatesSize: nodeStates.size
         });
       }
-      
       return {
         id: state.nodeId,
         status: state.status,
@@ -428,40 +366,28 @@ export function useWorkflowExecution() {
         error: state.error,
       };
     });
-    
     // Debug logging
     if (states.length > 0) {
-      console.log('[DEBUG] Node states array computed', { 
-        count: states.length, 
-        nodeIds: states.map(s => s.id),
-        statesWithPosition: states.filter(s => s.position.x !== 0 || s.position.y !== 0).length
-      });
     }
-    
     return states;
   }, [nodeStates, getNodePosition]);
-
   // Recalculate positions after DOM updates using useLayoutEffect
   // This ensures positions are accurate even if nodes are rendered after WebSocket events arrive
   const [nodeStatesWithPositions, setNodeStatesWithPositions] = useState(nodeStatesArray);
-  
   useLayoutEffect(() => {
     // Recalculate positions for all node states
     const updatedStates = nodeStatesArray.map((state) => {
       const position = getNodePosition(state.id, 'node');
       // Only update if position changed (element now exists)
       if (position.x !== state.position.x || position.y !== state.position.y) {
-        console.log('[DEBUG] Position recalculated', { nodeId: state.id, oldPosition: state.position, newPosition: position });
       }
       return {
         ...state,
         position,
       };
     });
-    
     setNodeStatesWithPositions(updatedStates);
   }, [nodeStatesArray, getNodePosition]);
-
   return {
     executeWorkflow,
     cancelExecution,

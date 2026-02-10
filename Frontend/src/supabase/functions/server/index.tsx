@@ -6,17 +6,13 @@ import { createClient } from "@supabase/supabase-js";
 import * as kv from "./kv_store.tsx";
 import subscriptionRoutes from "./subscription.ts";
 import langchainRoutes from "./langchain.ts";
-
 const app = new Hono();
-
 // Initialize Supabase client with service role key
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
 const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
-
 // Enable logger
 app.use('*', logger(console.log));
-
 // Enable CORS for all routes and methods
 app.use(
   "/*",
@@ -28,18 +24,15 @@ app.use(
     maxAge: 600,
   }),
 );
-
 // Health check endpoint
 app.get("/make-server-020d2c80/health", (c) => {
   return c.json({ status: "ok" });
 });
-
 // Signup endpoint
 app.post("/make-server-020d2c80/auth/signup", async (c) => {
   try {
     const body = await c.req.json();
     const { email, password, name } = body;
-
     // Validate required fields
     if (!email || !password) {
       return c.json(
@@ -47,7 +40,6 @@ app.post("/make-server-020d2c80/auth/signup", async (c) => {
         400
       );
     }
-
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -56,7 +48,6 @@ app.post("/make-server-020d2c80/auth/signup", async (c) => {
         400
       );
     }
-
     // Validate password strength
     if (password.length < 6) {
       return c.json(
@@ -64,7 +55,6 @@ app.post("/make-server-020d2c80/auth/signup", async (c) => {
         400
       );
     }
-
     // Create user with admin API
     const { data, error } = await supabase.auth.admin.createUser({
       email,
@@ -77,10 +67,8 @@ app.post("/make-server-020d2c80/auth/signup", async (c) => {
       // In production, set this to false and configure email templates in Supabase.
       email_confirm: true,
     });
-
     if (error) {
       console.error('Signup error:', error);
-      
       // Handle specific error cases
       if (error.message.includes('already registered')) {
         return c.json(
@@ -88,22 +76,17 @@ app.post("/make-server-020d2c80/auth/signup", async (c) => {
           400
         );
       }
-      
       return c.json(
         { success: false, error: error.message || "Failed to create account" },
         500
       );
     }
-
     if (!data.user) {
       return c.json(
         { success: false, error: "Failed to create user" },
         500
       );
     }
-
-    console.log('User created successfully:', data.user.id);
-
     return c.json({
       success: true,
       user: {
@@ -120,32 +103,26 @@ app.post("/make-server-020d2c80/auth/signup", async (c) => {
     );
   }
 });
-
 // Update user profile endpoint
 app.post("/make-server-020d2c80/auth/update-profile", async (c) => {
   try {
     const accessToken = c.req.header('Authorization')?.split(' ')[1];
-    
     if (!accessToken) {
       return c.json(
         { success: false, error: "Unauthorized" },
         401
       );
     }
-
     // Verify user
     const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
-    
     if (authError || !user) {
       return c.json(
         { success: false, error: "Unauthorized" },
         401
       );
     }
-
     const body = await c.req.json();
     const { name, avatar_url } = body;
-
     // Update user metadata
     const { data, error } = await supabase.auth.admin.updateUserById(
       user.id,
@@ -158,7 +135,6 @@ app.post("/make-server-020d2c80/auth/update-profile", async (c) => {
         },
       }
     );
-
     if (error) {
       console.error('Profile update error:', error);
       return c.json(
@@ -166,9 +142,6 @@ app.post("/make-server-020d2c80/auth/update-profile", async (c) => {
         500
       );
     }
-
-    console.log('User profile updated successfully:', user.id);
-
     return c.json({
       success: true,
       user: {
@@ -186,23 +159,17 @@ app.post("/make-server-020d2c80/auth/update-profile", async (c) => {
     );
   }
 });
-
 // Add subscription routes
 app.route("/make-server-020d2c80/subscription", subscriptionRoutes);
-
 // Add LangChain AI routes
 app.route("/make-server-020d2c80/langchain", langchainRoutes);
-
 // Add workflow management routes
 import workflowRoutes from "./workflows.ts";
 app.route("/make-server-020d2c80/workflows", workflowRoutes);
-
 // Add projects, boards, and tasks routes
 import projectRoutes from "./projects.ts";
 app.route("/make-server-020d2c80/projects", projectRoutes);
-
 // Add seed data utility
 import seedRoutes from "./seed-data.ts";
 app.route("/make-server-020d2c80/seed", seedRoutes);
-
 Deno.serve(app.fetch);

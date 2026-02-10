@@ -7,22 +7,18 @@
  * Current: Supabase Edge Functions (Deno)
  * Future: Node.js Backend (Express/Fastify/NestJS)
  */
-
 import { supabase } from '@/shared/lib/supabase';
 import { getApiUrl, getPineconeHost, getPineconeIndex, getStripePublishableKey } from '@/shared/utils/env';
 import { projectId, publicAnonKey } from '@/shared/utils/supabase/info';
-
 // ============================================================================
 // BACKEND CONFIGURATION
 // ============================================================================
-
 /**
  * Backend Type
  * - 'supabase-edge': Deno-based Supabase Edge Functions (legacy)
  * - 'nodejs': Node.js backend (Fastify)
  */
 export const BACKEND_TYPE: 'supabase-edge' | 'nodejs' = 'nodejs';
-
 /**
  * API Base URL
  * 
@@ -37,7 +33,6 @@ export const API_BASE_URL =
   BACKEND_TYPE === 'nodejs'
     ? getApiUrl()
     : `https://${projectId}.supabase.co/functions/v1/make-server-020d2c80`;
-
 /**
  * API Endpoints
  * These paths work with both Supabase Edge Functions and Node.js backend
@@ -45,7 +40,6 @@ export const API_BASE_URL =
 export const API_ENDPOINTS = {
   // Health & Status
   health: '/health',
-  
   // Authentication (handled by Supabase directly)
   auth: {
     signup: '/auth/signup',
@@ -53,14 +47,14 @@ export const API_ENDPOINTS = {
     logout: '/auth/logout',
     refresh: '/auth/refresh',
     session: '/auth/session',
+    forgotPassword: '/auth/forgot-password',
+    changePassword: '/auth/change-password',
   },
-
   // Users
   users: {
     me: '/users/me',
     onboarding: '/users/me/onboarding',
   },
-  
   // Projects, Boards, Tasks
   projects: {
     list: '/projects',
@@ -68,21 +62,18 @@ export const API_ENDPOINTS = {
     update: (id: string) => `/projects/${id}`,
     delete: (id: string) => `/projects/${id}`,
   },
-  
   boards: {
     list: '/projects/boards',
     create: '/projects/boards',
     update: (id: string) => `/projects/boards/${id}`,
     delete: (id: string) => `/projects/boards/${id}`,
   },
-  
   tasks: {
     list: '/projects/tasks',
     create: '/projects/tasks',
     update: (id: string) => `/projects/tasks/${id}`,
     delete: (id: string) => `/projects/tasks/${id}`,
   },
-  
   // Workflows (Node.js will handle these)
   workflows: {
     list: '/workflows',
@@ -96,21 +87,18 @@ export const API_ENDPOINTS = {
     stopExecution: (executionId: string) => `/workflows/executions/${executionId}/stop`,
     listExecutions: (workflowId: string) => `/workflows/${workflowId}/executions`,
   },
-  
   // AI Features (Node.js will handle these)
   ai: {
     chat: '/chat',
     generateWorkflow: '/ai/generate-workflow',
     semanticSearch: '/ai/search',
   },
-  
   // Templates
   templates: {
     list: '/templates',
     get: (id: string) => `/templates/${id}`,
     install: (id: string) => `/templates/${id}/install`,
   },
-  
   // Subscriptions (Stripe)
   subscriptions: {
     create: '/subscriptions/create-checkout',
@@ -119,11 +107,9 @@ export const API_ENDPOINTS = {
     status: '/subscriptions/status',
   },
 };
-
 // ============================================================================
 // AUTHENTICATION CONFIGURATION
 // ============================================================================
-
 /**
  * Auth Token Strategy
  * 
@@ -134,19 +120,15 @@ export const AUTH_CONFIG = {
   // Storage keys
   tokenKey: 'flowversal_auth_token',
   sessionKey: 'flowversal_session',
-  
   // Token refresh
   refreshBeforeExpiry: 5 * 60 * 1000, // 5 minutes
-  
   // Demo mode disabled (must use real Supabase tokens)
   demoMode: false,
   demoToken: '',
 };
-
 // ============================================================================
 // DATABASE CONFIGURATION
 // ============================================================================
-
 /**
  * Supabase Configuration
  * Used for: Auth, Storage, Database tables
@@ -155,7 +137,6 @@ export const AUTH_CONFIG = {
 export const SUPABASE_CONFIG = {
   url: `https://${projectId}.supabase.co`,
   anonKey: publicAnonKey,
-  
   // Tables (when using Supabase DB directly)
   tables: {
     projects: 'projects',
@@ -165,7 +146,6 @@ export const SUPABASE_CONFIG = {
     executions: 'workflow_executions',
     templates: 'workflow_templates',
   },
-  
   // Storage buckets
   storage: {
     avatars: 'avatars',
@@ -173,11 +153,9 @@ export const SUPABASE_CONFIG = {
     exports: 'exports',
   },
 };
-
 // ============================================================================
 // EXTERNAL SERVICES CONFIGURATION
 // ============================================================================
-
 /**
  * External APIs (called from Node.js backend, NOT frontend)
  */
@@ -186,52 +164,41 @@ export const EXTERNAL_SERVICES = {
     // API key stored in Node.js backend environment
     baseUrl: 'https://api.openai.com/v1',
   },
-  
   pinecone: {
     // API key stored in Node.js backend environment
     host: getPineconeHost(),
     index: getPineconeIndex(),
   },
-  
   stripe: {
     // Public key (safe to expose)
     publishableKey: getStripePublishableKey(),
   },
 };
-
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
-
 /**
  * Build full API URL
  */
 export function buildApiUrl(endpoint: string): string {
   // Remove leading slash from endpoint if present
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
-  
   // Ensure API_BASE_URL doesn't have trailing slash
   const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
-  
   // Build URL without double slashes
   return cleanEndpoint ? `${baseUrl}/${cleanEndpoint}` : baseUrl;
 }
-
 /**
  * Get auth headers
  */
 export async function getAuthHeaders(token?: string): Promise<HeadersInit> {
-  console.log('[API Config] Getting auth headers...');
-  
   // If token is provided, use it
   if (token) {
-    console.log('[API Config] Using provided token');
     return {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
     };
   }
-  
   // Try to get token from auth session
   try {
     const sessionStr = localStorage.getItem('flowversal_auth_session');
@@ -239,25 +206,21 @@ export async function getAuthHeaders(token?: string): Promise<HeadersInit> {
       const session = JSON.parse(sessionStr);
       const authToken = session?.accessToken;
       if (authToken) {
-        console.log('[API Config] Using token from session');
         return {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${authToken}`,
         };
       }
-      console.log('[API Config] No token in stored session, clearing it');
       localStorage.removeItem('flowversal_auth_session');
     }
   } catch (error) {
     console.warn('[API Config] Failed to get token from session:', error);
   }
-  
   // Try Supabase client session (handles OAuth redirects)
   try {
     const { data, error } = await supabase.auth.getSession();
     if (!error && data.session?.access_token) {
       const supaToken = data.session.access_token;
-      console.log('[API Config] Using token from Supabase session');
       return {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${supaToken}`,
@@ -266,21 +229,18 @@ export async function getAuthHeaders(token?: string): Promise<HeadersInit> {
   } catch (error) {
     console.warn('[API Config] Failed to get Supabase session:', error);
   }
-  
   // No token available
   console.warn('[API Config] No auth token available; requests will be unauthorized');
   return {
     'Content-Type': 'application/json',
   };
 }
-
 /**
  * Check if backend is Node.js
  */
 export function isNodeJsBackend(): boolean {
   return BACKEND_TYPE === 'nodejs';
 }
-
 /**
  * Check if backend is Supabase Edge Functions
  */

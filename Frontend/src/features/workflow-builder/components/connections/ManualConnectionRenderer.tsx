@@ -3,13 +3,11 @@
  * Uses screen coordinates and recalculates constantly for perfect alignment
  * Displays connection lines with hover effects, delete bin icon, and insert substep plus icon
  */
-
 import { useState, useRef, useEffect } from 'react';
 import { useTheme } from '@/core/theme/ThemeContext';
 import { useConnectionStore, Connection } from '@/features/workflow-builder/stores/connectionStore';
 import { useViewport } from '../../contexts/ViewportContext';
 import { useWorkflowStore, useUIStore } from '../../stores';
-
 export function ManualConnectionRenderer() {
   const { theme } = useTheme();
   const { connections, dragConnection, removeConnection } = useConnectionStore();
@@ -20,28 +18,22 @@ export function ManualConnectionRenderer() {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; connectionId: string } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [, forceUpdate] = useState({});
-
   // Get screen position of a connection point relative to the SVG
   const getRelativePosition = (id: string, side: 'left' | 'right', branchOutput?: string): { x: number; y: number } | null => {
     let selector: string;
-    
     if (branchOutput) {
       selector = `[data-connection-point][data-owner-id=\"${id}\"][data-branch-output=\"${branchOutput}\"]`;
     } else {
       selector = `[data-connection-point][data-owner-id=\"${id}\"][data-side=\"${side}\"]`;
     }
-    
     const element = document.querySelector(selector) as HTMLElement;
     if (!element || !svgRef.current) return null;
-
     // Get bounding boxes
     const elementRect = element.getBoundingClientRect();
     const svgRect = svgRef.current.getBoundingClientRect();
-
     // Calculate center of element
     const elementCenterX = elementRect.left + elementRect.width / 2;
     const elementCenterY = elementRect.top + elementRect.height / 2;
-
     // Position relative to SVG
     return {
       x: elementCenterX - svgRect.left,
@@ -50,61 +42,45 @@ export function ManualConnectionRenderer() {
       width: elementRect.width
     };
   };
-
   // Calculate edge position for arrow endpoint (instead of center)
   const getEdgePosition = (pos: any, side: 'left' | 'right') => {
     if (!pos) return pos;
-    
     // Offset to the edge of the connection dot (not center)
     // Connection dots are typically 8-12px, so offset by ~6px
     const offset = 8;
-    
     if (side === 'left') {
       return { x: pos.x - offset, y: pos.y };
     } else {
       return { x: pos.x + offset, y: pos.y };
     }
   };
-
   // Render a single connection
   const renderConnection = (connection: Connection) => {
     const sourcePos = getRelativePosition(connection.sourceId, 'right', connection.branchOutput);
     const targetPos = getRelativePosition(connection.targetId, 'left');
-
     if (!sourcePos || !targetPos) {
       return null;
     }
-
     // Calculate edge positions for smoother connection
     const sourceEdge = getEdgePosition(sourcePos, 'right');
     const targetEdge = getEdgePosition(targetPos, 'left');
-
     const distance = Math.abs(targetEdge.x - sourceEdge.x);
     const controlPointOffset = Math.min(distance * 0.5, 100);
-    
     const path = `M ${sourceEdge.x} ${sourceEdge.y} C ${sourceEdge.x + controlPointOffset} ${sourceEdge.y}, ${targetEdge.x - controlPointOffset} ${targetEdge.y}, ${targetEdge.x} ${targetEdge.y}`;
-
     const strokeColor = theme === 'dark' ? '#9D50BB' : '#8B3AA8';
     const buttonBg = theme === 'dark' ? 'rgba(26, 26, 46, 0.95)' : 'rgba(255, 255, 255, 0.95)';
     const plusIconColor = theme === 'dark' ? '#00C6FF' : '#0ea5e9'; // Cyan/blue for plus icon
     const isHovered = hoveredConnection === connection.id;
-    
     // Calculate midpoint for button placement
     const midX = (sourceEdge.x + targetEdge.x) / 2;
     const midY = (sourceEdge.y + targetEdge.y) / 2;
-
     const handleDelete = (e: any) => {
       e.stopPropagation();
-      console.log('🗑️ Deleting connection:', connection.id);
       removeConnection(connection.id);
       setHoveredConnection(null);
     };
-
     const handleInsertSubstep = (e: any) => {
       e.stopPropagation();
-      console.log('➕ INSERT SUBSTEP - Opening Node Picker with connection context');
-      console.log('Connection:', connection);
-      
       // Open node picker with connection context
       // This tells the node picker to create a new substep between source and target
       openNodePicker(
@@ -120,10 +96,8 @@ export function ManualConnectionRenderer() {
           targetId: connection.targetId,
         }
       );
-      
       setHoveredConnection(null);
     };
-
     return (
       <g key={connection.id}>
         {/* Invisible wider path for easier hover */}
@@ -148,7 +122,6 @@ export function ManualConnectionRenderer() {
             pointerEvents: 'stroke'
           }}
         />
-        
         {/* Visible connection line */}
         <path
           d={path}
@@ -164,7 +137,6 @@ export function ManualConnectionRenderer() {
             pointerEvents: 'none',
           }}
         />
-        
         {/* Hover buttons - Delete (left) and Insert (right) */}
         {isHovered && (
           <>
@@ -186,7 +158,6 @@ export function ManualConnectionRenderer() {
                   filter: 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.2))'
                 }}
               />
-              
               {/* Trash icon */}
               <g transform={`translate(${midX - 30 - 7}, ${midY - 7})`}>
                 {/* Bin body */}
@@ -197,7 +168,6 @@ export function ManualConnectionRenderer() {
                 <path d="M5 5 V3 C5 2.5 5.5 2 6 2 H8 C8.5 2 9 2.5 9 3 V5" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" />
               </g>
             </g>
-
             {/* Insert Substep Button (Plus Icon) - positioned to the right */}
             <g
               onClick={handleInsertSubstep}
@@ -216,7 +186,6 @@ export function ManualConnectionRenderer() {
                   filter: 'drop-shadow(0 2px 8px rgba(0, 0, 0, 0.2))'
                 }}
               />
-              
               {/* Plus icon */}
               <g transform={`translate(${midX + 30 - 7}, ${midY - 7})`}>
                 <line x1="7" y1="2" x2="7" y2="12" stroke={plusIconColor} strokeWidth="2.5" strokeLinecap="round" />
@@ -228,35 +197,27 @@ export function ManualConnectionRenderer() {
       </g>
     );
   };
-
   // Render drag preview
   const renderDragPreview = () => {
     if (!dragConnection.isActive || !dragConnection.sourceId || !dragConnection.mousePosition || !svgRef.current) {
       return null;
     }
-
     const sourcePos = getRelativePosition(
       dragConnection.sourceId,
       'right',
       dragConnection.branchOutput
     );
-    
     if (!sourcePos) return null;
-
     // Mouse position relative to SVG
     const svgRect = svgRef.current.getBoundingClientRect();
     const targetPos = {
       x: dragConnection.mousePosition.x - svgRect.left,
       y: dragConnection.mousePosition.y - svgRect.top
     };
-
     const distance = Math.abs(targetPos.x - sourcePos.x);
     const controlPointOffset = Math.min(distance * 0.5, 100);
-    
     const path = `M ${sourcePos.x} ${sourcePos.y} C ${sourcePos.x + controlPointOffset} ${sourcePos.y}, ${targetPos.x - controlPointOffset} ${targetPos.y}, ${targetPos.x} ${targetPos.y}`;
-
     const strokeColor = theme === 'dark' ? '#9D50BB' : '#8B3AA8';
-
     return (
       <path
         d={path}
@@ -269,23 +230,18 @@ export function ManualConnectionRenderer() {
       />
     );
   };
-
   // Constantly re-render to keep lines in sync
   useEffect(() => {
     let animationFrameId: number;
-    
     const updatePositions = () => {
       forceUpdate({});
       animationFrameId = requestAnimationFrame(updatePositions);
     };
-    
     animationFrameId = requestAnimationFrame(updatePositions);
-    
     return () => {
       cancelAnimationFrame(animationFrameId);
     };
   }, [connections, dragConnection]);
-
   // Close context menu on click outside
   useEffect(() => {
     const handleClickOutside = () => {
@@ -293,21 +249,17 @@ export function ManualConnectionRenderer() {
         setContextMenu(null);
       }
     };
-
     if (contextMenu) {
       document.addEventListener('click', handleClickOutside);
       return () => document.removeEventListener('click', handleClickOutside);
     }
   }, [contextMenu]);
-
   const handleDeleteConnection = () => {
     if (contextMenu) {
-      console.log('🗑️ Deleting connection:', contextMenu.connectionId);
       removeConnection(contextMenu.connectionId);
       setContextMenu(null);
     }
   };
-
   const handleInsertSubstep = () => {
     if (contextMenu) {
       const connection = connections.find(c => c.id === contextMenu.connectionId);
@@ -322,7 +274,6 @@ export function ManualConnectionRenderer() {
       setContextMenu(null);
     }
   };
-
   return (
     <>
       <svg
@@ -351,17 +302,14 @@ export function ManualConnectionRenderer() {
             />
           </marker>
         </defs>
-
         {/* Enable pointer events on interactive elements */}
         <g style={{ pointerEvents: 'auto' }}>
           {connections
             .filter(c => c.connectionType === 'manual')
             .map(renderConnection)}
         </g>
-        
         {renderDragPreview()}
       </svg>
-
       {/* Context Menu */}
       {contextMenu && (
         <div
