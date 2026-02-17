@@ -1,0 +1,71 @@
+[
+  {
+    "id": "698362428e3e2fe79ba2fb78",
+    "email": "MDU3YzJlMWY0NzdiOGZmYzlkMDNlMWNjODE4OTgxMGI1ODcyN2UxYzM2MDg3NzIwY2NmNDM1YTdkMzM1NjMyZDFjYjg2YTU5OGQwNjY2NjNjNjI1NjBmNDUyMWY5NTc4NzU2ZWRmMDVkOTA2MzMwYmNkYzRiMzY0Mzk5NWM3NWM6YjhjOGNlYWIwNDA2MDBjNDExMTllZGQ2YzhmMzMzYjQ6ODdmODZiZWQ5NGZkNjE4YjllMjY5ZjRjNzVmM2UyOWQ6ZWE0MTRiZGM0M2M2MGVlNTg3MThiMjUzN2MzMjY4Y2E2NTdlOGQ2ZGE5ZGE=",
+    "supabaseId": "86c1be38-bc9b-4a79-901f-dd053ec51277",
+    "onboardingCompleted": false,
+    "createdAt": "2026-02-04T15:14:10.633Z",
+    "updatedAt": "2026-02-04T15:14:10.633Z"
+  },
+  {
+    "id": "698362428e3e2fe79ba2fb73",
+    "email": "nish0007nish@gmail.com",
+    "supabaseId": "neon_86c1be38-bc9b-4a79-901f-dd053ec51277",
+    "neonUserId": "86c1be38-bc9b-4a79-901f-dd053ec51277",
+    "onboardingCompleted": false,
+    "createdAt": "2026-02-04T15:14:10.258Z",
+    "updatedAt": "2026-02-04T15:14:10.258Z"
+  },
+  {
+    "id": "6981e2c4898432d90884c9c1",
+    "email": "ZDIyNWNhNDVmOWY0ZDliNTVkMGM0ZDVjMmNmMDI3YjY5YTM2OWFmOTQ3ZDhiMzUwZWExMTA1MjRhNDFhZWUwMmIwZTIwMWQyOTQ1MWNmOTdhMTFjMTc4MjhkN2ExNmJkNTBjNzUyODExNGM0ZWU5OTQ5OWVhZWI2ZGQ2Y2Y1YjU6MDJhZWMwOTNlYWY1ZmE0ZDkyZGY5NjRjOGIzZTE0YTU6ZGFjNGU1OGRhNzgyNTJlNzBkNzU0ZDFhOGE1NDNkMDk6OWVmNzRlOTEwNjhiNGI0YzEzOGE5YTU4OWY2YTJkZTAwMjY2NjY=",
+    "supabaseId": "demo-user-123",
+    "onboardingCompleted": true,
+    "createdAt": "2026-02-03T11:57:56.062Z",
+    "updatedAt": "2026-02-03T11:58:01.182Z"
+  },
+  {
+    "id": "697faa2c8798a077b5bd38c9",
+    "email": "ZmRiYzIzMjhiZDk3ZDFkNjU5ZTMzYzFhNTIzMjdmNGIwOTdhMzYwYThiODNlZmM4MDk0N2VlZWFmOGM3Y2EyNTRlODMwZjZiMjZjYmNhYTAwZGIzZTZiNTU0MDBhNTFjNjcyZGIwNzZjZjE3OTc2ZDRiYjA2NjVhOTMxZDg2Yjk6NzQ4NDJlNTgzODA3MDNhZDU0MzQ2NTBlYTM4ZTEyMjA6MGE2ZjdhYmQwMjM5MDE2ZGRmZGNjMGEyMGQ4ODYyMTk6MzQ5MDk3MGVkOGUwMDNiMzhlZjY1MzRkY2VhOTM2OTNkZmU0MmIzMWI0ZDdhMQ==",
+    "supabaseId": "169941a4-af24-4b7d-9492-4d1b6d798828",
+    "onboardingCompleted": true,
+    "createdAt": "2026-02-01T19:31:56.200Z",
+    "updatedAt": "2026-02-16T09:03:28.676Z"
+  },
+  {
+    "id": "697fa8c5fcf43db8a532210c",
+    "email": "newuser4@test.com",
+    "supabaseId": "neon_78dc14b0-698f-4771-b6db-ba456058f325",
+    "neonUserId": "78dc14b0-698f-4771-b6db-ba456058f325",
+    "onboardingCompleted": false,
+    "createdAt": "2026-02-01T19:25:57.610Z",
+    "updatedAt": "2026-02-01T19:25:57.610Z"
+  },
+  {
+    "id": "697fa0d19036523e128fbf17",
+    "email": "test3@test.com",
+    "supabaseId": "neon_647ecf42-3bc9-4a12-8b20-3743018fdd17",
+    "neonUserId": "647ecf42-3bc9-4a12-8b20-3743018fdd17",
+    "onboardingCompleted": false,
+    "createdAt": "2026-02-01T18:52:01.152Z",
+    "updatedAt": "2026-02-01T18:52:01.152Z"
+  },
+  {
+    "id": "697fa0329036523e128fbf13",
+    "email": "rohandesai2930@gmail.com",
+    "supabaseId": "neon_c8f4d3d0-e142-46f4-9f6c-7e0043c0af23",
+    "neonUserId": "c8f4d3d0-e142-46f4-9f6c-7e0043c0af23",
+    "onboardingCompleted": false,
+    "createdAt": "2026-02-01T18:49:22.187Z",
+    "updatedAt": "2026-02-01T18:49:22.187Z"
+  },
+  {
+    "id": "697f98a3f14ec39d17c19988",
+    "email": "rohandesai568@gmail.com",
+    "supabaseId": "neon_169941a4-af24-4b7d-9492-4d1b6d798828",
+    "neonUserId": "169941a4-af24-4b7d-9492-4d1b6d798828",
+    "onboardingCompleted": false,
+    "createdAt": "2026-02-01T18:17:07.074Z",
+    "updatedAt": "2026-02-01T18:17:07.074Z"
+  }
+]

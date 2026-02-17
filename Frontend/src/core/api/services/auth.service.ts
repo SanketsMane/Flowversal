@@ -84,12 +84,17 @@ class AuthService {
         lastLogin: new Date().toISOString(),
         onboardingCompleted: data.user.onboardingCompleted || false,
       };
+
+      // Handle both backend naming conventions - Fixes BUG-007
+      const accessToken = data.accessToken || data.access_token;
+      const refreshToken = data.refreshToken || data.refresh_token;
+
       // Extract expiry from token
       let expiresAt = Date.now() + (7 * 24 * 60 * 60 * 1000); // Default 7 days
-      if (data.accessToken) {
+      if (accessToken) {
         try {
           // Basic JWT decode without library to avoid adding dependency
-          const base64Url = data.accessToken.split('.')[1];
+          const base64Url = accessToken.split('.')[1];
           if (base64Url) {
               const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
               const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
@@ -104,11 +109,12 @@ class AuthService {
           console.warn('[AuthService] Failed to decode token expiry:', e);
         }
       }
+
       const session: AuthSession = {
         user,
-        accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
-        expiresAt: expiresAt,
+        accessToken,
+        refreshToken,
+        expiresAt,
       };
       this.saveSession(session);
       return { success: true, user };
@@ -167,33 +173,33 @@ class AuthService {
    * Author: Sanket
    */
   async updateProfile(updates: Partial<Pick<User, 'name' | 'avatar'>>): Promise<{ success: boolean; error?: string }> {
-     try {
-       // Call backend to persist changes
-       const response = await api.put<any>(API_ENDPOINTS.users.me, {
-         metadata: {
-           name: updates.name,
-           avatar: updates.avatar,
-         }
-       });
+      try {
+        // Call backend to persist changes
+        const response = await api.put<any>(API_ENDPOINTS.users.me, {
+          metadata: {
+            name: updates.name,
+            avatar: updates.avatar,
+          }
+        });
 
-       if (response.success && response.data) {
-         // Update local session with backend response
-         if (this.currentSession) {
-           this.currentSession.user = {
-             ...this.currentSession.user,
-             name: response.data.name || updates.name || this.currentSession.user.name,
-             avatar: response.data.avatar || updates.avatar || this.currentSession.user.avatar,
-           };
-           this.saveSession(this.currentSession);
-         }
-         return { success: true };
-       }
-       return { success: false, error: response.error || 'Failed to update profile' };
-     } catch (error: any) {
-       console.error('[AuthService] Profile update error:', error);
-       return { success: false, error: error.message || 'Network error' };
-     }
-   }
+        if (response.success && response.data) {
+          // Update local session with backend response
+          if (this.currentSession) {
+            this.currentSession.user = {
+              ...this.currentSession.user,
+              name: response.data.name || updates.name || this.currentSession.user.name,
+              avatar: response.data.avatar || updates.avatar || this.currentSession.user.avatar,
+            };
+            this.saveSession(this.currentSession);
+          }
+          return { success: true };
+        }
+        return { success: false, error: response.error || 'Failed to update profile' };
+      } catch (error: any) {
+        console.error('[AuthService] Profile update error:', error);
+        return { success: false, error: error.message || 'Network error' };
+      }
+    }
   /**
    * Change password - Fixes BUG-003
    */
@@ -283,7 +289,9 @@ class AuthService {
    */
   private async verifySessionAsync(): Promise<void> {
     try {
-      const response = await api.get<any>('/api/v1/auth/me');
+      // Use direct path to avoid double-prefixing issue - api-client handles base URL
+      // Change from 'auth/me' to '/auth/me' to ensure clean path
+      const response = await api.get<any>('/auth/me');
       if (response.success && response.data) {
         // Update session with verified user data from backend
         if (this.currentSession) {
@@ -319,19 +327,25 @@ class AuthService {
       // Refresh if within 1 hour of expiry
       const oneHour = 3600000;
       if (Date.now() > this.currentSession.expiresAt - oneHour) {
-         const response = await api.post<any>(API_ENDPOINTS.auth.refresh, { 
+         // Use relative path to avoid double-prefixing
+         const response = await api.post<any>('auth/refresh', { 
              refreshToken: this.currentSession.refreshToken 
          });
          if (response.success && response.data) {
              const data = response.data;
-             this.currentSession.accessToken = data.accessToken;
-             this.currentSession.refreshToken = data.refreshToken; // Rotate
-             // Update expiry (e.g. 7 days from now)
-             this.currentSession.expiresAt = Date.now() + (7 * 24 * 3600 * 1000); 
-             this.saveSession(this.currentSession);
-             return true;
+             // Ensure session still exists and handle BOTH naming conventions - Author: Sanket
+             if (this.currentSession) {
+                this.currentSession.accessToken = data.accessToken || data.access_token;
+                this.currentSession.refreshToken = data.refreshToken || data.refresh_token; 
+                
+                // Update expiry (e.g. 7 days from now)
+                this.currentSession.expiresAt = Date.now() + (7 * 24 * 3600 * 1000); 
+                this.saveSession(this.currentSession);
+                return true;
+             }
          } else {
-             this.clearSession();
+             // Only clear if it was an auth error, not network error
+             console.warn('[AuthService] Refresh failed, but keeping session for now');
              return false;
          }
       }

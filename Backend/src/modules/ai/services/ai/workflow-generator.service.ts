@@ -36,9 +36,10 @@ export class WorkflowGeneratorService {
       const response = await langChainService.generateText(prompt, {
         modelType: modelType,
         remoteModel,
-        temperature: 0.3, // Lower temperature for more consistent output
+        temperature: request.temperature || 0.3,
         maxTokens: 4000,
         useLangChain: true,
+        customModel: request.customModel,
       });
 
       // Parse JSON from response

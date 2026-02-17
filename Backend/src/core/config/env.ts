@@ -75,6 +75,10 @@ interface EnvConfig {
   GROK_API_KEY: string;
   DIRECT_DEEPSEEK_ENABLED: boolean;
   DEEPSEEK_API_KEY: string;
+  // Flowversal Remote
+  FLOWVERSAL_REMOTE_ENABLED: boolean;
+  FLOWVERSAL_REMOTE_API_KEY: string;
+  FLOWVERSAL_REMOTE_URL: string;
   // Monitoring & Error Tracking
   SENTRY_DSN?: string;
   ENABLE_METRICS: boolean;
@@ -136,14 +140,14 @@ export const env: EnvConfig = {
   PINECONE_ENVIRONMENT: getEnvVar('PINECONE_ENVIRONMENT', 'us-east-1'),
   PINECONE_INDEX_NAME: getEnvVar('PINECONE_INDEX_NAME', 'flowversalidx'),
   PINECONE_HOST: getEnvVar('PINECONE_HOST', ''),
-  // Supabase
-  SUPABASE_URL: getEnvVar('SUPABASE_URL'),
-  SUPABASE_ANON_KEY: getEnvVar('SUPABASE_ANON_KEY'),
-  SUPABASE_SERVICE_ROLE_KEY: getEnvVar('SUPABASE_SERVICE_ROLE_KEY'),
+  // Supabase (OPTIONAL - Using Neon PostgreSQL instead)
+  SUPABASE_URL: process.env.SUPABASE_URL || '',
+  SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || '',
+  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
   // vLLM / Flowversal AI Model (Priority 1)
-  VLLM_BASE_URL: getEnvVar('VLLM_BASE_URL', 'http://localhost:8000/v1'),
-  VLLM_ENABLED: getEnvBoolean('VLLM_ENABLED', true),
-  VLLM_MODEL_NAME: getEnvVar('VLLM_MODEL_NAME', 'flowversal-ai'),
+  VLLM_BASE_URL: getEnvVar('VLLM_BASE_URL', getEnvVar('OLLAMA_BASE_URL', 'http://localhost:8000/v1')),
+  VLLM_ENABLED: getEnvBoolean('VLLM_ENABLED', getEnvBoolean('LOCAL_MODEL_ENABLED', true)),
+  VLLM_MODEL_NAME: getEnvVar('VLLM_MODEL_NAME', getEnvVar('LOCAL_MODEL_NAME', 'flowversal-ai')),
   VLLM_API_KEY: getEnvVar('VLLM_API_KEY', ''),
   // OpenRouter (Fallback option)
   OPENROUTER_API_KEY: getEnvVar('OPENROUTER_API_KEY'),
@@ -153,7 +157,7 @@ export const env: EnvConfig = {
   REMOTE_MODEL_CLAUDE: getEnvVar('REMOTE_MODEL_CLAUDE', 'anthropic/claude-3.5-sonnet'),
   REMOTE_MODEL_GEMINI: getEnvVar('REMOTE_MODEL_GEMINI', 'google/gemini-2.0-flash-exp'),
   // Direct API Providers
-  DIRECT_OPENAI_ENABLED: getEnvBoolean('DIRECT_OPENAI_ENABLED', false),
+  DIRECT_OPENAI_ENABLED: getEnvBoolean('DIRECT_OPENAI_ENABLED', getEnvBoolean('OPENAI_ENABLED', false)),
   OPENAI_API_KEY: getEnvVar('OPENAI_API_KEY', ''),
   DIRECT_GEMINI_ENABLED: getEnvBoolean('DIRECT_GEMINI_ENABLED', false),
   GEMINI_API_KEY: getEnvVar('GEMINI_API_KEY', ''),
@@ -163,6 +167,10 @@ export const env: EnvConfig = {
   GROK_API_KEY: getEnvVar('GROK_API_KEY', ''),
   DIRECT_DEEPSEEK_ENABLED: getEnvBoolean('DIRECT_DEEPSEEK_ENABLED', false),
   DEEPSEEK_API_KEY: getEnvVar('DEEPSEEK_API_KEY', ''),
+  // Flowversal Remote (Custom Integration)
+  FLOWVERSAL_REMOTE_ENABLED: getEnvBoolean('FLOWVERSAL_REMOTE_ENABLED', false),
+  FLOWVERSAL_REMOTE_API_KEY: getEnvVar('FLOWVERSAL_REMOTE_API_KEY', ''),
+  FLOWVERSAL_REMOTE_URL: getEnvVar('FLOWVERSAL_REMOTE_URL', 'http://139.84.155.227:3000/api/tanchat'),
   // Model Selection
   DEFAULT_MODEL_TYPE: (getEnvVar('DEFAULT_MODEL_TYPE', 'vllm') as 'vllm' | 'openrouter' | 'direct'),
   FALLBACK_TO_REMOTE: getEnvBoolean('FALLBACK_TO_REMOTE', true),

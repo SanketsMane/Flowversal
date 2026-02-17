@@ -76,6 +76,8 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         user: {
             ...authResponse.user,
             _id: mongoUser?.id, // Return Mongo ID if available
+            role: mongoUser?.role || 'user',
+            onboardingCompleted: mongoUser?.onboardingCompleted || false,
         },
         accessToken: authResponse.session.access_token,
         refreshToken: authResponse.session.refresh_token,
@@ -134,6 +136,8 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         user: {
             ...authResponse.user,
             _id: mongoUser?.id,
+            role: mongoUser?.role || 'user',
+            onboardingCompleted: mongoUser?.onboardingCompleted || false,
         },
         accessToken: authResponse.session.access_token,
         refreshToken: authResponse.session.refresh_token,
@@ -152,6 +156,8 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         success: false,
         error: 'InternalServerError',
         message: 'Failed to login',
+        debug: err.message,
+        stack: err.stack
       });
     }
   });
@@ -167,13 +173,26 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       });
     }
 
-    try {
+      try {
       const authResponse = await neonAuthService.refreshSession(refreshToken);
+
+      // Get or create user in Mongo to fetch onboarding status
+      let mongoUser;
+      try {
+        mongoUser = await userService.getOrCreateUserFromNeon(authResponse.user);
+      } catch (err) {
+        fastify.log.warn({ err }, 'Could not sync mongo user in /refresh');
+      }
 
       return reply.send({
         success: true,
         message: 'Session refreshed.',
-        user: authResponse.user,
+        user: {
+          ...authResponse.user,
+          _id: mongoUser?.id,
+          role: mongoUser?.role || 'user',
+          onboardingCompleted: mongoUser?.onboardingCompleted || false,
+        },
         accessToken: authResponse.session.access_token,
         refreshToken: authResponse.session.refresh_token, // New refresh token (rotated)
       });
@@ -191,14 +210,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
   // Fixes BUG-007: Session forgery prevention
   fastify.get('/me', { preHandler: [fastify.authenticate] }, async (request, reply) => {
     try {
-      if (!request.user) {
-        return reply.code(401).send({
-          success: false,
-          error: 'Unauthorized',
-          message: 'User not authenticated',
-        });
-      }
-      const userId = request.user.id;
+      const userId = (request.user as any).id;
       
       // Fetch fresh user data from Neon
       const user = await neonAuthService.getUser(userId);
@@ -215,7 +227,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       let mongoUser;
       try {
         mongoUser = await userService.getOrCreateUserFromNeon(user);
-      } catch (err: any) {
+      } catch (err) {
         fastify.log.warn({ err }, 'Could not sync mongo user in /me');
       }
 
@@ -331,7 +343,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         });
       }
       const { currentPassword, newPassword } = request.body || {};
-      const userId = request.user.id;
+      const userId = (request.user as any).id;
 
       if (!currentPassword || !newPassword) {
         return reply.code(400).send({

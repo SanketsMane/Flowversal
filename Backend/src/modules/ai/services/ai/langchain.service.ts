@@ -9,14 +9,14 @@ export interface ChatMessage {
   content: string;
 }
 export interface LangChainOptions {
-  modelType?: 'vllm' | 'openrouter' | 'local';
+  modelType?: 'vllm' | 'openrouter' | 'local' | 'openai';
   remoteModel?: 'gpt4' | 'claude' | 'gemini';
   temperature?: number;
   maxTokens?: number;
   useLangChain?: boolean; // Whether to use LangChain or direct API calls
   enableAccuracyCheck?: boolean; // Enable accuracy-based model selection
   accuracyThreshold?: number; // Minimum accuracy threshold (default: 0.6)
-  customModel?: any;
+  customModel?: BaseChatModel; // Custom model instance to use directly
 }
 export interface ModelAccuracyResult {
   model: string;
@@ -191,7 +191,11 @@ export class LangChainService {
     let model: BaseChatModel;
     let selectedProvider: ModelProvider;
     let accuracy: number | undefined;
-    if (enableAccuracyCheck) {
+    
+    if (options.customModel) {
+        model = options.customModel;
+        selectedProvider = 'unknown' as any;
+    } else if (enableAccuracyCheck) {
       const result = await this.createModelWithAccuracyCheck(options);
       model = result.model;
       selectedProvider = result.provider;
@@ -251,7 +255,10 @@ export class LangChainService {
     // Use intelligent model selection for text generation as well
     const enableAccuracyCheck = options.enableAccuracyCheck ?? true;
     let model: BaseChatModel;
-    if (enableAccuracyCheck) {
+    
+    if (options.customModel) {
+        model = options.customModel;
+    } else if (enableAccuracyCheck) {
       const result = await this.createModelWithAccuracyCheck(options);
       model = result.model;
     } else {

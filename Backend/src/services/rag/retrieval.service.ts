@@ -64,22 +64,23 @@ export class RetrievalService {
 
     if (retrievedDocs.length === 0) {
       // No relevant documents found, generate answer without context
-      const routingResult = await modelRouterService.smartRoute(
+      const routeResult = await modelRouterService.smartRoute(
         query,
         undefined,
         {
-          taskType: options.modelType as any,
-          forceProvider: options.remoteModel as any,
+          forceProvider: options.modelType as any,
         }
       );
+      
+      const response = await routeResult.model.invoke([{ role: 'user', content: query }]);
 
       const completion = await routingResult.model.invoke([{ role: 'user', content: query }]);
       const answer = typeof completion.content === 'string' ? completion.content : JSON.stringify(completion.content);
 
       return {
-        answer,
+        answer: response.content.toString(),
         sources: [],
-        model: routingResult.provider,
+        model: routeResult.provider,
       };
     }
 
@@ -98,14 +99,22 @@ Question: ${query}
 
 Answer:`;
 
-    const routingResult = await modelRouterService.smartRoute(
+    const routeResult = await modelRouterService.smartRoute(
       prompt,
       'You are a helpful assistant that answers questions based on provided context. Cite sources when possible.',
       {
-        taskType: options.modelType as any,
-        forceProvider: options.remoteModel as any,
+        forceProvider: options.modelType as any,
       }
     );
+
+    const response = await routeResult.model.invoke([
+        {
+          role: 'system',
+          content:
+            'You are a helpful assistant that answers questions based on provided context. Cite sources when possible.',
+        },
+        { role: 'user', content: prompt },
+    ]);
 
     const completion = await routingResult.model.invoke([
       {
@@ -118,13 +127,13 @@ Answer:`;
     const answer = typeof completion.content === 'string' ? completion.content : JSON.stringify(completion.content);
 
     return {
-      answer,
+      answer: response.content.toString(),
       sources: retrievedDocs.map((doc) => ({
         text: doc.text || '',
         score: doc.score,
         metadata: doc.metadata,
       })),
-      model: routingResult.provider,
+      model: routeResult.provider,
     };
   }
 

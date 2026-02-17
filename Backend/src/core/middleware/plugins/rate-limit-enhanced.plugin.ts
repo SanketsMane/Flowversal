@@ -1,5 +1,5 @@
-import { FastifyPluginAsync } from 'fastify';
 import rateLimit from '@fastify/rate-limit';
+import { FastifyPluginAsync } from 'fastify';
 import Redis from 'ioredis';
 import { env } from '../../config/env';
 
@@ -16,7 +16,7 @@ const rateLimitEnhancedPlugin: FastifyPluginAsync = async (fastify) => {
     max: 100,
     timeWindow: '1 minute',
     cache: 10000,
-    redis: redisClient,
+    // store: redisClient ? { type: 'redis', client: redisClient } : undefined, // Invalid type for store
     allowList: ['127.0.0.1', '::1'],
     skipOnError: false,
     keyGenerator: (request) => {
@@ -41,7 +41,7 @@ const rateLimitEnhancedPlugin: FastifyPluginAsync = async (fastify) => {
         max: 5,
         timeWindow: '15 minutes',
         cache: 10000,
-        redis: redisClient,
+        // store: redisClient ? { type: 'redis', client: redisClient } : undefined,
         keyGenerator: (request) => request.ip,
       });
     }
@@ -51,7 +51,7 @@ const rateLimitEnhancedPlugin: FastifyPluginAsync = async (fastify) => {
         max: 20,
         timeWindow: '1 minute',
         cache: 10000,
-        redis: redisClient,
+        // store: redisClient ? { type: 'redis', client: redisClient } : undefined,
         keyGenerator: (request) => {
           const user = (request as any).user;
           return user?.id || request.ip;

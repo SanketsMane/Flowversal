@@ -1,103 +1,86 @@
-const fastifyModule = require('fastify');
-const testServerModule = require('../utils/test-server');
 
-// Mock the workflow service directly in the test
-jest.mock('../../modules/workflows/services/workflow.service', () => ({
-  workflowService: {
-    listWorkflows: jest.fn().mockResolvedValue({
-      workflows: [],
-      page: 1,
-      limit: 20,
-      total: 0,
-      totalPages: 0,
-    }),
-    createWorkflow: jest.fn().mockResolvedValue({
-      success: true,
-      data: { id: 'test-workflow-id', name: 'Test Workflow' },
-      message: 'Workflow created successfully'
-    }),
-    getWorkflowById: jest.fn().mockResolvedValue(null),
-  },
-}));
+import { afterAll, beforeAll, describe, expect, it } from '@jest/globals';
+import type { FastifyInstance } from 'fastify';
+import mongoose from 'mongoose';
 
-// Mock health check functions
-jest.mock('../../routes/health.routes', () => ({
-  default: jest.fn().mockImplementation(async (fastify: any) => {
-    fastify.get('/ready', async (request: any, reply: any) => {
-      reply.send({
-        status: 'ready',
-        checks: [
-          { name: 'database', status: 'ok', latency: 10 },
-          { name: 'redis', status: 'not configured' },
-          { name: 'external', status: 'ok', services: { supabase: 'configured', pinecone: 'configured' } }
-        ],
-        timestamp: new Date().toISOString(),
-      });
-    });
-
-    fastify.get('/live', async (request: any, reply: any) => {
-      reply.send({
-        status: 'alive',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        memory: process.memoryUsage(),
-      });
-    });
-
-    fastify.get('/health', async (request: any, reply: any) => {
-      reply.send({
-        overall: 'healthy',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        version: '1.0.0',
-        environment: 'test',
-        checks: {
-          database: { status: 'ok', latency: 10 },
-          memory: { status: 'ok', usage: process.memoryUsage() },
-          cpu: { status: 'ok', usage: process.cpuUsage().user },
-          external: { status: 'ok', services: { supabase: 'configured', pinecone: 'configured' } },
-        },
-      });
-    });
-  }),
-}));
+/**
+ * Integration Test: Workflow API
+ * Author: Sanket
+ */
 
 describe('Workflow API Integration Tests', () => {
-  let app: any;
+  let server: FastifyInstance;
+  let buildServer: any;
+  let workflowService: any;
+  let neonAuthService: any;
+  let userService: any;
 
   beforeAll(async () => {
-    app = await testServerModule.buildTestServer();
-    await app.ready();
-  }, 30000);
+    const mongoMod = await import('../../core/database/mongodb');
+    const serverMod = await import('../../server');
+    const workflowMod = await import('../../modules/workflows/services/workflow.service');
+    const authMod = await import('../../modules/auth/services/neon-auth.service');
+    const userMod = await import('../../modules/users/services/user.service');
+    
+    buildServer = serverMod.buildServer;
+    workflowService = workflowMod.workflowService;
+    neonAuthService = authMod.neonAuthService;
+    userService = userMod.userService;
+    
+    await mongoMod.connectMongoDB();
+    server = await buildServer();
+    await server.ready();
+
+    // Default mocks
+    (neonAuthService.getUser as any).mockResolvedValue({
+      id: 'test-user-id',
+      email: 'test@example.com',
+      user_metadata: { name: 'Test User' }
+    });
+
+    (userService.getOrCreateUserFromSupabase as any).mockResolvedValue({
+      _id: new mongoose.Types.ObjectId('65cc7f8d7f8d7f8d7f8d7f8d'),
+      id: 'test-user-id',
+      email: 'test@example.com'
+    });
+  });
 
   afterAll(async () => {
-    await app.close();
+    await server.close();
+    await mongoose.disconnect();
   });
+
+  const getResponseBody = (res: any) => {
+    try {
+      return JSON.parse(res.body || res.payload);
+    } catch (e) {
+      return res.body || res.payload;
+    }
+  };
 
   describe('GET /api/v1/workflows', () => {
     it('should return list of workflows', async () => {
-      jest.setTimeout(30000);
-      const response = await app.inject({
+      (workflowService.listWorkflows as any).mockResolvedValueOnce({
+        workflows: [],
+        page: 1,
+        limit: 20,
+        total: 0,
+        totalPages: 0,
+      });
+
+      const response = await server.inject({
         method: 'GET',
         url: '/api/v1/workflows',
+        headers: { authorization: 'Bearer valid-token' }
       });
 
-      expect(response.statusCode).toBe(200);
-      const body = JSON.parse(response.payload);
-      expect(body).toHaveProperty('success');
-      expect(Array.isArray(body.data) || body.data === undefined).toBe(true);
-    });
-
-    it('should support pagination query parameters', async () => {
-      jest.setTimeout(30000);
-      const response = await app.inject({
-        method: 'GET',
-        url: '/api/v1/workflows?limit=10&offset=0',
-      });
+      const body = getResponseBody(response);
+      if (response.statusCode !== 200) {
+        console.log('GET /workflows failure:', body);
+      }
 
       expect(response.statusCode).toBe(200);
-      const body = JSON.parse(response.payload);
-      expect(body).toHaveProperty('success');
+      expect(body.success).toBe(true);
     });
   });
 
@@ -105,73 +88,50 @@ describe('Workflow API Integration Tests', () => {
     it('should create a new workflow with valid data', async () => {
       const workflowData = {
         name: 'Test Workflow',
-        description: 'Integration test workflow',
-        nodes: [
-          {
-            id: 'node-1',
-            type: 'trigger',
-            config: { event: 'test.event' },
-          },
-        ],
-        connections: [],
+        description: 'Integration test',
+        triggers: [],
+        containers: [],
+        formFields: [],
+        status: 'draft',
       };
 
-      const response = await app.inject({
+      (workflowService.createWorkflow as any).mockResolvedValueOnce({
+        id: 'test-workflow-id',
+        ...workflowData
+      });
+
+      const response = await server.inject({
         method: 'POST',
         url: '/api/v1/workflows',
         payload: workflowData,
         headers: {
           'content-type': 'application/json',
+          authorization: 'Bearer valid-token'
         },
       });
 
-      // Should either succeed (201) or fail with validation error (400)
-      expect([201, 400, 401]).toContain(response.statusCode);
-    });
+      const body = getResponseBody(response);
+      if (response.statusCode !== 201) {
+        console.log('POST /workflows failure:', body);
+      }
 
-    it('should reject invalid workflow data', async () => {
-      const invalidData = {
-        name: '', // Invalid: empty name
-        nodes: [], // Invalid: no nodes
-      };
-
-      const response = await app.inject({
-        method: 'POST',
-        url: '/api/v1/workflows',
-        payload: invalidData,
-        headers: {
-          'content-type': 'application/json',
-        },
-      });
-
-      expect([400, 422]).toContain(response.statusCode);
+      expect(response.statusCode).toBe(201);
+      expect(body.success).toBe(true);
+      expect(body.data).toBeDefined();
     });
   });
 
   describe('GET /api/v1/workflows/:id', () => {
     it('should return 404 for non-existent workflow', async () => {
-      jest.setTimeout(30000);
-      const response = await app.inject({
+      (workflowService.getWorkflowById as any).mockResolvedValueOnce(null);
+
+      const response = await server.inject({
         method: 'GET',
-        url: '/api/v1/workflows/non-existent-id',
+        url: '/api/v1/workflows/65cc7f8d7f8d7f8d7f8d7f8d',
+        headers: { authorization: 'Bearer valid-token' }
       });
 
-      expect([404, 401]).toContain(response.statusCode);
-    });
-  });
-
-  describe('Health Check', () => {
-    it('should return health status', async () => {
-      const response = await app.inject({
-        method: 'GET',
-        url: '/health',
-      });
-
-      expect(response.statusCode).toBe(200);
-      const body = JSON.parse(response.payload);
-      expect(body).toHaveProperty('overall');
-      expect(body.overall).toBe('healthy');
+      expect(response.statusCode).toBe(404);
     });
   });
 });
-

@@ -25,7 +25,7 @@ export const chatCompletionSchema = {
       },
       modelType: {
         type: 'string',
-        enum: ['local', 'remote', 'vllm'],
+        enum: ['local', 'remote', 'vllm', 'openai'],
       },
       remoteModel: {
         type: 'string',

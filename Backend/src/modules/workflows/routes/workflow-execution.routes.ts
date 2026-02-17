@@ -9,13 +9,7 @@ const workflowExecutionRoutes: FastifyPluginAsync = async (fastify) => {
     '/execute',
     async (request, reply) => {
       // #region agent log
-      const fs = require('fs');
-      const logPath = '/Users/nishantkumar/Documents/FloversalAI 1.0.0/.cursor/debug.log';
-      try {
-        fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.routes.ts:8',message:'Execute unsaved workflow route entry',data:{hasWorkflow:!!request.body.workflow,hasUser:!!request.user,hasAuthHeader:!!request.headers.authorization},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})+'\n');
-      } catch (err) {
-        console.error('[DEBUG] Failed to write log', err);
-      }
+      // BUG-FIX: Removed hardcoded filesystem logging - Sanket
       // #endregion
       // Authenticate user if request.user is not set
       let user: { id: string } | undefined = request.user;
@@ -61,7 +55,7 @@ const workflowExecutionRoutes: FastifyPluginAsync = async (fastify) => {
       try {
         const dbUser = await userService.getOrCreateUserFromSupabase(user.id);
         // #region agent log
-        fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.routes.ts:25',message:'Before startExecutionWithData',data:{userId:dbUser._id.toString(),hasInput:!!request.body.input},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})+'\n');
+        // BUG-FIX: Removed hardcoded filesystem logging - Sanket
         // #endregion
         const execution = await workflowExecutionService.startExecutionWithData(
           request.body.workflow,
@@ -70,7 +64,7 @@ const workflowExecutionRoutes: FastifyPluginAsync = async (fastify) => {
           (request.body.triggeredBy as any) || 'manual'
         );
         // #region agent log
-        fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.routes.ts:32',message:'After startExecutionWithData',data:{executionId:execution._id.toString(),status:execution.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})+'\n');
+        // BUG-FIX: Removed hardcoded filesystem logging - Sanket
         // #endregion
         const executionData = execution.toJSON ? execution.toJSON() : execution;
         const executionId = executionData.id || executionData._id?.toString() || execution._id.toString();
@@ -85,7 +79,7 @@ const workflowExecutionRoutes: FastifyPluginAsync = async (fastify) => {
       } catch (error: any) {
         fastify.log.error('Error executing unsaved workflow:', error);
         // #region agent log
-        fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.routes.ts:45',message:'Execute unsaved workflow error',data:{errorMessage:error?.message,errorName:error?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})+'\n');
+        // BUG-FIX: Removed hardcoded filesystem logging - Sanket
         // #endregion
         return reply.code(400).send({
           error: 'Bad Request',
@@ -99,17 +93,11 @@ const workflowExecutionRoutes: FastifyPluginAsync = async (fastify) => {
     '/:id/execute',
     async (request, reply) => {
       // #region agent log
-      const fs = require('fs');
-      const logPath = '/Users/nishantkumar/Documents/FloversalAI 1.0.0/.cursor/debug.log';
-      try {
-        fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.routes.ts:10',message:'Route handler entry',data:{workflowId:request.params.id,hasUser:!!request.user,hasBody:!!request.body},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})+'\n');
-      } catch (err) {
-        console.error('[DEBUG] Failed to write log', err);
-      }
+      // BUG-FIX: Removed hardcoded filesystem logging - Sanket
       // #endregion
       if (!request.user) {
         // #region agent log
-        fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.routes.ts:12',message:'Unauthorized',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})+'\n');
+        // BUG-FIX: Removed hardcoded filesystem logging - Sanket
         // #endregion
         return reply.code(401).send({
           error: 'Unauthorized',
@@ -119,7 +107,7 @@ const workflowExecutionRoutes: FastifyPluginAsync = async (fastify) => {
       try {
         const dbUser = await userService.getOrCreateUserFromSupabase(request.user.id);
         // #region agent log
-        fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.routes.ts:20',message:'Before startExecution',data:{workflowId:request.params.id,userId:dbUser._id.toString(),hasInput:!!request.body.input},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})+'\n');
+        // BUG-FIX: Removed hardcoded filesystem logging - Sanket
         // #endregion
         const execution = await workflowExecutionService.startExecution(
           request.params.id,
@@ -128,11 +116,7 @@ const workflowExecutionRoutes: FastifyPluginAsync = async (fastify) => {
           (request.body.triggeredBy as any) || 'manual'
         );
         // #region agent log
-        try {
-          fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.routes.ts:27',message:'After startExecution',data:{executionId:execution._id.toString(),status:execution.status},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})+'\n');
-        } catch (err) {
-          console.error('[DEBUG] Failed to write log', err);
-        }
+        // BUG-FIX: Removed hardcoded filesystem logging - Sanket
         // #endregion
         // Ensure execution is serialized properly with id field
         const executionData = execution.toJSON ? execution.toJSON() : execution;
@@ -148,7 +132,7 @@ const workflowExecutionRoutes: FastifyPluginAsync = async (fastify) => {
       } catch (error: any) {
         fastify.log.error('Error starting workflow execution:', error);
         // #region agent log
-        fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.routes.ts:34',message:'Route handler error',data:{errorMessage:error?.message,errorName:error?.name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})+'\n');
+        // BUG-FIX: Removed hardcoded filesystem logging - Sanket
         // #endregion
         return reply.code(400).send({
           error: 'Bad Request',

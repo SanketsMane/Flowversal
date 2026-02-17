@@ -82,7 +82,7 @@ export async function analyticsRoutes(fastify: any) {
     }>, reply: FastifyReply) => {
       try {
         const { startDate, endDate, workflowId, userId } = request.query;
-        const userIdObj = (request.user as any).id;
+        const userIdObj = (request.user as any).id as string;
 
         const timeRange = startDate && endDate ? {
           start: new Date(startDate),
@@ -164,7 +164,7 @@ export async function analyticsRoutes(fastify: any) {
     }>, reply: FastifyReply) => {
       try {
         const { startDate, endDate, userId } = request.query;
-        const userIdObj = (request.user as any).id;
+        const userIdObj = (request.user as any).id as string;
 
         const timeRange = startDate && endDate ? {
           start: new Date(startDate),
@@ -438,7 +438,7 @@ export async function analyticsRoutes(fastify: any) {
     }>, reply: FastifyReply) => {
       try {
         const { type, format = 'json', startDate, endDate, filters } = request.body;
-        const userId = (request.user as any).id;
+        const userId = (request.user as any).id as string;
 
         const timeRange = startDate && endDate ? {
           start: new Date(startDate),
@@ -485,5 +485,43 @@ export async function analyticsRoutes(fastify: any) {
         });
       }
     },
+  });
+
+  // Get comprehensive usage summary for subscription modal - Fixes dummy data
+  // Author: Sanket
+  fastify.get('/usage', { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    try {
+      const userId = (request.user as any).id;
+      const usage = await workflowAnalyticsService.getUsageSummary(new Types.ObjectId(userId));
+      return reply.send({
+        success: true,
+        data: usage
+      });
+    } catch (error: any) {
+      fastify.log.error('Usage summary error', error);
+      return reply.code(500).send({
+        success: false,
+        message: 'Failed to fetch usage summary'
+      });
+    }
+  });
+
+  // Get dashboard metrics summary - Fixes dummy data
+  // Author: Sanket
+  fastify.get('/summary', { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+    try {
+      const userId = (request.user as any).id;
+      const stats = await workflowAnalyticsService.getDashboardStats(new Types.ObjectId(userId));
+      return reply.send({
+        success: true,
+        summary: stats
+      });
+    } catch (error: any) {
+      fastify.log.error('Dashboard stats error', error);
+      return reply.code(500).send({
+        success: false,
+        message: 'Failed to fetch dashboard summary'
+      });
+    }
   });
 }

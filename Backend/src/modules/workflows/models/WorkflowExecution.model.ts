@@ -119,12 +119,10 @@ const PendingApprovalSchema = new Schema(
     approvalId: {
       type: String,
       required: true,
-      index: true,
     },
     nodeId: {
       type: String,
       required: true,
-      index: true,
     },
     stepId: {
       type: String,
@@ -195,24 +193,20 @@ const WorkflowExecutionSchema = new Schema<IWorkflowExecution>(
       type: Schema.Types.ObjectId,
       ref: 'Workflow',
       required: false, // Optional for unsaved workflows
-      index: true,
     },
     userId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      index: true,
     },
     status: {
       type: String,
       enum: ['pending', 'running', 'completed', 'failed', 'cancelled', 'stopped'],
       default: 'pending',
-      index: true,
     },
     startedAt: {
       type: Date,
       default: Date.now,
-      index: true,
     },
     completedAt: {
       type: Date,
@@ -242,7 +236,6 @@ const WorkflowExecutionSchema = new Schema<IWorkflowExecution>(
       type: String,
       enum: ['manual', 'webhook', 'scheduled', 'event'],
       default: 'manual',
-      index: true,
     },
     triggerData: {
       type: Schema.Types.Mixed,

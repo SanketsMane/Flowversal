@@ -189,26 +189,39 @@ export class UserService {
   }
   /**
    * Get or create user from Neon Auth
+   * Author: Sanket
+   * Synchronizes users from Neon PostgreSQL to MongoDB with proper encryption
    */
   async getOrCreateUserFromNeon(neonUser: { id: string; email: string; fullName?: string | null }): Promise<IUser> {
+    // Ensure DB is connected before proceeding - Author: Sanket
+    if (mongoose.connection.readyState !== 1) {
+      const { connectMongoDB } = require('../../../core/database/mongodb');
+      await connectMongoDB();
+    }
+
     // 1. Check if user exists by neonUserId
     const existingUser = await UserModel.findOne({ neonUserId: neonUser.id });
     if (existingUser) {
       return existingUser;
     }
-    // 2. Check by email (migration scenario)
-    const legacyUser = await UserModel.findOne({ email: neonUser.email });
+
+    // 2. Check by email (migration scenario) - Author: Sanket
+    // Must encrypt email before searching MongoDB
+    const legacyUser = await this.findByEmail(neonUser.email);
     if (legacyUser) {
         // Link Neon ID to legacy user
         legacyUser.neonUserId = neonUser.id;
         await legacyUser.save();
         return legacyUser;
     }
-    // 3. Create new user
+
+    // 3. Create new user - Author: Sanket
+    // Ensure email is encrypted for storage
+    const encryptedEmail = encryptField(neonUser.email);
     const newUser = new UserModel({
       neonUserId: neonUser.id,
-      email: neonUser.email,
-      supabaseId: `neon_${neonUser.id}`,
+      email: encryptedEmail,
+      supabaseId: `neon_${neonUser.id}`, // Maintain compatibility with older systems
       metadata: {
           fullName: neonUser.fullName,
           source: 'neon_auth',

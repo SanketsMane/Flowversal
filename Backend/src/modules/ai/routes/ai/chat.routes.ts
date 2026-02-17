@@ -21,6 +21,28 @@ const chatRoutes: FastifyPluginAsync = async (fastify) => {
       const body = request.body as any;
       const { messages, tools, mode, conversationId } = body;
 
+      // 0. Check for Flowversal Remote (Custom Integration) - Highest Priority
+      console.log('[DEBUG] FLOWVERSAL_REMOTE_ENABLED:', process.env.FLOWVERSAL_REMOTE_ENABLED);
+      if (process.env.FLOWVERSAL_REMOTE_ENABLED === 'true') {
+        console.log('[DEBUG] Using Flowversal Remote API');
+        const { flowversalRemoteService } = await import('../../services/ai/flowversal-remote.service');
+        
+        const responseContent = await flowversalRemoteService.chatCompletion(messages, body.remoteModel);
+        
+        return reply.send({
+          success: true,
+          data: {
+            response: responseContent,
+            conversationId: conversationId || `conv-${Date.now()}-${user.id}`,
+            model: 'flowversal-remote',
+            modelType: 'openai',
+          },
+        });
+      }
+      console.log('[DEBUG] Flowversal Remote NOT enabled, using fallback');
+
+
+
       // If tools are provided and mode is 'agent', use LangChain agent service for tool calling
       if (tools && Array.isArray(tools) && tools.length > 0 && (mode === 'agent' || !mode)) {
         const { langChainAgentService } = await import('../../services/ai/langchain-agent.service');
@@ -81,16 +103,13 @@ const chatRoutes: FastifyPluginAsync = async (fastify) => {
         },
       });
     } catch (error: any) {
-      fastify.log.error('Error in chat completion:', error);
-      
-      // Debug logging to artifact dir
-      try {
-        const fs = require('fs');
-        const logPath = 'C:/Users/rohan/.gemini/antigravity/brain/8622acbb-4c56-4c35-9298-a15ea23810c2/ai_chat_error.log';
-        fs.writeFileSync(logPath, `[${new Date().toISOString()}] AI Chat Error:\\n${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}\\n\\nStack:\\n${error.stack}\\n`);
-      } catch (e) {
-        console.error('Failed to write debug log:', e);
-      }
+      fastify.log.error({
+        err: error,
+        message: error.message,
+        stack: error.stack,
+        code: (error as any).code,
+        response: (error as any).response?.data
+      }, 'Error in chat completion');
 
       return reply.code(500).send({
         error: 'Internal Server Error',

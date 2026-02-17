@@ -1,4 +1,4 @@
-import { FastifyPluginAsync, FastifyError } from 'fastify';
+import { FastifyError, FastifyPluginAsync } from 'fastify';
 
 const errorHandlerPlugin: FastifyPluginAsync = async (fastify) => {
   const isDevelopment = process.env.NODE_ENV !== 'production';
@@ -56,9 +56,12 @@ const errorHandlerPlugin: FastifyPluginAsync = async (fastify) => {
 
     // Handle custom errors with status code
     if (error.statusCode) {
+      const isClientError = error.statusCode >= 400 && error.statusCode < 500;
       return reply.code(error.statusCode).send({
         error: error.name || 'Error',
-        message: error.message,
+        // Mask 5xx errors in production unless explicitly exposed
+        message: (isClientError || isDevelopment) ? error.message : 'An unexpected error occurred',
+        requestId: request.id,
       });
     }
 
@@ -66,6 +69,7 @@ const errorHandlerPlugin: FastifyPluginAsync = async (fastify) => {
     return reply.code(500).send({
       error: 'Internal Server Error',
       message: isDevelopment ? error.message : 'An unexpected error occurred',
+      requestId: request.id,
     });
   });
 };

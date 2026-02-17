@@ -12,6 +12,11 @@ declare module 'fastify' {
       token: string;
     };
   }
+  interface FastifyInstance {
+    authenticate: (request: FastifyRequest, reply: any) => Promise<void>;
+    getCurrentUser: (request: FastifyRequest) => User | null;
+    requireAuth: (request: FastifyRequest, reply: any) => Promise<void>;
+  }
 }
 
 interface AuthPluginOptions {
@@ -156,7 +161,19 @@ const authPlugin: FastifyPluginAsync<AuthPluginOptions> = async (fastify, option
     return request.user || null;
   });
 
-  // Helper to require authentication
+  // Helper to require authentication (used as preHandler hook)
+  // Author: Sanket - For use in route preHandler arrays
+  fastify.decorate('authenticate', async (request: FastifyRequest, reply: any) => {
+    if (!request.user) {
+      return reply.code(401).send({
+        success: false,
+        error: 'Unauthorized',
+        message: 'Authentication required',
+      });
+    }
+  });
+
+  // Alias for backward compatibility
   fastify.decorate('requireAuth', async (request: FastifyRequest, reply: any) => {
     if (!request.user) {
       return reply.code(401).send({

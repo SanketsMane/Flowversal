@@ -1,4 +1,5 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
+import { sanitizeInput, stripHtml } from '../../../../core/utils/sanitizer.util';
 import { userService } from '../../../users/services/user.service';
 import type { UpdateTaskData } from '../../services/task.service';
 import { taskService } from '../../services/task.service';
@@ -10,7 +11,9 @@ export async function updateTaskHandler(
   reply: FastifyReply
 ): Promise<void> {
   try {
-    const dbUser = await userService.getOrCreateUserFromSupabase(request.user!.id);
+    // Use cached dbUser if available (from auth middleware), otherwise fetch it
+    // This fixes BUG-TASK-003 (N+1 query problem)
+    const dbUser = request.user?.dbUser || await userService.getOrCreateUserFromSupabase(request.user!.id);
     const { id } = request.params;
     const body = request.body;
 
@@ -127,11 +130,11 @@ export async function updateTaskHandler(
     const updateData: UpdateTaskData = {};
 
     if (body.name !== undefined) {
-      updateData.name = body.name.trim();
+      updateData.name = stripHtml(body.name.trim());
     }
 
     if (body.description !== undefined) {
-      updateData.description = body.description?.trim() || '';
+      updateData.description = sanitizeInput(body.description?.trim() || '');
     }
 
     if (body.assignedTo !== undefined) {
@@ -175,11 +178,21 @@ export async function updateTaskHandler(
     }
 
     if (body.checklists !== undefined) {
-      updateData.checklists = body.checklists;
+      updateData.checklists = body.checklists.map((list: any) => ({
+        ...list,
+        name: stripHtml(list.name || ''),
+        items: list.items?.map((item: any) => ({
+          ...item,
+          text: sanitizeInput(item.text || '')
+        })) || []
+      }));
     }
 
     if (body.comments !== undefined) {
-      updateData.comments = body.comments;
+      updateData.comments = body.comments.map((comment: any) => ({
+        ...comment,
+        text: sanitizeInput(comment.text || '')
+      }));
     }
 
     if (body.attachments !== undefined) {

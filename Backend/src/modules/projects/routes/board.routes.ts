@@ -1,4 +1,5 @@
 import { FastifyPluginAsync } from 'fastify';
+import { sanitizeInput, stripHtml } from '../../../core/utils/sanitizer.util';
 import { userService } from '../../users/services/user.service';
 import { boardService } from '../services/board.service';
 
@@ -27,11 +28,15 @@ const boardRoutes: FastifyPluginAsync = async (fastify) => {
 
 
   // Create board with best practices
-  fastify.post<{ Body: CreateBoardBody }>('/', async (request, reply) => {
+  // BUG-FIX: Added authentication - Sanket
+  fastify.post<{ Body: CreateBoardBody }>('/', { preHandler: [fastify.authenticate] }, async (request, reply) => {
 
 
     try {
-      const { name, description, icon, iconColor, projectId, configuration } = request.body as CreateBoardBody;
+      const body = request.body as CreateBoardBody;
+      const name = stripHtml(body.name);
+      const description = sanitizeInput(body.description || '');
+      const { icon, iconColor, projectId, configuration } = body;
 
       // === INPUT VALIDATION ===
       const validationErrors: string[] = [];
@@ -74,7 +79,7 @@ const boardRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       // === BUSINESS LOGIC VALIDATION ===
-      const dbUser = await userService.getOrCreateUserFromSupabase(request.user!.id, request.user);
+      const dbUser = await userService.getOrCreateUserFromSupabase((request.user as any).id, request.user);
 
       // Verify project exists and belongs to user
       const projectExists = await boardService.validateProjectOwnership(projectId!, dbUser._id.toString());
@@ -111,7 +116,7 @@ const boardRoutes: FastifyPluginAsync = async (fastify) => {
       // === AUDIT LOGGING ===
       fastify.log.info({
         event: 'board_created',
-        userId: request.user!.id,
+        userId: (request.user as any).id,
         projectId: projectId,
         boardId: board._id,
         boardName: board.name,
@@ -161,11 +166,12 @@ const boardRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // List boards
-  fastify.get<{ Querystring: ListBoardsQuery }>('/', async (request, reply) => {
+  // BUG-FIX: Added authentication - Sanket
+  fastify.get<{ Querystring: ListBoardsQuery }>('/', { preHandler: [fastify.authenticate] }, async (request, reply) => {
 
 
     try {
-      const dbUser = await userService.getOrCreateUserFromSupabase(request.user!.id, request.user);
+      const dbUser = await userService.getOrCreateUserFromSupabase((request.user as any).id, request.user);
       const query = request.query as ListBoardsQuery;
 
       const boards = await boardService.getBoards(dbUser._id.toString(), query.projectId);
@@ -187,11 +193,12 @@ const boardRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // Get board by ID
-  fastify.get<{ Params: { id: string } }>('/:id', async (request, reply) => {
+  // BUG-FIX: Added authentication - Sanket
+  fastify.get<{ Params: { id: string } }>('/:id', { preHandler: [fastify.authenticate] }, async (request, reply) => {
 
 
     try {
-      const dbUser = await userService.getOrCreateUserFromSupabase(request.user!.id, request.user);
+      const dbUser = await userService.getOrCreateUserFromSupabase((request.user as any).id, request.user);
       const { id } = request.params;
 
       const board = await boardService.getBoardById(id, dbUser._id.toString());
@@ -220,13 +227,17 @@ const boardRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // Update board
-  fastify.put<{ Params: { id: string }; Body: UpdateBoardBody }>('/:id', async (request, reply) => {
+  // BUG-FIX: Added authentication - Sanket
+  fastify.put<{ Params: { id: string }; Body: UpdateBoardBody }>('/:id', { preHandler: [fastify.authenticate] }, async (request, reply) => {
 
 
     try {
-      const dbUser = await userService.getOrCreateUserFromSupabase(request.user!.id, request.user);
+      const dbUser = await userService.getOrCreateUserFromSupabase((request.user as any).id, request.user);
       const { id } = request.params;
       const updateData = request.body as UpdateBoardBody;
+      
+      if (updateData.name) updateData.name = stripHtml(updateData.name);
+      if (updateData.description) updateData.description = sanitizeInput(updateData.description);
 
       if (updateData.name !== undefined && !updateData.name.trim()) {
         return reply.code(400).send({
@@ -263,11 +274,12 @@ const boardRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // Delete board
-  fastify.delete<{ Params: { id: string } }>('/:id', async (request, reply) => {
+  // BUG-FIX: Added authentication - Sanket
+  fastify.delete<{ Params: { id: string } }>('/:id', { preHandler: [fastify.authenticate] }, async (request, reply) => {
 
 
     try {
-      const dbUser = await userService.getOrCreateUserFromSupabase(request.user!.id, request.user);
+      const dbUser = await userService.getOrCreateUserFromSupabase((request.user as any).id, request.user);
       const { id } = request.params;
 
       const result = await boardService.deleteBoard(id, dbUser._id.toString());

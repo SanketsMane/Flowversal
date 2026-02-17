@@ -42,9 +42,7 @@ const apiVersioning: FastifyPluginAsync<ApiVersioningConfig> = async (
 
       // If not in header, check query parameter
       if (!version) {
-        // Fastify 4.x: query might not be on the raw request in deriveConstraint
-        // if it's called before parsing. But we'll try it as any.
-        version = request.query?.[config.queryParamName];
+        version = (request as any).query?.[config.queryParamName];
       }
 
       // If still no version, use default
@@ -59,6 +57,7 @@ const apiVersioning: FastifyPluginAsync<ApiVersioningConfig> = async (
 
       return version;
     },
+
   });
 
   // Middleware to add version information to requests

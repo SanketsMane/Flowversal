@@ -5,7 +5,8 @@
  */
 import { useAuth } from '@/core/auth/AuthContext';
 import { useTheme } from '@/core/theme/ThemeContext';
-import { supabase } from '@/shared/lib/supabase';
+// import { supabase } from '@/shared/lib/supabase'; // Removed redundant import
+import 'highlight.js/styles/atom-one-dark.css';
 import {
     Bot,
     Brain,
@@ -14,6 +15,7 @@ import {
     ChevronDown,
     ChevronRight,
     Code,
+    Copy,
     Database,
     Download, Eye,
     FileText,
@@ -21,6 +23,7 @@ import {
     HelpCircle,
     Image,
     Lightbulb,
+    Mail,
     Mic,
     Paperclip,
     Plus,
@@ -32,6 +35,10 @@ import {
     XCircle
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import rehypeHighlight from 'rehype-highlight';
+import rehypeRaw from 'rehype-raw';
+import remarkGfm from 'remark-gfm';
 import { toast } from 'sonner';
 import { actionExecutorService } from '../services/action-executor.service';
 import { chatService } from '../services/chat.service';
@@ -108,7 +115,7 @@ export function Chat() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { theme } = useTheme();
   const { isAuthenticated, user } = useAuth();
-  const [accessToken, setAccessToken] = useState<string | null>(null);
+  // const [accessToken, setAccessToken] = useState<string | null>(null); // Removed redundant state
   // Flowversal theme colors
   const bgColor = theme === 'dark' ? 'bg-[#0E0E1F]' : 'bg-white';
   const bgCard = theme === 'dark' ? 'bg-[#1A1A2E]' : 'bg-gray-50';
@@ -133,38 +140,7 @@ export function Chat() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-  // Get access token
-  useEffect(() => {
-    const getToken = async () => {
-      try {
-        const sessionStr = localStorage.getItem('flowversal_auth_session');
-        if (sessionStr) {
-          const session = JSON.parse(sessionStr);
-          if (session.accessToken) {
-            setAccessToken(session.accessToken);
-            return;
-          }
-        }
-      } catch (error) {
-        console.error('[Chat] Error getting token:', error);
-      }
-      if (isAuthenticated && supabase) {
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.access_token) {
-            setAccessToken(session.access_token);
-          }
-        } catch (error) {
-          console.error('[Chat] Error getting Supabase token:', error);
-        }
-      }
-      // Don't set a fake token - let authentication handle it properly
-      if (!accessToken) {
-        console.warn('[Chat] No access token available');
-      }
-    };
-    getToken();
-  }, [isAuthenticated]);
+  // Removed redundant token sync effect - authentication is handled by core services
   // Close dropdowns on click outside
   useEffect(() => {
     const handleClickOutside = () => {
@@ -244,7 +220,7 @@ export function Chat() {
     setLastRequestTime(now);
     setIsTyping(true);
     try {
-      if (!isAuthenticated || !accessToken) {
+      if (!isAuthenticated) {
         throw new Error('Please log in to use AI features');
       }
       // Parse action intent
@@ -304,12 +280,12 @@ export function Chat() {
         temperature: 0.7,
         maxTokens: 2000,
         context: `You are Flowversal AI in ${selectedMode} mode. ${
-          selectedMode === 'agent' ? 'You have access to tools and can execute actions. When you use tools, explain what you did.' :
+          selectedMode === 'agent' ? 'You have access to tools. ONLY use tools if explicitly necessary (e.g., browsing, searching). If the user asks to draft/write content (emails, code, essays) WITHOUT asking to save/send, DO NOT use tools. Just generate the text.' :
           selectedMode === 'plan' ? 'Create detailed step-by-step plans.' :
           selectedMode === 'debug' ? 'Help debug and troubleshoot issues.' :
           selectedMode === 'ask' ? 'Answer questions about workflows.' :
           'Automatically decide the best approach.'
-        }`,
+        } Always use Markdown. Use code blocks for code. For email drafts, ALWAYS wrap content in a code block with language 'email' (e.g., \`\`\`email). Include 'Subject: ...' as first line.`,
       });
       if (chatResponse.success && chatResponse.response) {
         // Update conversation ID if provided
@@ -529,7 +505,7 @@ export function Chat() {
       />
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
-        <div className="flex-1 max-w-4xl mx-auto w-full px-6 py-8 flex flex-col">
+        <div className="flex-1 max-w-4xl mx-auto w-full px-6 pt-8 pb-2 flex flex-col">
           {/* Welcome Header - Only show when no messages */}
           {messages.length === 0 && (
             <div className="text-center mb-8 flex-shrink-0">
@@ -709,9 +685,96 @@ export function Chat() {
                         </div>
                       </div>
                     )}
-                    <p className={`whitespace-pre-wrap ${message.type === 'error' ? 'text-red-400' : ''}`}>
-                      {message.text}
-                    </p>
+                    <div className={`prose ${theme === 'dark' ? 'prose-invert' : ''} max-w-none break-words`}>
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        rehypePlugins={[rehypeRaw, rehypeHighlight]}
+                        components={{
+                          code({node, inline, className, children, ...props}: any) {
+                            const match = /language-(\w+)/.exec(className || '')
+                            const language = match ? match[1] : ''
+
+                            if (!inline && language === 'email') {
+                              const content = String(children).replace(/\n$/, '')
+                              const subjectMatch = content.match(/Subject: (.*)/)
+                              const subject = subjectMatch ? subjectMatch[1] : 'No Subject'
+                              const body = content.replace(/Subject: .*\n+/, '')
+
+                              return (
+                                <div className="my-4 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-[#1e1e1e] overflow-hidden shadow-lg max-w-2xl mx-auto">
+                                  {/* Email Header */}
+                                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-white/5">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-8 h-8 rounded-full bg-blue-500/10 dark:bg-blue-500/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                                        <Mail className="w-4 h-4" />
+                                      </div>
+                                      <span className="font-medium text-sm text-gray-700 dark:text-gray-200">Email Draft</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <button
+                                        onClick={() => {
+                                          navigator.clipboard.writeText(content)
+                                          toast.success('Email copied to clipboard')
+                                        }}
+                                        className="p-1.5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
+                                        title="Copy Email"
+                                      >
+                                        <Copy className="w-4 h-4" />
+                                      </button>
+                                       <button
+                                        onClick={() => toast.info('Sending functionality coming soon!')}
+                                        className="p-1.5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-lg text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
+                                        title="Send Email"
+                                      >
+                                        <Send className="w-4 h-4" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Email Content */}
+                                  <div className="p-6 space-y-4">
+                                    <div className="flex items-start gap-3 pb-4 border-b border-gray-100 dark:border-white/5">
+                                      <span className="text-gray-500 dark:text-gray-500 text-sm font-medium w-12 pt-0.5">Subject</span>
+                                      <span className="text-gray-900 dark:text-gray-200 font-medium">{subject}</span>
+                                    </div>
+                                    <div className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed whitespace-pre-wrap font-sans">
+                                      {body.trim()}
+                                    </div>
+                                  </div>
+                                </div>
+                              )
+                            }
+                            
+                            return !inline && match ? (
+                              <div className="relative group mt-2 mb-2 rounded-lg overflow-hidden border border-white/10">
+                                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(String(children).replace(/\n$/, ''))
+                                      toast.success('Copied to clipboard!')
+                                    }}
+                                    className="p-1.5 bg-black/50 hover:bg-black/70 rounded-md text-white/70 hover:text-white transition-colors"
+                                  >
+                                    <Copy className="w-4 h-4" />
+                                  </button>
+                                </div>
+                                <div className="bg-[#1e1e1e] p-4 overflow-x-auto text-sm">
+                                  <code className={className} {...props}>
+                                    {children}
+                                  </code>
+                                </div>
+                              </div>
+                            ) : (
+                              <code className={`${className} bg-black/20 rounded px-1 py-0.5 text-sm`} {...props}>
+                                {children}
+                              </code>
+                            )
+                          }
+                        }}
+                      >
+                        {message.text}
+                      </ReactMarkdown>
+                    </div>
                     {/* Workflow Actions */}
                     {message.type === 'workflow' && message.workflowData && (
                       <div className="mt-4 flex gap-2 flex-wrap">
@@ -775,7 +838,7 @@ export function Chat() {
             </div>
           )}
           {/* Input Container */}
-          <div className="sticky bottom-8 max-w-4xl mx-auto w-full">
+          <div className="sticky bottom-4 max-w-4xl mx-auto w-full">
             <div className={`${bgCard} border ${borderColor} rounded-3xl shadow-xl`}>
               {/* Attached Files */}
               {attachedFiles.length > 0 && (

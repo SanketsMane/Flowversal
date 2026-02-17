@@ -1,4 +1,5 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
+import { sanitizeInput, stripHtml } from '../../../../core/utils/sanitizer.util';
 import { userService } from '../../../users/services/user.service';
 import { taskService } from '../../services/task.service';
 import { CreateTaskBody } from '../types/task-routes.types';
@@ -54,11 +55,14 @@ export async function createTaskHandler(
     }
 
     // === BUSINESS LOGIC VALIDATION ===
-    const dbUser = await userService.getOrCreateUserFromSupabase(request.user!.id);
+    // Use cached dbUser if available (from auth middleware), otherwise fetch it
+    // This fixes BUG-TASK-003 (N+1 query problem)
+    const dbUser = request.user?.dbUser || await userService.getOrCreateUserFromSupabase(request.user!.id);
 
-    // Verify board exists and belongs to user
-    const boardExists = await taskService.validateBoardOwnership(body.boardId!, dbUser._id.toString());
-    if (!boardExists) {
+    // BUG-FIX: Enhanced Foreign Key Validation - Sanket
+    // 1. Verify board exists and belongs to user
+    const board = await taskService.getBoardById(body.boardId!, dbUser._id.toString());
+    if (!board) {
       return reply.code(404).send({
         success: false,
         error: 'Not Found',
@@ -66,13 +70,23 @@ export async function createTaskHandler(
       });
     }
 
-    // Verify project exists and belongs to user
+    // 2. Verify project exists and belongs to user
     const projectExists = await taskService.validateProjectOwnership(body.projectId!, dbUser._id.toString());
     if (!projectExists) {
       return reply.code(404).send({
         success: false,
         error: 'Not Found',
         message: 'Project not found or access denied',
+      });
+    }
+
+    // 3. CRITICAL: Verify board actually belongs to the specified project
+    // Prevents "orphaned" tasks that point to valid board + valid project but inconsistent relationship
+    if (board.projectId.toString() !== body.projectId) {
+      return reply.code(400).send({
+        success: false,
+        error: 'ValidationError',
+        message: 'The specified board does not belong to the specified project',
       });
     }
 
@@ -111,8 +125,8 @@ export async function createTaskHandler(
     const normalizedStartDate: string | undefined = body.startDate || undefined;
 
     const taskData = {
-      name: body.name.trim(),
-      description: body.description?.trim() || '',
+      name: stripHtml(body.name.trim()),
+      description: sanitizeInput(body.description?.trim() || ''),
       assignedTo: body.assignedTo || [],
       status: normalizedStatus,
       priority: body.priority || 'Medium', // Default priority
@@ -123,8 +137,18 @@ export async function createTaskHandler(
       reminder: body.reminder || 'None',
       selectedDays: normalizedSelectedDays,
       hasWorkflow: body.hasWorkflow || false,
-      checklists: body.checklists || [],
-      comments: body.comments || [],
+      checklists: body.checklists?.map((list: any) => ({
+        ...list,
+        name: stripHtml(list.name || ''),
+        items: list.items?.map((item: any) => ({
+          ...item,
+          text: sanitizeInput(item.text || '')
+        })) || []
+      })) || [],
+      comments: body.comments?.map((comment: any) => ({
+        ...comment,
+        text: sanitizeInput(comment.text || '')
+      })) || [],
       attachments: body.attachments || [],
       workflows: body.workflows || [],
       boardId: body.boardId!,

@@ -42,9 +42,11 @@ export async function resetDatabase(): Promise<void> {
 
     logger.warn('Dropping all collections...');
     if (mongoose.connection.db) {
-      await mongoose.connection.db.dropDatabase();
+        await mongoose.connection.db.dropDatabase();
+        logger.info('Database reset successfully');
+    } else {
+        logger.error('Database connection not established');
     }
-    logger.info('Database reset successfully');
   } catch (error: any) {
     logger.error('Database reset failed', error);
     process.exit(1);

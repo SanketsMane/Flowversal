@@ -26,10 +26,11 @@ interface AdminUsersState {
 }
 
 // Default admin account
+// Author: Sanket - Password synced with UI (admin@123)
 const defaultAdmin: AdminUser = {
   id: 'admin-1',
   email: 'admin@admin.com',
-  password: 'admin', // In production, this would be hashed
+  password: 'admin@123', // In production, this would be hashed
   name: 'Super Admin',
   role: 'super_admin',
   createdAt: Date.now(),

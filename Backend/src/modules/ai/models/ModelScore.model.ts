@@ -58,17 +58,16 @@ export interface IModelScore {
 // Model Score Schema
 const ModelScoreSchema = new Schema({
   // Execution context
-  executionId: { type: String, required: true, index: true },
-  nodeId: { type: String, required: true, index: true },
-  workflowId: { type: String, index: true },
-  userId: { type: String, index: true },
+  executionId: { type: String, required: true },
+  nodeId: { type: String, required: true },
+  workflowId: { type: String },
+  userId: { type: String },
 
   // Model information
   provider: {
     type: String,
     required: true,
     enum: ['vllm', 'openai', 'gemini', 'claude', 'grok', 'deepseek', 'openrouter'],
-    index: true,
   },
   modelName: { type: String, required: true },
   taskType: {
@@ -88,7 +87,6 @@ const ModelScoreSchema = new Schema({
       'safety_critical',
       'cost_optimized',
     ],
-    index: true,
   },
 
   // Performance metrics

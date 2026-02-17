@@ -1,11 +1,12 @@
+import { env } from '../../../../core/config/env';
 import { LangChainOptions, langChainService } from './langchain.service';
+import { ModelRoutingOptions } from './model-decision.types';
 import { modelRouterService } from './model-router.service';
-import { ModelRoutingOptions, ModelProvider } from './model-decision.types';
-import { OpenRouterMessage, openRouterService } from './openrouter.service';
+import { openAIService } from './openai.service';
 
 export interface ChatRequest {
   messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
-  modelType?: 'vllm' | 'openrouter' | 'local';
+  modelType?: 'vllm' | 'openrouter' | 'local' | 'openai';
   remoteModel?: 'gpt4' | 'claude' | 'gemini';
   temperature?: number;
   maxTokens?: number;
@@ -15,7 +16,7 @@ export interface ChatRequest {
 export interface ChatResponse {
   response: string;
   model: string;
-  modelType: 'vllm' | 'openrouter' | 'local';
+  modelType: 'vllm' | 'openrouter' | 'local' | 'openai';
   usage?: {
     prompt_tokens?: number;
     completion_tokens?: number;
@@ -26,14 +27,70 @@ export interface ChatResponse {
 export class ChatService {
   /**
    * Process chat completion
+   * Author: Sanket - Prioritizes OpenAI for instant responses
    */
   async chatCompletion(request: ChatRequest): Promise<ChatResponse> {
+    // Check if OpenAI is explicitly requested or enabled as default
+    // 0. Check for Flowversal Remote (Custom Integration) - Highest Priority
+    if (env.FLOWVERSAL_REMOTE_ENABLED) {
+      const { flowversalRemoteService } = await import('./flowversal-remote.service');
+      // If messages are available, use them, otherwise use prompt
+      const msgs = (request.messages && request.messages.length > 0) 
+        ? request.messages 
+        : [{ role: 'system', content: 'You are a helpful assistant.' }];
+      
+      const responseContent = await flowversalRemoteService.chatCompletion(msgs, request.remoteModel);
+      
+      return {
+        response: responseContent,
+        model: 'flowversal-remote',
+        modelType: 'openai', // Using openai type for compatibility
+      };
+    }
+
+    const useOpenAI = request.modelType === 'openai' || 
+                     (openAIService.isAvailable() && !request.modelType);
+
+    // Use OpenAI for instant responses if available
+    if (useOpenAI && openAIService.isAvailable()) {
+      return this.chatWithOpenAI(request);
+    }
+
+    // Fallback to LangChain or direct API
     const useLangChain = request.useLangChain ?? false;
 
     if (useLangChain) {
       return this.chatWithLangChain(request);
     } else {
       return this.chatWithDirectAPI(request);
+    }
+  }
+
+  /**
+   * Chat using OpenAI Direct API
+   * Author: Sanket - Provides instant responses
+   */
+  private async chatWithOpenAI(request: ChatRequest): Promise<ChatResponse> {
+    try {
+      const response = await openAIService.chatCompletion(request.messages, {
+        temperature: request.temperature,
+        max_tokens: request.maxTokens,
+      });
+
+      return {
+        response: response.choices[0]?.message?.content || '',
+        model: response.model,
+        modelType: 'openai',
+        usage: {
+          prompt_tokens: response.usage?.prompt_tokens,
+          completion_tokens: response.usage?.completion_tokens,
+          total_tokens: response.usage?.total_tokens,
+        },
+      };
+    } catch (error: any) {
+      console.error('OpenAI chat error, falling back:', error.message);
+      // Fallback to LangChain on OpenAI error
+      return this.chatWithLangChain(request);
     }
   }
 
@@ -75,30 +132,60 @@ export class ChatService {
    * Note: Model router uses 'local' | 'remote', so we map accordingly
    */
   private async chatWithDirectAPI(request: ChatRequest): Promise<ChatResponse> {
-    const messages: OpenRouterMessage[] = request.messages.map((msg) => ({
-      role: msg.role,
-      content: msg.content,
-    }));
+    // Extract system prompt and user prompt
+    const systemMessage = request.messages.find(m => m.role === 'system');
+    const systemPrompt = systemMessage ? systemMessage.content : undefined;
+    
+    const userMessages = request.messages.filter(m => m.role === 'user');
+    const lastUserMessage = userMessages[userMessages.length - 1];
+    const prompt = lastUserMessage ? lastUserMessage.content : '';
 
     // Map new model types to router types: vllm/openrouter → remote, local → local
     const routerModelType: 'local' | 'remote' = 
       request.modelType === 'local' ? 'local' : 'remote';
 
     const options: ModelRoutingOptions = {
-      taskType: routerModelType as any,
       userSpecifiedTemperature: request.temperature,
     };
 
-    const prompt = messages.map(m => `${m.role}: ${m.content}`).join('\n');
-    const result = await modelRouterService.smartRoute(prompt, undefined, options);
+    if (request.modelType === 'local') {
+      options.forceProvider = 'vllm';
+    } else if (request.modelType === 'openrouter') {
+      options.forceProvider = 'openrouter';
+    } else if (request.modelType === 'openai') {
+      options.forceProvider = 'openai';
+    } else if (request.remoteModel) {
+       // Map remote models to providers if possible
+       const providerMap: Record<string, any> = {
+         'gpt4': 'openai',
+         'claude': 'claude',
+         'gemini': 'gemini'
+       };
+       if (providerMap[request.remoteModel]) {
+         options.forceProvider = providerMap[request.remoteModel];
+       } else {
+         options.forceProvider = 'openrouter';
+       }
+    }
+
+    // Get the best model for the task
+    const result = await modelRouterService.smartRoute(prompt, systemPrompt, options);
+
+    // Execute the selected model
+    // Convert messages to format expected by LangChain model
+    // We pass the full history
+    const modelResponse = await result.model.invoke(request.messages);
+    const responseContent = typeof modelResponse.content === 'string' 
+      ? modelResponse.content 
+      : JSON.stringify(modelResponse.content);
 
     // Map back to new model types
     const responseModelType: 'vllm' | 'openrouter' | 'local' = 
       result.provider === 'local' ? 'local' : 
-      request.modelType === 'vllm' ? 'vllm' : 'openrouter';
+      (result.provider === 'vllm' ? 'vllm' : 'openrouter'); // Approximate mapping
 
     return {
-      response: result.model.toString(), // Simplified fallback, as result doesn't have response
+      response: responseContent,
       model: result.provider,
       modelType: responseModelType,
     };

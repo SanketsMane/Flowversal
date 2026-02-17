@@ -8,14 +8,14 @@ jest.setTimeout(30000);
 // Global mocks
 jest.mock('../../core/config/secrets.service', () => ({
   secretsService: {
-    getSecret: jest.fn().mockResolvedValue({}) as any,
-    loadSecretsToEnv: jest.fn().mockResolvedValue(undefined) as any,
+    getSecret: (jest.fn() as any).mockResolvedValue({}) as any,
+    loadSecretsToEnv: (jest.fn() as any).mockResolvedValue(undefined) as any,
   },
 }));
 
 // Mock Redis/Pinecone connectivity if needed
 jest.mock('../../core/database/pinecone', () => ({
-  connectPinecone: jest.fn().mockResolvedValue(true) as any,
+  connectPinecone: (jest.fn() as any).mockResolvedValue(true) as any,
   getPineconeClient: jest.fn().mockReturnValue({
     index: jest.fn().mockReturnValue({
       query: jest.fn(),
@@ -34,11 +34,11 @@ jest.mock('../../core/database/pinecone', () => ({
     describeIndexStats: jest.fn(),
     namespace: jest.fn().mockReturnThis(),
   }) as any,
-  createPineconeIndex: jest.fn().mockResolvedValue(undefined) as any,
-  upsertPineconeRecords: jest.fn().mockResolvedValue(undefined) as any,
-  searchPineconeRecords: jest.fn().mockResolvedValue({ matches: [] }) as any,
-  deletePineconeRecords: jest.fn().mockResolvedValue(undefined) as any,
-  getPineconeIndexStats: jest.fn().mockResolvedValue({}) as any,
+  createPineconeIndex: (jest.fn() as any).mockResolvedValue(undefined) as any,
+  upsertPineconeRecords: (jest.fn() as any).mockResolvedValue(undefined) as any,
+  searchPineconeRecords: (jest.fn() as any).mockResolvedValue({ matches: [] }) as any,
+  deletePineconeRecords: (jest.fn() as any).mockResolvedValue(undefined) as any,
+  getPineconeIndexStats: (jest.fn() as any).mockResolvedValue({}) as any,
 }));
 
 // Mock Supabase config
@@ -48,7 +48,7 @@ jest.mock('../../core/config/supabase.config', () => ({
       admin: {
         getUserById: jest.fn() as any,
         deleteUser: jest.fn() as any,
-        listUsers: jest.fn().mockResolvedValue({ data: { users: [] }, error: null }) as any,
+        listUsers: (jest.fn() as any).mockResolvedValue({ data: { users: [] }, error: null }) as any,
       }
     },
     storage: {

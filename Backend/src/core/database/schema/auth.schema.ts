@@ -13,6 +13,7 @@ export const users = pgTable('users', {
   passwordHash: text('password_hash').notNull(),
   fullName: text('full_name'),
   emailVerified: boolean('email_verified').default(false).notNull(),
+  // role: text('role').default('user').notNull(), // Column missing in DB
   
   // Metadata
   createdAt: timestamp('created_at').defaultNow().notNull(),

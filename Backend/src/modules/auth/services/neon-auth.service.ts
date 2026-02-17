@@ -25,7 +25,7 @@ export interface AuthResponse {
 }
 
 export class NeonAuthService {
-  private db = neonDb;
+  private db = neonDb!; // Assert non-null as it throws on init if missing
   private SALT_ROUNDS = 10;
 
   /**
@@ -35,7 +35,7 @@ export class NeonAuthService {
     // 1. Check if user already exists
     const existingUser = await this.db.select().from(users).where(eq(users.email, email)).limit(1);
     
-    if (existingUser.length > 0) {
+    if (existingUser && existingUser.length > 0) {
       throw new Error('User already exists');
     }
 
@@ -64,19 +64,38 @@ export class NeonAuthService {
    * Sign in with email and password
    */
   async signIn(email: string, password: string): Promise<AuthResponse> {
+    // Author: Sanket - Debug logging added to identify auth issues
+    logger.info(`[NeonAuth] signIn attempt for email: ${email}`);
+    
     // 1. Find user
     const [user] = await this.db.select().from(users).where(eq(users.email, email)).limit(1);
 
     if (!user) {
+      logger.warn(`[NeonAuth] User not found: ${email}`);
       throw new Error('Invalid credentials');
+    }
+
+    logger.info(`[NeonAuth] User found: ${user.email}, checking password...`);
+    // Safe access after check
+    const hasPassword = !!user.passwordHash;
+    logger.debug(`[NeonAuth] passwordHash exists: ${hasPassword}`);
+
+    if (!user.passwordHash) {
+         logger.warn(`[NeonAuth] User exists but has no password hash: ${email}`);
+         throw new Error('Invalid credentials');
     }
 
     // 2. Verify password
     const isMatch = await bcrypt.compare(password, user.passwordHash);
+    logger.info(`[NeonAuth] Password match result: ${isMatch}`);
+    
     if (!isMatch) {
+      logger.warn(`[NeonAuth] Password mismatch for user: ${email}`);
       throw new Error('Invalid credentials');
     }
 
+    logger.info(`[NeonAuth] Authentication successful for: ${email}`);
+    
     // 3. Generate session
     return this.createSession(user.id, user.email, user.fullName);
   }
@@ -160,6 +179,10 @@ export class NeonAuthService {
     };
     
     const [session] = await this.db.insert(sessions).values(newSessionValues).returning();
+
+    if (!session) {
+        throw new Error('Failed to create session');
+    }
     
     // Step B: Generate Tokens
     const accessToken = jwt.sign(
@@ -320,6 +343,10 @@ export class NeonAuthService {
 
     if (!user) {
       throw new Error('User not found');
+    }
+
+    if (!user.passwordHash) {
+         throw new Error('User has no password set');
     }
 
     // Verify current password

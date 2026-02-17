@@ -1,6 +1,9 @@
 import { Types } from 'mongoose';
 import { logger } from '../../../shared/utils/logger.util';
 import { ModelScoreModel } from '../../ai/models/ModelScore.model';
+import { ProjectModel } from '../../projects/models/Project.model';
+import { UserModel } from '../../users/models/User.model';
+import { WorkflowModel } from '../../workflows/models/Workflow.model';
 import { WorkflowExecutionModel } from '../../workflows/models/WorkflowExecution.model';
 
 export interface AnalyticsTimeRange {
@@ -525,6 +528,113 @@ export class WorkflowAnalyticsService {
 
     } catch (error: any) {
       logger.error('Failed to get dashboard metrics', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Get usage summary for subscription/usage modal - Fixes dummy data
+   * Author: Sanket
+   */
+  async getUsageSummary(userId: Types.ObjectId): Promise<any> {
+    try {
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const [
+        workflowsCount,
+        projectsCount,
+        totalExecutions,
+        monthlyExecutions,
+        userCount
+      ] = await Promise.all([
+        WorkflowModel.countDocuments({ userId }),
+        ProjectModel.countDocuments({ userId }),
+        WorkflowExecutionModel.countDocuments({ userId }),
+        WorkflowExecutionModel.countDocuments({ 
+          userId, 
+          startedAt: { $gte: startOfMonth } 
+        }),
+        UserModel.countDocuments({})
+      ]);
+
+      // Calculate AI agents (nodes in workflows)
+      const userWorkflows = await WorkflowModel.find({ userId }).select('containers');
+      let aiAgentCount = 0;
+      userWorkflows.forEach(wf => {
+        if (wf.containers && Array.isArray(wf.containers)) {
+          wf.containers.forEach(container => {
+            if (container.nodes && Array.isArray(container.nodes)) {
+              aiAgentCount += container.nodes.filter((n: any) => 
+                n.type === 'ai' || n.type?.includes('agent') || n.type?.includes('model')
+              ).length;
+            }
+          });
+        }
+      });
+
+      return {
+        workflows: workflowsCount,
+        aiAgents: aiAgentCount,
+        executions: monthlyExecutions,
+        projects: projectsCount,
+        teamMembers: 1, // Single user for now
+        totalExecutions,
+        storage: 0 // Placeholder
+      };
+    } catch (error: any) {
+      logger.error('Failed to get usage summary', { userId, error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Get dashboard stats - Fixes dummy data
+   * Author: Sanket
+   */
+  async getDashboardStats(userId: Types.ObjectId): Promise<any[]> {
+    try {
+      const [
+        totalWorkflows,
+        activeWorkflows,
+        completedTasks,
+        aiRequests
+      ] = await Promise.all([
+        WorkflowModel.countDocuments({ userId }),
+        WorkflowModel.countDocuments({ userId, status: 'published' }),
+        WorkflowExecutionModel.countDocuments({ userId, status: 'completed' }),
+        ModelScoreModel.countDocuments({ userId })
+      ]);
+
+      return [
+        {
+          label: 'Total Workflows',
+          value: totalWorkflows.toString(),
+          change: '+0%', // Dynamic change tracking not implemented yet
+          color: 'from-[#9D50BB] to-[#B876D5]',
+        },
+        {
+          label: 'Active Automations',
+          value: activeWorkflows.toString(),
+          change: '+0%',
+          color: 'from-[#0072FF] to-[#4F7BF7]',
+        },
+        {
+          label: 'Tasks Completed',
+          value: completedTasks.toLocaleString(),
+          change: '+0%',
+          color: 'from-[#00C6FF] to-[#06B6D4]',
+        },
+        {
+          label: 'AI Requests',
+          value: aiRequests > 1000 ? `${(aiRequests / 1000).toFixed(1)}K` : aiRequests.toString(),
+          change: '+0%',
+          color: 'from-[#D946EF] to-[#E879F9]',
+        },
+      ];
+    } catch (error: any) {
+      logger.error('Failed to get dashboard stats', { userId, error: error.message });
       throw error;
     }
   }

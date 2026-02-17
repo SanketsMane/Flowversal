@@ -1,6 +1,7 @@
-import { X, Check, Crown, TrendingUp, Zap, Info } from 'lucide-react';
-import { useState } from 'react';
+import { fetchUsageOverview } from '@/core/api/services/analytics.service';
 import { useTheme } from '@/core/theme/ThemeContext';
+import { Check, Crown, Info, TrendingUp, X, Zap } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface SubscriptionProps {
   isOpen: boolean;
@@ -12,6 +13,25 @@ export function Subscription({ isOpen, onClose, initialTab = 'plans' }: Subscrip
   const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState<'plans' | 'overview'>(initialTab);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
+  const [usageData, setUsageData] = useState<any>(null);
+  const [isLoadingUsage, setIsLoadingUsage] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      const loadUsage = async () => {
+        setIsLoadingUsage(true);
+        try {
+          const data = await fetchUsageOverview();
+          setUsageData(data);
+        } catch (err) {
+          console.error('[Subscription] Failed to fetch usage overview:', err);
+        } finally {
+          setIsLoadingUsage(false);
+        }
+      };
+      loadUsage();
+    }
+  }, [isOpen]);
 
   const bgMain = theme === 'dark' ? 'bg-[#0E0E1F]' : 'bg-gray-50';
   const bgCard = theme === 'dark' ? 'bg-[#1A1A2E]' : 'bg-white';
@@ -113,18 +133,18 @@ export function Subscription({ isOpen, onClose, initialTab = 'plans' }: Subscrip
     },
   ];
 
-  // Current plan usage data (for Overview tab)
+  // Current plan usage data (for Overview tab) - Updated with REAL data!
   const currentUsage = {
     plan: 'Pro',
     price: 49,
     billingCycle: 'monthly',
-    nextReset: '07 Dec 2024',
-    workflows: { used: 23, limit: 'Unlimited' },
-    projects: { used: 8, limit: 'Unlimited' },
-    aiAgents: { used: 47, limit: 'Unlimited' },
-    executions: { used: 3847, limit: 10000 },
-    storage: { used: 127.5, limit: 500, unit: 'GB' },
-    teamMembers: { used: 12, limit: 100 },
+    nextReset: '07 Mar 2026',
+    workflows: { used: usageData?.workflows ?? 0, limit: 'Unlimited' },
+    projects: { used: usageData?.projects ?? 0, limit: 'Unlimited' },
+    aiAgents: { used: usageData?.aiAgents ?? 0, limit: 'Unlimited' },
+    executions: { used: usageData?.executions ?? 0, limit: 10000 },
+    storage: { used: usageData?.storage ?? 0, limit: 500, unit: 'GB' },
+    teamMembers: { used: usageData?.teamMembers ?? 0, limit: 100 },
   };
 
   const getUsagePercentage = (used: number, limit: number | string) => {

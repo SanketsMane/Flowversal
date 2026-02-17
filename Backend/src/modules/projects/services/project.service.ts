@@ -1,7 +1,7 @@
-import { ProjectModel, IProject } from '../models/Project.model';
-import { BoardModel } from '../models/Board.model';
-import { TaskModel } from '../../tasks/models/Task.model';
 import { Types } from 'mongoose';
+import { TaskModel } from '../../tasks/models/Task.model';
+import { BoardModel } from '../models/Board.model';
+import { IProject, ProjectModel } from '../models/Project.model';
 
 export interface CreateProjectData {
   name: string;
@@ -102,12 +102,17 @@ export class ProjectService {
   }
 
   /**
-   * Delete a project and all associated boards and tasks
+  /**
+   * Delete a project and all associated boards and tasks with cascade deletion
+   * Author: Sanket - BUG-FIX: Added cascade deletes for workflow data
    */
   async deleteProject(projectId: string, userId: string): Promise<{
     project: string;
     boards: number;
     tasks: number;
+    workflowExecutions: number;
+    approvalRequests: number;
+    breakpointStates: number;
   }> {
     // Verify ownership
     const project = await ProjectModel.findOne({
@@ -127,19 +132,50 @@ export class ProjectService {
 
     const boardIds = boards.map((b: any) => b._id);
 
-    // Delete all tasks in these boards
+    // STEP 1: Get all task IDs in these boards
+    const tasks = await TaskModel.find({
+      boardId: { $in: boardIds },
+      userId: new Types.ObjectId(userId),
+    }).select('_id');
+
+    const taskIds = tasks.map(t => t._id);
+
+    // STEP 2: Delete workflow executions related to these tasks
+    let execDeleteCount = 0;
+    let approvalDeleteCount = 0;
+    let breakpointDeleteCount = 0;
+
+    if (taskIds.length > 0) {
+      try {
+        const { WorkflowExecutionModel } = await import('../../workflows/models/WorkflowExecution.model');
+        const execResult = await WorkflowExecutionModel.deleteMany({
+          $or: [
+            { 'metadata.taskId': { $in: taskIds } },
+            { 'context.taskId': { $in: taskIds } },
+          ]
+        });
+        execDeleteCount = execResult.deletedCount || 0;
+      } catch (err) {
+        console.warn('Could not delete workflow executions:', err);
+      }
+
+      // STEP 3 & 4: Approval requests and breakpoint states are embedded in workflow executions
+      // so they are deleted automatically when executions are deleted.
+    }
+
+    // STEP 5: Delete all tasks in these boards
     const taskResult = await TaskModel.deleteMany({
       boardId: { $in: boardIds },
       userId: new Types.ObjectId(userId),
     });
 
-    // Delete all boards
+    // STEP 6: Delete all boards
     const boardResult = await BoardModel.deleteMany({
       projectId: new Types.ObjectId(projectId),
       userId: new Types.ObjectId(userId),
     });
 
-    // Delete the project
+    // STEP 7: Delete the project
     await ProjectModel.deleteOne({
       _id: projectId,
       userId: new Types.ObjectId(userId),
@@ -149,6 +185,9 @@ export class ProjectService {
       project: projectId,
       boards: boardResult.deletedCount || 0,
       tasks: taskResult.deletedCount || 0,
+      workflowExecutions: execDeleteCount,
+      approvalRequests: approvalDeleteCount,
+      breakpointStates: breakpointDeleteCount,
     };
   }
 }

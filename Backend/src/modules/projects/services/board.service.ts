@@ -1,6 +1,6 @@
-import { BoardModel, IBoard } from '../models/Board.model';
-import { TaskModel } from '../../tasks/models/Task.model';
 import { Types } from 'mongoose';
+import { TaskModel } from '../../tasks/models/Task.model';
+import { BoardModel, IBoard } from '../models/Board.model';
 
 export interface CreateBoardData {
   name: string;
@@ -113,11 +113,15 @@ export class BoardService {
   }
 
   /**
-   * Delete a board and all associated tasks
+   * Delete a board and all associated tasks with cascade deletion
+   * Author: Sanket - BUG-FIX: Added cascade deletes for workflow data
    */
   async deleteBoard(boardId: string, userId: string): Promise<{
     board: string;
     tasks: number;
+    workflowExecutions: number;
+    approvalRequests: number;
+    breakpointStates: number;
   }> {
     // Verify ownership
     const board = await BoardModel.findOne({
@@ -129,13 +133,46 @@ export class BoardService {
       throw new Error('Board not found');
     }
 
-    // Delete all tasks in this board
+    // STEP 1: Get all task IDs for this board
+    const tasks = await TaskModel.find({
+      boardId: new Types.ObjectId(boardId),
+      userId: new Types.ObjectId(userId),
+    }).select('_id');
+
+    const taskIds = tasks.map(t => t._id);
+
+    // STEP 2: Delete workflow executions related to these tasks
+    // BUG-FIX: Cascade delete to prevent orphaned workflow data - Sanket
+    let execDeleteCount = 0;
+    let approvalDeleteCount = 0;
+    let breakpointDeleteCount = 0;
+
+    if (taskIds.length > 0) {
+      try {
+        const { WorkflowExecutionModel } = await import('../../workflows/models/WorkflowExecution.model');
+        const execResult = await WorkflowExecutionModel.deleteMany({
+          $or: [
+            { 'metadata.taskId': { $in: taskIds } },
+            { 'context.taskId': { $in: taskIds } },
+          ]
+        });
+        execDeleteCount = execResult.deletedCount || 0;
+      } catch (err) {
+        // Workflow models may not exist in all deployments
+        console.warn('Could not delete workflow executions:', err);
+      }
+
+      // STEP 3 & 4: Approval requests and breakpoint states are embedded in workflow executions
+      // so they are deleted automatically when executions are deleted.
+    }
+
+    // STEP 5: Delete all tasks in this board
     const taskResult = await TaskModel.deleteMany({
       boardId: new Types.ObjectId(boardId),
       userId: new Types.ObjectId(userId),
     });
 
-    // Delete the board
+    // STEP 6: Delete the board
     await BoardModel.deleteOne({
       _id: boardId,
       userId: new Types.ObjectId(userId),
@@ -144,6 +181,9 @@ export class BoardService {
     return {
       board: boardId,
       tasks: taskResult.deletedCount || 0,
+      workflowExecutions: execDeleteCount,
+      approvalRequests: approvalDeleteCount,
+      breakpointStates: breakpointDeleteCount,
     };
   }
 }

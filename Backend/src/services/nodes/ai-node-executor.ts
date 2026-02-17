@@ -89,7 +89,7 @@ export class AINodeExecutor {
       const chatMessages = messages as ChatMessage[];
 
       // Use the routed model for chat completion
-      const result = await langChainService.chatCompletion(chatMessages, {
+      const responseText = await langChainService.chatCompletion(chatMessages, {
         modelType: routingResult.provider as any,
         remoteModel: routingResult.provider === 'openrouter' ? config.remoteModel || 'claude' : undefined,
         temperature: routingResult.temperature,
@@ -98,10 +98,6 @@ export class AINodeExecutor {
         customModel: routingResult.model, // Pass the routed model directly
       });
 
-      // LangChain completion returns a string
-      const responseText = result as unknown as string;
-
-      // Convert response to chat completion format for consistency
       return {
         response: responseText,
         model: routingResult.provider,

@@ -15,6 +15,7 @@ export interface IUser extends Document {
   automationExperience?: string;
   techStack?: string[];
   automationGoal?: string;
+  role: 'user' | 'admin' | 'super_admin';
 
   createdAt: Date;
   updatedAt: Date;
@@ -74,6 +75,11 @@ const UserSchema = new Schema<IUser>(
     },
     automationGoal: {
       type: String,
+    },
+    role: {
+      type: String,
+      enum: ['user', 'admin', 'super_admin'],
+      default: 'user',
     },
   },
   {

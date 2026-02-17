@@ -77,7 +77,6 @@ const WorkflowSchema = new Schema<IWorkflow>(
       type: String,
       required: true,
       trim: true,
-      index: true,
     },
     description: {
       type: String,
@@ -87,7 +86,6 @@ const WorkflowSchema = new Schema<IWorkflow>(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      index: true,
     },
     userName: {
       type: String,
@@ -113,12 +111,10 @@ const WorkflowSchema = new Schema<IWorkflow>(
       type: String,
       enum: ['draft', 'published', 'archived'],
       default: 'draft',
-      index: true,
     },
     isPublic: {
       type: Boolean,
       default: false,
-      index: true,
     },
     category: {
       type: String,

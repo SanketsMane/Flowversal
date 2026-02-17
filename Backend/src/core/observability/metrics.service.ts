@@ -1,4 +1,4 @@
-import { metrics, ObservableGauge, Meter, Counter, Histogram, MetricOptions } from '@opentelemetry/api';
+import { Counter, Histogram, Meter, MetricOptions, metrics, ObservableGauge } from '@opentelemetry/api';
 import { logger } from '../../shared/utils/logger.util';
 
 export interface MetricsConfig {
@@ -75,9 +75,11 @@ export class MetricsService {
       this.activeConnections = this.meter.createObservableGauge('active_connections', {
         description: 'Number of active connections',
       });
-      this.activeConnections.addCallback((observableResult: any) => {
-        observableResult.observe(this._activeConnectionsValue);
-      });
+      this.meter.addBatchObservableCallback((observableResult: any) => {
+        if (this.activeConnections) {
+            observableResult.observe(this.activeConnections, this._activeConnectionsValue);
+        }
+      }, [this.activeConnections]);
 
       // Initialize business metrics
       this.workflowExecutionsTotal = this.meter.createCounter('workflow_executions_total', {
@@ -117,9 +119,11 @@ export class MetricsService {
       this.pendingApprovals = this.meter.createObservableGauge('pending_approvals', {
         description: 'Number of pending approvals',
       });
-      this.pendingApprovals.addCallback((observableResult: any) => {
-        observableResult.observe(this._pendingApprovalsValue);
-      });
+      this.meter.addBatchObservableCallback((observableResult: any) => {
+        if (this.pendingApprovals) {
+            observableResult.observe(this.pendingApprovals, this._pendingApprovalsValue);
+        }
+      }, [this.pendingApprovals]);
 
       this.approvalDecisionsTotal = this.meter.createCounter('approval_decisions_total', {
         description: 'Total number of approval decisions',
@@ -128,9 +132,11 @@ export class MetricsService {
       this.activeBreakpoints = this.meter.createObservableGauge('active_breakpoints', {
         description: 'Number of active breakpoints',
       });
-      this.activeBreakpoints.addCallback((observableResult: any) => {
-        observableResult.observe(this._activeBreakpointsValue);
-      });
+      this.meter.addBatchObservableCallback((observableResult: any) => {
+        if (this.activeBreakpoints) {
+            observableResult.observe(this.activeBreakpoints, this._activeBreakpointsValue);
+        }
+      }, [this.activeBreakpoints]);
 
       logger.info('Metrics collection initialized', {
         serviceName: this.config.serviceName,
@@ -320,12 +326,14 @@ export class MetricsService {
     }
   }
 
-  createObservableGauge(name: string, options: MetricOptions, callback: (result: any) => void): ObservableGauge | null {
+  createObservableGauge(name: string, options: MetricOptions, callback?: (result: any) => void): ObservableGauge | null {
     if (!this.meter) return null;
 
     try {
       const gauge = this.meter.createObservableGauge(name, options);
-      gauge.addCallback(callback);
+      if (callback) {
+          this.meter.addBatchObservableCallback(callback, [gauge]);
+      }
       return gauge;
     } catch (error: any) {
       logger.error('Failed to create custom observable gauge', { name, error: error.message });
@@ -416,4 +424,5 @@ export const metricsService = new MetricsService({
 });
 
 // Re-export OpenTelemetry metrics types for convenience
-export { Counter, Histogram, MetricOptions, ObservableGauge, Meter } from '@opentelemetry/api';
+// export { Counter, Gauge, Histogram, MetricOptions } from '@opentelemetry/api-metrics';
+

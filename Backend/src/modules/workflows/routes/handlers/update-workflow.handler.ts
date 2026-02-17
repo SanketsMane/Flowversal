@@ -1,7 +1,8 @@
-import { FastifyRequest, FastifyReply } from 'fastify';
-import { workflowService } from '../../services/workflow.service';
+import { FastifyReply, FastifyRequest } from 'fastify';
+import { sanitizeInput, stripHtml } from '../../../../core/utils/sanitizer.util';
 import { userService } from '../../../users/services/user.service';
 import { workflowValidationService } from '../../services/workflow-validation.service';
+import { workflowService } from '../../services/workflow.service';
 import { UpdateWorkflowBody } from '../types/workflow-routes.types';
 
 export async function updateWorkflowHandler(
@@ -16,7 +17,9 @@ export async function updateWorkflowHandler(
   }
 
   try {
-    const workflowData = request.body;
+    const workflowData = { ...request.body };
+    if (workflowData.name) workflowData.name = stripHtml(workflowData.name);
+    if (workflowData.description) workflowData.description = sanitizeInput(workflowData.description);
 
     // Validate workflow update
     const validation = workflowValidationService.validateWorkflowUpdate(workflowData);

@@ -1,4 +1,5 @@
 import { FastifyPluginAsync } from 'fastify';
+import { sanitizeInput, stripHtml } from '../../../core/utils/sanitizer.util';
 import { userService } from '../../users/services/user.service';
 import { projectService } from '../services/project.service';
 interface CreateProjectBody {
@@ -22,7 +23,10 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
   // Create project with best practices
   fastify.post<{ Body: CreateProjectBody }>('/', async (request, reply) => {
     try {
-      const { name, description, icon, iconColor, configuration } = request.body as CreateProjectBody;
+      const body = request.body as CreateProjectBody;
+      const name = stripHtml(body.name);
+      const description = sanitizeInput(body.description || '');
+      const { icon, iconColor, configuration } = body;
       // === INPUT VALIDATION ===
       const validationErrors: string[] = [];
       if (!name || typeof name !== 'string') {
@@ -170,6 +174,10 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
       const dbUser = await userService.getOrCreateUserFromSupabase(request.user!.id, request.user);
       const { id } = request.params;
       const updateData = request.body as UpdateProjectBody;
+      
+      if (updateData.name) updateData.name = stripHtml(updateData.name);
+      if (updateData.description) updateData.description = sanitizeInput(updateData.description);
+
       if (updateData.name !== undefined && !updateData.name.trim()) {
         return reply.code(400).send({
           success: false,

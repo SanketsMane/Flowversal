@@ -1,7 +1,8 @@
+import { fetchAnalyticsSummary } from '@/core/api/services/analytics.service';
 import { useTheme } from '@/core/theme/ThemeContext';
-import { Brain, Zap, TrendingUp, Activity, Users, Sparkles } from 'lucide-react';
-import { useState } from 'react';
 import { useTemplateStore } from '@/features/templates/store/templateStore';
+import { Activity, Brain, Sparkles, TrendingUp, Zap } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface DashboardProps {
   onCreateWorkflow?: () => void;
@@ -49,33 +50,59 @@ export function Dashboard({ onCreateWorkflow, onOpenTemplateLibrary, onOpenProje
     }
   };
 
-  const stats = [
+  const [dashboardStats, setDashboardStats] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const loadStats = async () => {
+      setIsLoading(true);
+      try {
+        const data = await fetchAnalyticsSummary();
+        // Map icons based on labels
+        const mapped = data.map(stat => {
+          let Icon = Brain;
+          if (stat.label.includes('Active')) Icon = Zap;
+          if (stat.label.includes('Tasks')) Icon = TrendingUp;
+          if (stat.label.includes('AI')) Icon = Sparkles;
+          return { ...stat, icon: Icon };
+        });
+        setDashboardStats(mapped);
+      } catch (err) {
+        console.error('[Dashboard] Failed to load stats:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadStats();
+  }, []);
+
+  const stats = dashboardStats.length > 0 ? dashboardStats : [
     {
       icon: Brain,
       label: 'Total Workflows',
-      value: '24',
-      change: '+12%',
+      value: '...',
+      change: '+0%',
       color: 'from-[#9D50BB] to-[#B876D5]',
     },
     {
       icon: Zap,
       label: 'Active Automations',
-      value: '18',
-      change: '+8%',
+      value: '...',
+      change: '+0%',
       color: 'from-[#0072FF] to-[#4F7BF7]',
     },
     {
       icon: TrendingUp,
       label: 'Tasks Completed',
-      value: '1,247',
-      change: '+23%',
+      value: '...',
+      change: '+0%',
       color: 'from-[#00C6FF] to-[#06B6D4]',
     },
     {
       icon: Activity,
-      label: 'API Calls',
-      value: '8.9K',
-      change: '+15%',
+      label: 'AI Calls',
+      value: '...',
+      change: '+0%',
       color: 'from-[#D946EF] to-[#E879F9]',
     },
   ];

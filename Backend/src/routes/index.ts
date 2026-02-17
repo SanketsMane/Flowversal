@@ -7,7 +7,7 @@ import mcpRoutes from '../modules/ai/routes/ai/mcp.routes';
 import ragRoutes from '../modules/ai/routes/ai/rag.routes';
 import searchRoutes from '../modules/ai/routes/ai/search.routes';
 import workflowAIRoutes from '../modules/ai/routes/ai/workflow.routes';
-import { analyticsRoutes, analyticsRoutes as workflowAnalyticsRoutes } from '../modules/analytics/routes/analytics.routes';
+import { analyticsRoutes } from '../modules/analytics/routes/analytics.routes';
 import authRoutes from '../modules/auth/routes/auth.routes';
 import mfaRoutes from '../modules/auth/routes/mfa.routes';
 import creatorRoutes from '../modules/creator/routes/creator.routes';
@@ -23,6 +23,7 @@ import workflowWebSocketRoutes from '../modules/workflows/routes/workflow-websoc
 import workflowRoutes from '../modules/workflows/routes/workflow.routes';
 import healthRoutes from './health.routes';
 import inngestRoutes from './inngest.routes';
+import tanchatRoutes from './tanchat.routes';
 import v1Routes from './v1';
 import v2Routes from './v2';
 
@@ -33,6 +34,9 @@ export async function registerRoutes(fastify: FastifyInstance) {
   // Health check routes (no auth required)
   await fastify.register(healthRoutes, { prefix: '/api/v1/health' });
   await fastify.register(healthRoutes);
+
+  // Tanchat route (API key auth)
+  await fastify.register(tanchatRoutes, { prefix: '/api' });
 
   // Register API v1 routes
   await fastify.register(v1Routes, { prefix: '/api/v1' });
@@ -97,7 +101,7 @@ export async function registerRoutes(fastify: FastifyInstance) {
   await fastify.register(setupConfigRoutes, { prefix: '/api/v1/setup-config' });
 
   // Analytics / BI routes
-  // await fastify.register(analyticsRoutes, { prefix: '/api/v1/analytics' }); // Temporarily disabled
+  await fastify.register(analyticsRoutes, { prefix: '/api/v1/analytics' });
 
   // Enhanced workflow analytics routes
   // await fastify.register(workflowAnalyticsRoutes, { prefix: '/api/v1/analytics/workflow' }); // Temporarily disabled

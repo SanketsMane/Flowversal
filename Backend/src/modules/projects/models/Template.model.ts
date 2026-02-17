@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Document, Model, Schema } from 'mongoose';
 
 export type TemplateCategory =
   | 'automation'
@@ -80,7 +80,6 @@ const TemplateSchema = new Schema<ITemplate>(
       type: String,
       required: true,
       trim: true,
-      index: true,
     },
     description: {
       type: String,
@@ -115,7 +114,6 @@ const TemplateSchema = new Schema<ITemplate>(
       type: String,
       enum: ['beginner', 'intermediate', 'advanced'],
       required: true,
-      index: true,
     },
     estimatedTime: {
       type: String,
@@ -135,17 +133,14 @@ const TemplateSchema = new Schema<ITemplate>(
     featured: {
       type: Boolean,
       default: false,
-      index: true,
     },
     popularity: {
       type: Number,
       default: 0,
-      index: true,
     },
     isPublic: {
       type: Boolean,
       default: true,
-      index: true,
     },
   },
   {

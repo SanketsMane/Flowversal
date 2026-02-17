@@ -156,9 +156,26 @@ async function start() {
   try {
     // Import logger after server is built
     const { logger } = await import('./shared/utils/logger.util');
+    
+    // Validate production environment first
+    const { validateProductionEnv } = await import('./scripts/validate-production-env');
+    validateProductionEnv();
+    
     // Connect to databases
     logger.info('🔄 Connecting to databases...');
-    await connectMongoDB();
+    
+    // Connect to MongoDB (non-blocking - server will start even if this fails)
+    try {
+      await connectMongoDB();
+      logger.info('✅ MongoDB connected successfully');
+    } catch (mongoError: any) {
+      logger.warn('⚠️ MongoDB connection failed, but continuing server startup...', {
+        error: mongoError.message || mongoError,
+      });
+      logger.warn('⚠️ Workflow and chat features may be limited until MongoDB is connected.');
+      // Don't throw - allow server to start without MongoDB
+    }
+    
     // Connect to Pinecone (non-blocking - server will start even if this fails)
     try {
       await connectPinecone();
@@ -203,3 +220,4 @@ if (require.main === module) {
   start();
 }
 export { buildServer, start };
+

@@ -1,4 +1,4 @@
-import { Span, SpanStatusCode, Tracer, trace, SpanKind } from '@opentelemetry/api';
+import { Span, SpanKind, SpanStatusCode, Tracer, trace } from '@opentelemetry/api';
 import { logger } from '../../shared/utils/logger.util';
 
 export interface TracingConfig {
@@ -156,7 +156,10 @@ export class TracingService {
     if (!span) return;
 
     try {
-      span.recordException(error, attributes as any);
+      if (attributes) {
+        this.setAttributes(span, attributes);
+      }
+      span.recordException(error);
       span.setStatus({
         code: SpanStatusCode.ERROR,
         message: error.message,

@@ -83,8 +83,8 @@ export class ToolEcosystemService {
       name: toolDef.name,
       description: toolDef.description,
       schema: toolDef.schema as any,
-      func: async (args: any, context?: any) => {
-        return this.executeTool(toolDef.id, args, context);
+      func: async (args: any) => {
+        return this.executeTool(toolDef.id, args);
       },
     } as any);
 

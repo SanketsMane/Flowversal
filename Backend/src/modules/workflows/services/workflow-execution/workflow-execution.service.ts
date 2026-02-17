@@ -46,9 +46,7 @@ export class WorkflowExecutionService {
    */
   private broadcastNodeEvent(executionId: string, nodeId: string, eventType: 'node_start' | 'node_complete' | 'node_error', data?: any) {
     // #region agent log
-    const fs = require('fs');
-    const logPath = '/Users/nishantkumar/Documents/FloversalAI 1.0.0/.cursor/debug.log';
-    fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:47',message:'broadcastNodeEvent called',data:{executionId,nodeId,eventType},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})+'\n');
+    // BUG-FIX: Removed hardcoded filesystem logging - Sanket
     // #endregion
     try {
       broadcastNodeEvent(executionId, {
@@ -59,11 +57,11 @@ export class WorkflowExecutionService {
         timestamp: Date.now(),
       });
       // #region agent log
-      fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:55',message:'broadcastNodeEvent success',data:{executionId,nodeId,eventType},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})+'\n');
+      // BUG-FIX: Removed hardcoded filesystem logging - Sanket
       // #endregion
     } catch (err: any) {
       // #region agent log
-      fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:57',message:'broadcastNodeEvent error',data:{executionId,nodeId,eventType,errorMessage:err?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})+'\n');
+      // BUG-FIX: Removed hardcoded filesystem logging - Sanket
       // #endregion
       logger.warn('Failed to broadcast node event', { executionId, nodeId, eventType, error: err });
     }
@@ -98,15 +96,13 @@ export class WorkflowExecutionService {
     options: WorkflowExecutionOptions = {}
   ): Promise<IWorkflowExecution> {
     // #region agent log
-    const fs = require('fs');
-    const logPath = '/Users/nishantkumar/Documents/FloversalAI 1.0.0/.cursor/debug.log';
-    fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:81',message:'startExecution entry',data:{workflowId,userId,triggeredBy},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})+'\n');
+    // BUG-FIX: Removed hardcoded filesystem logging - Sanket
     // #endregion
     // Validate inputs
     const workflowValidation = validateWorkflowId(workflowId);
     if (!workflowValidation.isValid) {
       // #region agent log
-      fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:91',message:'Workflow validation failed',data:{errors:workflowValidation.errors},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})+'\n');
+      // BUG-FIX: Removed hardcoded filesystem logging - Sanket
       // #endregion
       throw new Error(workflowValidation.errors.join(', '));
     }
@@ -114,7 +110,7 @@ export class WorkflowExecutionService {
     const inputValidation = validateExecutionInput(input);
     if (!inputValidation.isValid) {
       // #region agent log
-      fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:96',message:'Input validation failed',data:{errors:inputValidation.errors},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})+'\n');
+      // BUG-FIX: Removed hardcoded filesystem logging - Sanket
       // #endregion
       throw new Error(inputValidation.errors.join(', '));
     }
@@ -123,18 +119,18 @@ export class WorkflowExecutionService {
     const workflow = await WorkflowModel.findById(workflowId);
     if (!workflow) {
       // #region agent log
-      fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:102',message:'Workflow not found',data:{workflowId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})+'\n');
+      // BUG-FIX: Removed hardcoded filesystem logging - Sanket
       // #endregion
       throw new Error('Workflow not found');
     }
     // #region agent log
-    fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:105',message:'Workflow found',data:{workflowId,hasContainers:!!workflow.containers,containersCount:workflow.containers?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})+'\n');
+    // BUG-FIX: Removed hardcoded filesystem logging - Sanket
     // #endregion
 
     // Verify user owns the workflow
     if (workflow.userId.toString() !== userId) {
       // #region agent log
-      fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:108',message:'User ownership check failed',data:{workflowUserId:workflow.userId.toString(),requestedUserId:userId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})+'\n');
+      // BUG-FIX: Removed hardcoded filesystem logging - Sanket
       // #endregion
       throw new Error('Unauthorized: You do not own this workflow');
     }
@@ -147,7 +143,7 @@ export class WorkflowExecutionService {
       return sum + (container.nodes?.length || 0);
     }, 0);
     // #region agent log
-    fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:117',message:'Total steps calculated',data:{totalSteps},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})+'\n');
+    // BUG-FIX: Removed hardcoded filesystem logging - Sanket
     // #endregion
 
     // Decide whether to enqueue via Inngest
@@ -174,7 +170,7 @@ export class WorkflowExecutionService {
 
     await execution.save();
     // #region agent log
-    fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:142',message:'Execution saved',data:{executionId:execution._id.toString(),status:execution.status,useQueue},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})+'\n');
+    // BUG-FIX: Removed hardcoded filesystem logging - Sanket
     // #endregion
     workflowExecutionActive.inc({ workflow_type: workflowType });
 
@@ -214,13 +210,11 @@ export class WorkflowExecutionService {
     } else {
       // Start execution asynchronously inline
       // #region agent log
-      const fs = require('fs');
-      const logPath = '/Users/nishantkumar/Documents/FloversalAI 1.0.0/.cursor/debug.log';
-      fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:205',message:'Starting inline execution',data:{executionId:execution._id.toString(),useQueue:false},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})+'\n');
+      // BUG-FIX: Removed hardcoded filesystem logging - Sanket
       // #endregion
       this.executeWorkflow(execution._id.toString(), options).catch((error) => {
         // #region agent log
-        fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:206',message:'executeWorkflow error',data:{executionId:execution._id.toString(),errorMessage:error?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})+'\n');
+        // BUG-FIX: Removed hardcoded filesystem logging - Sanket
         // #endregion
         logger.error('Workflow execution error', error, {
           executionId: execution._id.toString(),
@@ -279,9 +273,7 @@ export class WorkflowExecutionService {
     options: WorkflowExecutionOptions = {}
   ): Promise<IWorkflowExecution> {
     // #region agent log
-    const fs = require('fs');
-    const logPath = '/Users/nishantkumar/Documents/FloversalAI 1.0.0/.cursor/debug.log';
-    fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:232',message:'startExecutionWithData entry',data:{userId,triggeredBy,hasContainers:!!workflowData.containers,containersCount:workflowData.containers?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})+'\n');
+    // BUG-FIX: Removed hardcoded filesystem logging - Sanket
     // #endregion
 
     const inputValidation = validateExecutionInput(input);
@@ -318,13 +310,13 @@ export class WorkflowExecutionService {
 
     await execution.save();
     // #region agent log
-    fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:260',message:'Execution saved for unsaved workflow',data:{executionId:execution._id.toString(),status:execution.status,totalSteps},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})+'\n');
+    // BUG-FIX: Removed hardcoded filesystem logging - Sanket
     // #endregion
 
     // Start execution asynchronously inline (use workflowData instead of looking up from DB)
     this.executeWorkflowWithData(execution._id.toString(), workflowData, options).catch((error) => {
       // #region agent log
-      fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:263',message:'executeWorkflowWithData error',data:{executionId:execution._id.toString(),errorMessage:error?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})+'\n');
+      // BUG-FIX: Removed hardcoded filesystem logging - Sanket
       // #endregion
       logger.error('Workflow execution error', error, {
         executionId: execution._id.toString(),
@@ -340,9 +332,7 @@ export class WorkflowExecutionService {
    */
   async executeWorkflowWithData(executionId: string, workflowData: any, options: WorkflowExecutionOptions = {}): Promise<IWorkflowExecution> {
     // #region agent log
-    const fs = require('fs');
-    const logPath = '/Users/nishantkumar/Documents/FloversalAI 1.0.0/.cursor/debug.log';
-    fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:273',message:'executeWorkflowWithData entry',data:{executionId,useLangGraph:options.useLangGraph,containersCount:workflowData.containers?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})+'\n');
+    // BUG-FIX: Removed hardcoded filesystem logging - Sanket
     // #endregion
     const { useLangGraph = true, timeout } = options;
     const startHr = process.hrtime.bigint();
@@ -386,9 +376,7 @@ export class WorkflowExecutionService {
    */
   async executeWorkflow(executionId: string, options: WorkflowExecutionOptions = {}): Promise<IWorkflowExecution> {
     // #region agent log
-    const fs = require('fs');
-    const logPath = '/Users/nishantkumar/Documents/FloversalAI 1.0.0/.cursor/debug.log';
-    fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:254',message:'executeWorkflow entry',data:{executionId,useLangGraph:options.useLangGraph},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})+'\n');
+    // BUG-FIX: Removed hardcoded filesystem logging - Sanket
     // #endregion
     const { useLangGraph = true, timeout } = options; // Default to LangGraph execution
     const startHr = process.hrtime.bigint();
@@ -396,7 +384,7 @@ export class WorkflowExecutionService {
     const executionValidation = validateExecutionId(executionId);
     if (!executionValidation.isValid) {
       // #region agent log
-      fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:259',message:'Execution validation failed',data:{executionId,errors:executionValidation.errors},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})+'\n');
+      // BUG-FIX: Removed hardcoded filesystem logging - Sanket
       // #endregion
       throw new Error(executionValidation.errors.join(', '));
     }
@@ -404,7 +392,7 @@ export class WorkflowExecutionService {
     const execution = await WorkflowExecutionModel.findById(executionId).populate('workflowId');
     if (!execution) {
       // #region agent log
-      fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:264',message:'Execution not found',data:{executionId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})+'\n');
+      // BUG-FIX: Removed hardcoded filesystem logging - Sanket
       // #endregion
       throw new Error('Execution not found');
     }
@@ -412,13 +400,13 @@ export class WorkflowExecutionService {
     const workflow = execution.workflowId as any;
     if (!workflow) {
       // #region agent log
-      fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:269',message:'Workflow not found',data:{executionId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})+'\n');
+      // BUG-FIX: Removed hardcoded filesystem logging - Sanket
       // #endregion
       throw new Error('Workflow not found');
     }
 
     // #region agent log
-    fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:273',message:'Workflow found, starting execution',data:{executionId,workflowId:workflow._id?.toString(),containersCount:workflow.containers?.length,nodesCount:workflow.containers?.reduce((s:number,c:any)=>s+(c.nodes?.length||0),0)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})+'\n');
+    // BUG-FIX: Removed hardcoded filesystem logging - Sanket
     // #endregion
 
     // Update status to running
@@ -432,7 +420,7 @@ export class WorkflowExecutionService {
 
       if (useLangGraph) {
         // #region agent log
-        fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:282',message:'Using LangGraph execution',data:{executionId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})+'\n');
+        // BUG-FIX: Removed hardcoded filesystem logging - Sanket
         // #endregion
         result = await this.executeWithLangGraph(executionId, timeout);
       } else {
@@ -617,9 +605,7 @@ export class WorkflowExecutionService {
    */
   private async executeTraditionalWithData(executionId: string, workflowData: any, timeout?: number): Promise<IWorkflowExecution> {
     // #region agent log
-    const fs = require('fs');
-    const logPath = '/Users/nishantkumar/Documents/FloversalAI 1.0.0/.cursor/debug.log';
-    fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:504',message:'executeTraditionalWithData entry',data:{executionId,containersCount:workflowData.containers?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})+'\n');
+    // BUG-FIX: Removed hardcoded filesystem logging - Sanket
     // #endregion
     const execution = await WorkflowExecutionModel.findById(executionId);
     if (!execution) {
@@ -673,9 +659,7 @@ export class WorkflowExecutionService {
    */
   private async executeTraditional(executionId: string, timeout?: number): Promise<IWorkflowExecution> {
     // #region agent log
-    const fs = require('fs');
-    const logPath = '/Users/nishantkumar/Documents/FloversalAI 1.0.0/.cursor/debug.log';
-    fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:493',message:'executeTraditional entry',data:{executionId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})+'\n');
+    // BUG-FIX: Removed hardcoded filesystem logging - Sanket
     // #endregion
     const execution = await WorkflowExecutionModel.findById(executionId).populate('workflowId');
     if (!execution) {
@@ -684,7 +668,7 @@ export class WorkflowExecutionService {
 
     const workflow = execution.workflowId as any;
     // #region agent log
-    fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:500',message:'Workflow loaded for traditional execution',data:{executionId,containersCount:workflow.containers?.length,totalNodes:workflow.containers?.reduce((s:number,c:any)=>s+(c.nodes?.length||0),0)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})+'\n');
+    // BUG-FIX: Removed hardcoded filesystem logging - Sanket
     // #endregion
 
     // Create execution context
@@ -734,13 +718,11 @@ export class WorkflowExecutionService {
    */
   private async executeContainers(containers: any[], context: ExecutionContext): Promise<void> {
     // #region agent log
-    const fs = require('fs');
-    const logPath = '/Users/nishantkumar/Documents/FloversalAI 1.0.0/.cursor/debug.log';
-    fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:546',message:'executeContainers entry',data:{containersCount:containers.length,executionId:context.execution._id.toString()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})+'\n');
+    // BUG-FIX: Removed hardcoded filesystem logging - Sanket
     // #endregion
     for (const container of containers) {
       // #region agent log
-      fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:548',message:'Executing container',data:{containerId:container.id,containerTitle:container.title,nodesCount:container.nodes?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})+'\n');
+      // BUG-FIX: Removed hardcoded filesystem logging - Sanket
       // #endregion
       await this.executeContainer(container, context);
     }
@@ -751,17 +733,16 @@ export class WorkflowExecutionService {
    */
   private async executeContainer(container: any, context: ExecutionContext): Promise<void> {
     // #region agent log
-    const fs = require('fs');
-    const logPath = '/Users/nishantkumar/Documents/FloversalAI 1.0.0/.cursor/debug.log';
+    // BUG-FIX: Removed hardcoded filesystem logging - Sanket
     // #endregion
     if (!container.nodes || !Array.isArray(container.nodes)) {
       // #region agent log
-      fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:556',message:'Container has no nodes',data:{containerId:container.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})+'\n');
+      // BUG-FIX: Removed hardcoded filesystem logging - Sanket
       // #endregion
       return;
     }
     // #region agent log
-    fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:560',message:'executeContainer entry',data:{containerId:container.id,nodesCount:container.nodes.length,nodeIds:container.nodes.map((n:any)=>n.id)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})+'\n');
+    // BUG-FIX: Removed hardcoded filesystem logging - Sanket
     // #endregion
 
     for (const node of container.nodes) {
@@ -811,7 +792,7 @@ export class WorkflowExecutionService {
         });
 
         // #region agent log
-        fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:562',message:'Breakpoint triggered - pausing execution',data:{nodeId,breakpointId:breakpointState.breakpointId,executionId:context.execution._id.toString()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})+'\n');
+        // BUG-FIX: Removed hardcoded filesystem logging - Sanket
         // #endregion
 
         // Execution is paused - return early
@@ -819,12 +800,12 @@ export class WorkflowExecutionService {
       }
 
       // #region agent log
-      fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:562',message:'Starting node execution',data:{nodeId,nodeType:node.type,nodeName:node.name,executionId:context.execution._id.toString()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})+'\n');
+      // BUG-FIX: Removed hardcoded filesystem logging - Sanket
       // #endregion
 
       // Broadcast node start event
       // #region agent log
-      fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:565',message:'Broadcasting node_start event',data:{executionId:context.execution._id.toString(),nodeId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})+'\n');
+      // BUG-FIX: Removed hardcoded filesystem logging - Sanket
       // #endregion
       this.broadcastNodeEvent(context.execution._id.toString(), nodeId, 'node_start', {
         nodeType: node.type,
@@ -862,7 +843,7 @@ export class WorkflowExecutionService {
         // Broadcast node complete event
         if (result.success) {
           // #region agent log
-          fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:640',message:'Node execution success, broadcasting node_complete',data:{nodeId,nodeType:node.type,executionId:context.execution._id.toString(),duration:nodeDuration},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})+'\n');
+          // BUG-FIX: Removed hardcoded filesystem logging - Sanket
           // #endregion
           this.broadcastNodeEvent(context.execution._id.toString(), nodeId, 'node_complete', {
             nodeType: node.type,
@@ -872,7 +853,7 @@ export class WorkflowExecutionService {
           });
         } else {
           // #region agent log
-          fs.appendFileSync(logPath, JSON.stringify({location:'workflow-execution.service.ts:647',message:'Node execution failed, broadcasting node_error',data:{nodeId,nodeType:node.type,executionId:context.execution._id.toString(),error:result.error,duration:nodeDuration},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})+'\n');
+          // BUG-FIX: Removed hardcoded filesystem logging - Sanket
           // #endregion
           this.broadcastNodeEvent(context.execution._id.toString(), nodeId, 'node_error', {
             nodeType: node.type,

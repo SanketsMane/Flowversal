@@ -9,7 +9,9 @@ export async function listTasksHandler(
   reply: FastifyReply
 ): Promise<void> {
   try {
-    const dbUser = await userService.getOrCreateUserFromSupabase(request.user!.id);
+    // Use cached dbUser if available (from auth middleware), otherwise fetch it
+    // This fixes BUG-TASK-003 (N+1 query problem)
+    const dbUser = request.user?.dbUser || await userService.getOrCreateUserFromSupabase(request.user!.id);
     const query = request.query;
 
     // Validate query parameters

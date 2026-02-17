@@ -8,11 +8,48 @@ const KEY_LENGTH = 32; // 256 bits
 const ITERATIONS = 100000; // PBKDF2 iterations
 
 /**
- * Get encryption key from environment or generate a default
- * In production, this should be a strong secret stored securely
+ * Get and validate encryption secret
+ * Author: Sanket
+ * Ensures encryption secret meets security requirements
  */
 function getEncryptionKey(): Buffer {
-  const secret = process.env.ENCRYPTION_SECRET || 'default-secret-change-in-production';
+  const secret = process.env.ENCRYPTION_SECRET;
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  // In production, secret MUST be set
+  if (!secret) {
+    if (isProduction) {
+      throw new Error(
+        'ENCRYPTION_SECRET must be set in production environment. ' +
+        'Generate with: openssl rand -base64 32'
+      );
+    }
+    console.warn('⚠️  Using default encryption secret - FOR DEVELOPMENT ONLY');
+    const defaultSecret = 'default-secret-for-development-only';
+    return crypto.pbkdf2Sync(defaultSecret, 'flowversal-salt', ITERATIONS, KEY_LENGTH, 'sha512');
+  }
+  
+  // Validate secret length
+  if (secret.length < 32) {
+    throw new Error(
+      `ENCRYPTION_SECRET must be at least 32 characters (current: ${secret.length})`
+    );
+  }
+  
+  // Check for weak/default values
+  const weakValues = [
+    'default-secret',
+    'change-in-production',
+    'your-secret',
+    'test-secret',
+  ];
+  
+  if (weakValues.some(weak => secret.toLowerCase().includes(weak))) {
+    throw new Error(
+      'ENCRYPTION_SECRET contains weak or default value. ' +
+      'Generate a strong secret with: openssl rand -base64 32'
+    );
+  }
   
   // Derive a consistent key from the secret
   return crypto.pbkdf2Sync(secret, 'flowversal-salt', ITERATIONS, KEY_LENGTH, 'sha512');

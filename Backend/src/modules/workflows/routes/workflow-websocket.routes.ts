@@ -1,8 +1,8 @@
 import websocket from '@fastify/websocket';
 import { FastifyPluginAsync } from 'fastify';
+import { supabaseClient } from '../../../core/config/supabase.config';
 import { logger } from '../../../shared/utils/logger.util';
 import { WorkflowExecutionModel } from '../models/WorkflowExecution.model';
-import { supabaseClient } from '../../../core/config/supabase.config';
 
 interface WebSocketConnection {
   userId: string;
@@ -287,9 +287,7 @@ export function broadcastExecutionUpdate(executionId: string, update: any) {
 // Enhanced broadcast function for node-level events
 export function broadcastNodeEvent(executionId: string, event: ExecutionEvent) {
   // #region agent log
-  const fs = require('fs');
-  const logPath = '/Users/nishantkumar/Documents/FloversalAI 1.0.0/.cursor/debug.log';
-  fs.appendFileSync(logPath, JSON.stringify({location:'workflow-websocket.routes.ts:270',message:'broadcastNodeEvent entry',data:{executionId,eventType:event.type,nodeId:event.nodeId,connectionsCount:activeConnections.get(executionId)?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})+'\n');
+  // BUG-FIX: Removed hardcoded filesystem logging - Sanket
   // #endregion
   const connections = activeConnections.get(executionId);
   if (connections) {
@@ -298,7 +296,7 @@ export function broadcastNodeEvent(executionId: string, event: ExecutionEvent) {
       timestamp: new Date().toISOString(),
     });
     // #region agent log
-    fs.appendFileSync(logPath, JSON.stringify({location:'workflow-websocket.routes.ts:273',message:'Found connections, sending message',data:{executionId,connectionsCount:connections.length,eventType:event.type,nodeId:event.nodeId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})+'\n');
+    // BUG-FIX: Removed hardcoded filesystem logging - Sanket
     // #endregion
 
     connections.forEach((conn) => {
@@ -306,23 +304,23 @@ export function broadcastNodeEvent(executionId: string, event: ExecutionEvent) {
         try {
           conn.socket.send(message);
           // #region agent log
-          fs.appendFileSync(logPath, JSON.stringify({location:'workflow-websocket.routes.ts:281',message:'Message sent to WebSocket',data:{executionId,eventType:event.type,nodeId:event.nodeId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})+'\n');
+          // BUG-FIX: Removed hardcoded filesystem logging - Sanket
           // #endregion
         } catch (error: any) {
           // #region agent log
-          fs.appendFileSync(logPath, JSON.stringify({location:'workflow-websocket.routes.ts:283',message:'Error sending WebSocket message',data:{executionId,eventType:event.type,nodeId:event.nodeId,errorMessage:error?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})+'\n');
+          // BUG-FIX: Removed hardcoded filesystem logging - Sanket
           // #endregion
           logger.error('Error broadcasting node event', { error, eventType: event.type });
         }
       } else {
         // #region agent log
-        fs.appendFileSync(logPath, JSON.stringify({location:'workflow-websocket.routes.ts:285',message:'WebSocket not ready',data:{executionId,readyState:conn.socket?.readyState},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})+'\n');
+        // BUG-FIX: Removed hardcoded filesystem logging - Sanket
         // #endregion
       }
     });
   } else {
     // #region agent log
-    fs.appendFileSync(logPath, JSON.stringify({location:'workflow-websocket.routes.ts:288',message:'No connections found for execution',data:{executionId,eventType:event.type,nodeId:event.nodeId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})+'\n');
+    // BUG-FIX: Removed hardcoded filesystem logging - Sanket
     // #endregion
   }
 }

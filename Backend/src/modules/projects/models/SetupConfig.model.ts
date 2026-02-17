@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document, Model, Types } from 'mongoose';
+import mongoose, { Document, Model, Schema, Types } from 'mongoose';
 
 export interface IntegrationConfig {
   name: string;
@@ -103,18 +103,15 @@ const SetupConfigSchema = new Schema<ISetupConfig>(
       type: String,
       enum: ['template', 'project', 'board'],
       required: true,
-      index: true,
     },
     entityId: {
       type: Schema.Types.ObjectId,
       required: true,
-      index: true,
     },
     userId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
-      index: true,
     },
     integrations: {
       type: [IntegrationConfigSchema],

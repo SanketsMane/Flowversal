@@ -181,12 +181,20 @@ export const EXTERNAL_SERVICES = {
  * Build full API URL
  */
 export function buildApiUrl(endpoint: string): string {
+  // If it's already an absolute URL, return it
+  if (endpoint.startsWith('http')) return endpoint;
+
   // Remove leading slash from endpoint if present
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
+  
   // Ensure API_BASE_URL doesn't have trailing slash
   const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
-  // Build URL without double slashes
-  return cleanEndpoint ? `${baseUrl}/${cleanEndpoint}` : baseUrl;
+  
+  // If endpoint is empty, just return base
+  if (!cleanEndpoint) return baseUrl;
+
+  // Build URL without double slashes - Fixes double-prefixing risk
+  return `${baseUrl}/${cleanEndpoint}`;
 }
 /**
  * Get auth headers
@@ -204,14 +212,15 @@ export async function getAuthHeaders(token?: string): Promise<HeadersInit> {
     const sessionStr = localStorage.getItem('flowversal_auth_session');
     if (sessionStr) {
       const session = JSON.parse(sessionStr);
-      const authToken = session?.accessToken;
+      // Handle both backend naming conventions and flat token storage
+      const authToken = session?.accessToken || session?.access_token || session?.token;
+      
       if (authToken) {
         return {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${authToken}`,
         };
       }
-      localStorage.removeItem('flowversal_auth_session');
     }
   } catch (error) {
     console.warn('[API Config] Failed to get token from session:', error);

@@ -43,7 +43,7 @@ const healthRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/health', async (request, reply) => {
     const health = await performComprehensiveHealthCheck();
 
-    reply.code(health.overall !== 'unhealthy' ? 200 : 503).send(health);
+    reply.code(health.overall === 'unhealthy' ? 503 : 200).send(health);
   });
 
   // Metrics endpoint for Prometheus

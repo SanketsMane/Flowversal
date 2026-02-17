@@ -62,17 +62,35 @@ export class RedisRateLimiter {
    * Initialize Redis connection
    */
   private async initializeRedis() {
+    // Skip Redis in test environment
+    if (process.env.NODE_ENV === 'test') {
+      logger.warn('[RedisRateLimiter] Test environment detected, using in-memory fallbacks');
+      this.isRedisAvailable = false;
+      return;
+    }
+
+    // Check if Redis URL or Host is provided
+    if (!process.env.REDIS_URL && !process.env.REDIS_HOST) {
+      logger.warn('[RedisRateLimiter] No Redis configuration found, using in-memory fallback');
+      this.isRedisAvailable = false;
+      return;
+    }
+
     try {
-      this.redis = new Redis({
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
-        password: process.env.REDIS_PASSWORD,
-        retryStrategy: (times: number) => {
-          const delay = Math.min(times * 50, 2000);
-          return delay;
-        },
-        maxRetriesPerRequest: 3,
-      });
+      const redisConfig = process.env.REDIS_URL 
+        ? process.env.REDIS_URL 
+        : {
+            host: process.env.REDIS_HOST || 'localhost',
+            port: parseInt(process.env.REDIS_PORT || '6379'),
+            password: process.env.REDIS_PASSWORD,
+            maxRetriesPerRequest: 3,
+            retryStrategy: (times: number) => {
+              if (times > 3) return null; // Stop retrying after 3 attempts
+              return Math.min(times * 50, 2000); // Exponential backoff
+            },
+          };
+
+      this.redis = new Redis(redisConfig as any);
 
       this.redis.on('connect', () => {
         logger.info('Redis connected for rate limiting');
@@ -80,16 +98,21 @@ export class RedisRateLimiter {
       });
 
       this.redis.on('error', (error) => {
-        logger.error('Redis connection error:', error);
+        // Only log error if we haven't already fallen back to memory to avoid noise
+        if (this.isRedisAvailable) {
+          logger.warn('Redis connection error, switching to in-memory fallback:', error.message);
+        }
         this.isRedisAvailable = false;
       });
 
-      // Test connection
-      await this.redis.ping();
-      this.isRedisAvailable = true;
+      // Quick test
+      await this.redis.ping().catch(() => {
+        this.isRedisAvailable = false;
+        logger.warn('Initial Redis ping failed, using in-memory fallback');
+      });
+      
     } catch (error) {
-      logger.warn('Redis not available, falling back to in-memory rate limiting');
-      logger.warn('⚠️  In-memory rate limiting is NOT production-ready!');
+      logger.warn('Redis initialization failed, falling back to in-memory rate limiting');
       this.isRedisAvailable = false;
     }
   }

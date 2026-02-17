@@ -1,5 +1,6 @@
-import { TaskModel, ITask } from '../models/Task.model';
 import { Types } from 'mongoose';
+import { CounterModel } from '../models/Counter.model';
+import { ITask, TaskModel } from '../models/Task.model';
 import { taskWorkflowService } from './task-workflow.service';
 
 export interface CreateTaskData {
@@ -59,24 +60,55 @@ export interface TaskFilters {
 export class TaskService {
   /**
    * Generate a unique task ID (TSK-001, TSK-002, etc.)
+
+   * Generate a unique task ID (TSK-001, TSK-002, etc.)
+   * Uses atomic counter to prevent race conditions (BUG-TASK-002)
    */
   private async generateTaskId(userId: string): Promise<string> {
-    // Find the highest TSK-XXX number across all tasks to ensure uniqueness
-    const lastTask = await TaskModel.findOne(
-      { taskId: /^TSK-\d+$/ },
-      { taskId: 1 }
-    ).sort({ taskId: -1 }).limit(1);
+    // Atomically increment the counter
+    // If it doesn't exist, it will be created with seq: 1 (default 0 + 1 inc)
+    let counter = await CounterModel.findByIdAndUpdate(
+      'taskId',
+      { $inc: { seq: 1 } },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
 
-    let nextNumber = 1;
-    if (lastTask && lastTask.taskId) {
-      const match = lastTask.taskId.match(/TSK-(\d+)/);
-      if (match) {
-        nextNumber = parseInt(match[1], 10) + 1;
+    // If counter was just created (seq === 1), sync with existing tasks
+    // This handles the migration case where tasks exist but counter doesn't
+    if (counter && counter.seq === 1) {
+      const lastTask = await TaskModel.findOne(
+        { taskId: /^TSK-\d+$/ },
+        { taskId: 1 }
+      ).sort({ taskId: -1 }).limit(1);
+
+      if (lastTask && lastTask.taskId) {
+        const match = lastTask.taskId.match(/TSK-(\d+)/);
+        if (match) {
+          const maxId = parseInt(match[1], 10);
+          // If existing max ID is greater than or equal to current counter, 
+          // update counter to maxId + 1 to avoid conflicts
+          if (maxId >= counter.seq) {
+            const updatedCounter = await CounterModel.findByIdAndUpdate(
+              'taskId',
+              { $set: { seq: maxId + 1 } },
+              { new: true }
+            );
+            if (updatedCounter) {
+              counter = updatedCounter;
+            }
+          }
+        }
       }
     }
 
-    return `TSK-${String(nextNumber).padStart(3, '0')}`;
+    if (!counter) {
+        throw new Error('Failed to generate task ID');
+    }
+
+    return `TSK-${String(counter.seq).padStart(3, '0')}`;
   }
+
+
 
   /**
    * Create a new task
@@ -135,6 +167,18 @@ export class TaskService {
     });
 
     return task;
+  }
+
+  /**
+   * Get board by ID (for ownership validation)
+   * Author: Sanket - Added for foreign key validation
+   */
+  async getBoardById(boardId: string, userId: string): Promise<any> {
+    const { BoardModel } = await import('../../projects/models/Board.model');
+    return BoardModel.findOne({
+      _id: boardId,
+      userId: new Types.ObjectId(userId),
+    });
   }
 
   /**

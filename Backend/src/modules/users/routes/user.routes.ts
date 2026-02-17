@@ -12,8 +12,14 @@ const userRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     try {
-      // Get or create user from Supabase
-      const user = await userService.getOrCreateUserFromSupabase(request.user.id);
+      // Get or create user from Neon Auth (consistent with login/signup) - Sanket
+      // Extract userId from Fastify-JWT payload
+      const userId = (request.user as any).id;
+      const user = await userService.getOrCreateUserFromNeon({ 
+        id: userId, 
+        email: (request.user as any).email 
+      });
+
       return reply.send({
         success: true,
         data: userService.toUserType(user),
@@ -90,17 +96,12 @@ const userRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       try {
-        // Get user from MongoDB
-        const dbUser = await userService.findBySupabaseId(request.user.id);
-
-        if (!dbUser) {
-          // Create user if doesn't exist
-          const newUser = await userService.getOrCreateUserFromSupabase(request.user.id);
-          return reply.send({
-            success: true,
-            data: userService.toUserType(newUser),
-          });
-        }
+        // Get user from Neon (consistent with login) - Sanket
+        const userId = (request.user as any).id;
+        const dbUser = await userService.getOrCreateUserFromNeon({ 
+            id: userId, 
+            email: (request.user as any).email 
+        });
 
         // Update user
         const updatedUser = await userService.updateUser(dbUser._id.toString(), {
@@ -139,7 +140,12 @@ const userRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     try {
-      const dbUser = await userService.findBySupabaseId(request.user.id);
+      // Get user from Neon to ensure we delete the right one - Sanket
+      const userId = (request.user as any).id;
+      const dbUser = await userService.getOrCreateUserFromNeon({ 
+          id: userId, 
+          email: (request.user as any).email 
+      });
 
       if (!dbUser) {
         return reply.code(404).send({
@@ -183,13 +189,12 @@ const userRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     try {
-      let dbUser = await userService.findBySupabaseId(request.user.id);
-
-      // If user doesn't exist, create it (handles demo users and new signups)
-      if (!dbUser) {
-        fastify.log.info({ userId: request.user.id }, 'User not found in MongoDB, creating new user');
-        dbUser = await userService.getOrCreateUserFromSupabase(request.user.id, request.user);
-      }
+      // Get user from Neon (Critical Fix: Sync with login flow) - Sanket
+      const userId = (request.user as any).id;
+      let dbUser = await userService.getOrCreateUserFromNeon({ 
+          id: userId, 
+          email: (request.user as any).email 
+      });
 
       const updatedUser = await userService.updateUser(dbUser._id.toString(), {
         referralSource: request.body.referralSource,
@@ -213,21 +218,23 @@ const userRoutes: FastifyPluginAsync = async (fastify) => {
         data: userService.toUserType(updatedUser),
       });
     } catch (error: any) {
-      console.error('❌ Error saving onboarding data:', error);
-      
-      // Debug logging to artifact dir
-      try {
-        const fs = require('fs');
-        const logPath = 'C:/Users/rohan/.gemini/antigravity/brain/8622acbb-4c56-4c35-9298-a15ea23810c2/backend_error.log';
-        fs.writeFileSync(logPath, `[${new Date().toISOString()}] Onboarding Error:\n${JSON.stringify(error, Object.getOwnPropertyNames(error), 2)}\n\nStack:\n${error.stack}\n`);
-      } catch (e) {
-        console.error('Failed to write debug log:', e);
-      }
+      // BUG-FIX: Removed hardcoded filesystem logging - Sanket
+      // Use Fastify logger instead of writing to filesystem
+      fastify.log.error({
+        error: error.message,
+        stack: error.stack,
+        userId: request.user?.id,
+        supabaseId: request.user?.id,
+      }, 'Error saving onboarding data');
       
       return reply.code(500).send({
-        error: 'Internal Server Error',
+        success: false,
+        error: 'InternalServerError',
         message: 'Failed to save onboarding data',
-        details: error instanceof Error ? error.message : String(error),
+        // Only include details in development
+        ...(process.env.NODE_ENV === 'development' && { 
+          details: error instanceof Error ? error.message : String(error) 
+        }),
       });
     }
   });

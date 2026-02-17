@@ -308,7 +308,7 @@ export class HumanApprovalService {
         data,
         timestamp: Date.now(),
       });
-    } catch (error) {
+    } catch (error: any) {
       logger.warn('Failed to broadcast approval update', { executionId, approvalId, error });
     }
   }

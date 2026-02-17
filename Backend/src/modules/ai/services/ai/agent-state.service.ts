@@ -160,10 +160,10 @@ const ImprovementHistorySchema = new Schema(
 
 const AgentStateSchema = new Schema<IAgentState>(
   {
-    agentId: { type: String, required: true, index: true },
-    executionId: { type: String, required: true, index: true },
-    nodeId: { type: String, index: true },
-    userId: { type: String, required: true, index: true },
+    agentId: { type: String, required: true },
+    executionId: { type: String, required: true },
+    nodeId: { type: String },
+    userId: { type: String, required: true },
     thoughts: { type: [ThoughtSchema], default: [] },
     toolCalls: { type: [ToolCallSchema], default: [] },
     decisions: { type: [DecisionSchema], default: [] },
