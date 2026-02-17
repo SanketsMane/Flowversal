@@ -54,7 +54,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         const authResponse = await neonAuthService.signUp(email, password, fullName || undefined);
 
         // 4. Sync/Create user in Mongo (Main DB) - SSOT Enforcement
-        const mongoUser = await userService.ensureUser(authResponse.user.id, authResponse.user.email, authResponse.user.fullName);
+        const mongoUser = await userService.ensureUser(authResponse.user.id, authResponse.user.email, authResponse.user.fullName, authResponse.user.role);
 
         return reply.send({
           success: true,
@@ -100,7 +100,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
         const authResponse = await neonAuthService.signIn(email, password);
 
         // 3. Ensure user is synced to MongoDB immediately (SSOT)
-        const mongoUser = await userService.ensureUser(authResponse.user.id, authResponse.user.email, authResponse.user.fullName);
+        const mongoUser = await userService.ensureUser(authResponse.user.id, authResponse.user.email, authResponse.user.fullName, authResponse.user.role);
 
         return reply.send({
           success: true,
@@ -130,7 +130,7 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       const authResponse = await neonAuthService.refreshSession(refreshToken);
-      const mongoUser = await userService.ensureUser(authResponse.user.id, authResponse.user.email, authResponse.user.fullName);
+      const mongoUser = await userService.ensureUser(authResponse.user.id, authResponse.user.email, authResponse.user.fullName, authResponse.user.role);
 
       return reply.send({
         success: true,

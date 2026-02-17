@@ -142,7 +142,7 @@ export class UserService {
    * This is the single source of truth for loading a user into memory.
    * Author: Sanket - Unifies identity across systems
    */
-  async ensureUser(id: string, email: string, fullName?: string | null): Promise<IUser> {
+  async ensureUser(id: string, email: string, fullName?: string | null, role?: string): Promise<IUser> {
     if (mongoose.connection.readyState !== 1) {
       const { connectMongoDB } = require('../../../core/database/mongodb');
       await connectMongoDB();
@@ -151,7 +151,11 @@ export class UserService {
     // 1. Try to find user in MongoDB by Neon ID
     let user = await UserModel.findOne({ neonUserId: id });
     if (user) {
-      // Periodic sync from Neon (SSOT) if needed
+      // Sync from Neon (SSOT) if role changed
+      if (role && user.role !== role) {
+          user.role = role as 'user' | 'admin' | 'super_admin';
+          await user.save();
+      }
       return user;
     }
 
@@ -160,6 +164,7 @@ export class UserService {
     user = await UserModel.findOne({ email: encryptedEmail });
     if (user) {
       user.neonUserId = id;
+      if (role) user.role = role;
       await user.save();
       return user;
     }
@@ -173,7 +178,7 @@ export class UserService {
           fullName: fullName,
           source: 'neon_auth',
       },
-      role: 'user',
+      role: (role as 'user' | 'admin' | 'super_admin') || 'user',
       onboardingCompleted: false,
     });
     
