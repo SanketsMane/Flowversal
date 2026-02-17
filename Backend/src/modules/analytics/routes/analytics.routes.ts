@@ -1,4 +1,4 @@
-import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { FastifyInstance, FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import { Types } from 'mongoose';
 import { workflowAnalyticsService } from '../services/workflow-analytics.service';
 
@@ -489,7 +489,7 @@ export async function analyticsRoutes(fastify: any) {
 
   // Get comprehensive usage summary for subscription modal - Fixes dummy data
   // Author: Sanket
-  fastify.get('/usage', { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+  fastify.get('/usage', { preHandler: [(fastify as any).authenticate] }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const userId = (request.user as any).id;
       const usage = await workflowAnalyticsService.getUsageSummary(new Types.ObjectId(userId));
@@ -508,7 +508,7 @@ export async function analyticsRoutes(fastify: any) {
 
   // Get dashboard metrics summary - Fixes dummy data
   // Author: Sanket
-  fastify.get('/summary', { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
+  fastify.get('/summary', { preHandler: [(fastify as any).authenticate] }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const userId = (request.user as any).id;
       const stats = await workflowAnalyticsService.getDashboardStats(new Types.ObjectId(userId));

@@ -4,6 +4,7 @@ export interface User {
   created_at?: string;
   updated_at?: string;
   onboardingCompleted?: boolean;
+  dbUser?: any;
 }
 
 export interface AuthContext {

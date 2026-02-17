@@ -654,7 +654,7 @@ export class ModelRouterService {
     }
 
     // If all providers have been tried, return the best remaining one
-    return cheaperProviders.length > 0 ? cheaperProviders[0] : null;
+    return affordableProviders.length > 0 ? affordableProviders[0] : null;
   }
 
   /**

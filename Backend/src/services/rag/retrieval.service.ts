@@ -74,9 +74,6 @@ export class RetrievalService {
       
       const response = await routeResult.model.invoke([{ role: 'user', content: query }]);
 
-      const completion = await routingResult.model.invoke([{ role: 'user', content: query }]);
-      const answer = typeof completion.content === 'string' ? completion.content : JSON.stringify(completion.content);
-
       return {
         answer: response.content.toString(),
         sources: [],
@@ -115,16 +112,6 @@ Answer:`;
         },
         { role: 'user', content: prompt },
     ]);
-
-    const completion = await routingResult.model.invoke([
-      {
-        role: 'system',
-        content:
-          'You are a helpful assistant that answers questions based on provided context. Cite sources when possible.',
-      },
-      { role: 'user', content: prompt },
-    ]);
-    const answer = typeof completion.content === 'string' ? completion.content : JSON.stringify(completion.content);
 
     return {
       answer: response.content.toString(),
