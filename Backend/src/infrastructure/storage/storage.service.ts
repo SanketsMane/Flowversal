@@ -1,4 +1,4 @@
-import { supabaseStorage } from '../../core/config/supabase.config';
+import { env } from '../../core/config/env';
 
 export interface UploadFileOptions {
   bucket: string;
@@ -18,74 +18,84 @@ export interface FileMetadata {
 }
 
 export class StorageService {
+  private storage: any = null;
+  private gcsBucket: any = null;
+  private enabled: boolean = false;
+
+  constructor() {
+    const hasGcsCreds = !!(env.GCS_BUCKET && env.GCS_PROJECT_ID && env.GCS_CLIENT_EMAIL && env.GCS_PRIVATE_KEY);
+    if (hasGcsCreds) {
+      try {
+        const { Storage } = require('@google-cloud/storage');
+        this.storage = new Storage({
+          projectId: env.GCS_PROJECT_ID,
+          credentials: {
+            client_email: env.GCS_CLIENT_EMAIL,
+            private_key: env.GCS_PRIVATE_KEY.replace(/\\n/g, '\n'),
+          },
+        });
+        this.gcsBucket = this.storage.bucket(env.GCS_BUCKET);
+        this.enabled = true;
+      } catch (error) {
+        console.warn('[StorageService] GCS initialization failed:', error);
+      }
+    }
+  }
+
   /**
-   * Upload file to Supabase Storage
+   * Upload file to GCS
+   * Author: Sanket - Moved from Supabase to GCS 🛡️
    */
   async uploadFile(options: UploadFileOptions): Promise<{ path: string; url: string }> {
-    const { bucket, path, file, contentType, metadata } = options;
-
-    const { data, error } = await supabaseStorage.from(bucket).upload(path, file, {
-      contentType: contentType || 'application/octet-stream',
-      upsert: true,
-      metadata: metadata,
-    });
-
-    if (error) {
-      throw new Error(`File upload failed: ${error.message}`);
+    if (!this.enabled) {
+      throw new Error('Storage service not configured (GCS)');
     }
 
-    // Get public URL
-    const { data: urlData } = supabaseStorage.from(bucket).getPublicUrl(path);
+    const { bucket: _bucket, path, file, contentType, metadata } = options;
+    const fileHandle = this.gcsBucket.file(path);
+
+    await fileHandle.save(file, {
+      contentType: contentType || 'application/octet-stream',
+      metadata: metadata,
+      resumable: false,
+    });
 
     return {
-      path: data.path,
-      url: urlData.publicUrl,
+      path,
+      url: `https://storage.googleapis.com/${env.GCS_BUCKET}/${path}`,
     };
   }
 
   /**
-   * Download file from Supabase Storage
+   * Download file from GCS
    */
   async downloadFile(bucket: string, path: string): Promise<Buffer> {
-    const { data, error } = await supabaseStorage.from(bucket).download(path);
-
-    if (error) {
-      throw new Error(`File download failed: ${error.message}`);
-    }
-
-    return Buffer.from(await data.arrayBuffer());
+    if (!this.enabled) throw new Error('Storage service not configured');
+    const [content] = await this.gcsBucket.file(path).download();
+    return content;
   }
 
   /**
-   * Delete file from Supabase Storage
+   * Delete file from GCS
    */
   async deleteFile(bucket: string, path: string): Promise<void> {
-    const { error } = await supabaseStorage.from(bucket).remove([path]);
-
-    if (error) {
-      throw new Error(`File deletion failed: ${error.message}`);
-    }
+    if (!this.enabled) throw new Error('Storage service not configured');
+    await this.gcsBucket.file(path).delete();
   }
 
   /**
-   * List files in a bucket
+   * List files in a bucket (GCS implementation)
    */
-  async listFiles(bucket: string, path?: string): Promise<FileMetadata[]> {
-    const { data, error } = await supabaseStorage.from(bucket).list(path || '', {
-      limit: 100,
-      offset: 0,
-    });
-
-    if (error) {
-      throw new Error(`File listing failed: ${error.message}`);
-    }
-
-    return (data || []).map((file: any) => ({
+  async listFiles(bucket: string, prefix?: string): Promise<FileMetadata[]> {
+    if (!this.enabled) throw new Error('Storage service not configured');
+    const [files] = await this.gcsBucket.getFiles({ prefix });
+    
+    return files.map((file: any) => ({
       name: file.name,
-      id: file.id,
-      updated_at: file.updated_at,
-      created_at: file.created_at,
-      last_accessed_at: file.last_accessed_at,
+      id: file.id || file.name,
+      updated_at: file.metadata.updated,
+      created_at: file.metadata.timeCreated,
+      last_accessed_at: file.metadata.updated,
       metadata: file.metadata || {},
     }));
   }
@@ -94,10 +104,8 @@ export class StorageService {
    * Get public URL for a file
    */
   getPublicUrl(bucket: string, path: string): string {
-    const { data } = supabaseStorage.from(bucket).getPublicUrl(path);
-    return data.publicUrl;
+    return `https://storage.googleapis.com/${env.GCS_BUCKET}/${path}`;
   }
 }
 
 export const storageService = new StorageService();
-

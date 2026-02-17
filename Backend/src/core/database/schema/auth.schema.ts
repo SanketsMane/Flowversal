@@ -15,6 +15,15 @@ export const users = pgTable('users', {
   emailVerified: boolean('email_verified').default(false).notNull(),
   role: text('role').default('user').notNull(),
   
+  // Onboarding fields - Author: Sanket
+  onboardingCompleted: boolean('onboarding_completed').default(false).notNull(),
+  organizationName: text('organization_name'),
+  organizationSize: text('organization_size'),
+  referralSource: text('referral_source'),
+  automationExperience: text('automation_experience'),
+  automationGoal: text('automation_goal'),
+  techStack: text('tech_stack').array(), // Stores technologies as array
+  
   // Metadata
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

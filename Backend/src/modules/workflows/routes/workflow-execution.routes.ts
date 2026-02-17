@@ -1,6 +1,5 @@
 import { FastifyPluginAsync } from 'fastify';
 import { env } from '../../../core/config/env';
-import { supabaseClient } from '../../../core/config/supabase.config';
 import { userService } from '../../users/services/user.service';
 import { workflowExecutionService } from '../services/workflow-execution.service';
 const workflowExecutionRoutes: FastifyPluginAsync = async (fastify) => {
@@ -11,41 +10,15 @@ const workflowExecutionRoutes: FastifyPluginAsync = async (fastify) => {
       // #region agent log
       // BUG-FIX: Removed hardcoded filesystem logging - Sanket
       // #endregion
-      // Authenticate user if request.user is not set
-      let user: { id: string } | undefined = request.user;
-      if (!user) {
-        const authHeader = request.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-          return reply.code(401).send({
-            error: 'Unauthorized',
-            message: 'Authentication required: Please log in',
-          });
-        }
-        const token = authHeader.replace('Bearer ', '');
-        try {
-          const { data: { user: supabaseUser }, error } = await supabaseClient.auth.getUser(token);
-          if (error || !supabaseUser) {
-            return reply.code(401).send({
-              error: 'Unauthorized',
-              message: 'Invalid or expired token',
-            });
-          }
-          // Set request.user for compatibility
-          (request as any).user = { id: supabaseUser.id };
-          user = { id: supabaseUser.id };
-        } catch (err: any) {
-          return reply.code(401).send({
-            error: 'Unauthorized',
-            message: 'Authentication failed',
-          });
-        }
-      }
-      if (!user) {
+      // Use standardized hydrated user from auth.plugin.ts - Author: Sanket
+      if (!request.user?.dbUser) {
         return reply.code(401).send({
           error: 'Unauthorized',
-          message: 'User not authenticated',
+          message: 'User authentication required',
         });
       }
+      const dbUser = request.user.dbUser;
+
       if (!request.body.workflow) {
         return reply.code(400).send({
           error: 'Bad Request',
@@ -53,7 +26,7 @@ const workflowExecutionRoutes: FastifyPluginAsync = async (fastify) => {
         });
       }
       try {
-        const dbUser = await userService.getOrCreateUserFromSupabase(user.id);
+        // No need for redundant lookup - dbUser is already hydrated
         // #region agent log
         // BUG-FIX: Removed hardcoded filesystem logging - Sanket
         // #endregion
@@ -95,17 +68,14 @@ const workflowExecutionRoutes: FastifyPluginAsync = async (fastify) => {
       // #region agent log
       // BUG-FIX: Removed hardcoded filesystem logging - Sanket
       // #endregion
-      if (!request.user) {
-        // #region agent log
-        // BUG-FIX: Removed hardcoded filesystem logging - Sanket
-        // #endregion
+      if (!request.user?.dbUser) {
         return reply.code(401).send({
           error: 'Unauthorized',
           message: 'User not authenticated',
         });
       }
       try {
-        const dbUser = await userService.getOrCreateUserFromSupabase(request.user.id);
+        const dbUser = request.user.dbUser;
         // #region agent log
         // BUG-FIX: Removed hardcoded filesystem logging - Sanket
         // #endregion
@@ -143,43 +113,16 @@ const workflowExecutionRoutes: FastifyPluginAsync = async (fastify) => {
   );
   // Get execution by ID
   fastify.get<{ Params: { executionId: string } }>('/executions/:executionId', async (request, reply) => {
-    // Authenticate user if request.user is not set
-    let user: { id: string } | undefined = request.user;
-    if (!user) {
-      const authHeader = request.headers.authorization;
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return reply.code(401).send({
-          error: 'Unauthorized',
-          message: 'Authentication required: Please log in',
-        });
-      }
-      const token = authHeader.replace('Bearer ', '');
-      try {
-        const { data: { user: supabaseUser }, error } = await supabaseClient.auth.getUser(token);
-        if (error || !supabaseUser) {
-          return reply.code(401).send({
-            error: 'Unauthorized',
-            message: 'Invalid or expired token',
-          });
-        }
-        // Set request.user for compatibility
-        (request as any).user = { id: supabaseUser.id };
-        user = { id: supabaseUser.id };
-      } catch (err: any) {
-        return reply.code(401).send({
-          error: 'Unauthorized',
-          message: 'Authentication failed',
-        });
-      }
-    }
-    if (!user) {
+    // Use standardized hydrated user from auth.plugin.ts - Author: Sanket
+    if (!request.user?.dbUser) {
       return reply.code(401).send({
         error: 'Unauthorized',
-        message: 'User not authenticated',
+        message: 'User authentication required',
       });
     }
+    const dbUser = request.user.dbUser;
+
     try {
-      const dbUser = await userService.getOrCreateUserFromSupabase(user.id);
       const execution = await workflowExecutionService.getExecution(
         request.params.executionId,
         dbUser._id.toString()
@@ -206,14 +149,14 @@ const workflowExecutionRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get<{ Params: { id: string }; Querystring: { page?: string; limit?: string } }>(
     '/:id/executions',
     async (request, reply) => {
-      if (!request.user) {
+      if (!request.user?.dbUser) {
         return reply.code(401).send({
           error: 'Unauthorized',
           message: 'User not authenticated',
         });
       }
       try {
-        const dbUser = await userService.getOrCreateUserFromSupabase(request.user.id);
+        const dbUser = request.user.dbUser;
         const query = request.query as { page?: string; limit?: string };
         const page = parseInt(query.page || '1') || 1;
         const rawLimit = parseInt(query.limit || '20') || 20;
@@ -246,14 +189,14 @@ const workflowExecutionRoutes: FastifyPluginAsync = async (fastify) => {
   );
   // Stop execution
   fastify.post<{ Params: { executionId: string } }>('/executions/:executionId/stop', async (request, reply) => {
-    if (!request.user) {
+    if (!request.user?.dbUser) {
       return reply.code(401).send({
         error: 'Unauthorized',
         message: 'User not authenticated',
       });
     }
     try {
-      const dbUser = await userService.getOrCreateUserFromSupabase(request.user.id);
+      const dbUser = request.user.dbUser;
       const stopped = await workflowExecutionService.stopExecution(
         request.params.executionId,
         dbUser._id.toString()

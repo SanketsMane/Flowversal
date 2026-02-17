@@ -77,12 +77,11 @@ async function checkRedisConnection(): Promise<{ status: string }> {
 async function checkExternalServices(): Promise<{ services: Record<string, string> }> {
   const services: Record<string, string> = {};
 
-  // Check Supabase
+  // Check Neon PostgreSQL (Auth DB)
   try {
-    // Simple check - in production, you might want to ping the actual API
-    services.supabase = process.env.SUPABASE_URL ? 'configured' : 'not configured';
+    services.neon = env.NEON_DATABASE_URL ? 'configured' : 'not configured';
   } catch {
-    services.supabase = 'error';
+    services.neon = 'error';
   }
 
   // Check Pinecone

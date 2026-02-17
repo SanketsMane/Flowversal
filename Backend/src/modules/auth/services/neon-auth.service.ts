@@ -15,6 +15,7 @@ export interface AuthResponse {
     id: string;
     email: string;
     fullName?: string | null;
+    role?: string;
   };
   session: {
     access_token: string;
@@ -184,9 +185,12 @@ export class NeonAuthService {
         throw new Error('Failed to create session');
     }
     
+    // Fetch user for role - Author: Sanket
+    const [user] = await this.db.select().from(users).where(eq(users.id, userId)).limit(1);
+
     // Step B: Generate Tokens
     const accessToken = jwt.sign(
-      { userId, email, type: 'access' }, 
+      { userId, email, role: user?.role || 'user', type: 'access' }, 
       env.JWT_SECRET, 
       { expiresIn: '15m' } as jwt.SignOptions // Explicit cast to fix overload issue
     );
@@ -207,6 +211,7 @@ export class NeonAuthService {
         id: userId,
         email,
         fullName,
+        role: user?.role || 'user', // Include role - Author: Sanket
       },
       session: {
         access_token: accessToken,
@@ -276,7 +281,7 @@ export class NeonAuthService {
     }
   }
 
-  async getUserById(userId: string): Promise<{ id: string; email: string; fullName?: string | null; user_metadata?: any; created_at?: string } | undefined> {
+  async getUserById(userId: string): Promise<{ id: string; email: string; fullName?: string | null; user_metadata?: any; created_at?: string; role: string } | undefined> {
     const [user] = await this.db.select().from(users).where(eq(users.id, userId)).limit(1);
     if (!user) {
       return undefined;
@@ -285,9 +290,10 @@ export class NeonAuthService {
       id: user.id,
       email: user.email,
       fullName: user.fullName,
+      role: user.role, // Return actual role - Author: Sanket
       user_metadata: {
         name: user.fullName,
-        role: 'user', // TODO: Add role to users table
+        role: user.role, // Synced role
       },
       created_at: user.createdAt?.toISOString(),
     };

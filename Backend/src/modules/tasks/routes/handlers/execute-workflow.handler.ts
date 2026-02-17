@@ -11,7 +11,11 @@ export async function executeWorkflowHandler(
 
 
   try {
-    const dbUser = await userService.getOrCreateUserFromSupabase(request.user!.id);
+    // Use standardized hydrated user from auth.plugin.ts - Author: Sanket
+    if (!request.user?.dbUser) {
+        return reply.code(401).send({ success: false, error: 'Unauthorized', message: 'Auth required' });
+    }
+    const dbUser = request.user.dbUser;
     await taskWorkflowService.triggerWorkflowManually(
       request.params.id,
       request.params.workflowId,

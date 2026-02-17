@@ -1,8 +1,13 @@
 export interface User {
-  id: string;
+  id: string; // Internal MongoDB ID
+  neonUserId?: string; // External Neon ID
   email: string;
   created_at?: string;
   updated_at?: string;
+  createdAt?: string; // Consistency
+  updatedAt?: string; // Consistency
+  role?: string;
+  full_name?: string;
   onboardingCompleted?: boolean;
   dbUser?: any;
 }

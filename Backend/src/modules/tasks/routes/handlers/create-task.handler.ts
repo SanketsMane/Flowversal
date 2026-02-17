@@ -55,13 +55,15 @@ export async function createTaskHandler(
     }
 
     // === BUSINESS LOGIC VALIDATION ===
-    // Use cached dbUser if available (from auth middleware), otherwise fetch it
-    // This fixes BUG-TASK-003 (N+1 query problem)
-    const dbUser = request.user?.dbUser || await userService.getOrCreateUserFromSupabase(request.user!.id);
+    // Use standardized hydrated user from auth.plugin.ts - Author: Sanket
+    if (!request.user?.id) {
+        return reply.code(401).send({ success: false, error: 'Unauthorized', message: 'Auth required' });
+    }
+    const userId = request.user.id;
 
     // BUG-FIX: Enhanced Foreign Key Validation - Sanket
     // 1. Verify board exists and belongs to user
-    const board = await taskService.getBoardById(body.boardId!, dbUser._id.toString());
+    const board = await taskService.getBoardById(body.boardId!, userId);
     if (!board) {
       return reply.code(404).send({
         success: false,
@@ -71,7 +73,7 @@ export async function createTaskHandler(
     }
 
     // 2. Verify project exists and belongs to user
-    const projectExists = await taskService.validateProjectOwnership(body.projectId!, dbUser._id.toString());
+    const projectExists = await taskService.validateProjectOwnership(body.projectId!, userId);
     if (!projectExists) {
       return reply.code(404).send({
         success: false,
@@ -154,14 +156,14 @@ export async function createTaskHandler(
       boardId: body.boardId!,
       projectId: body.projectId!,
       createdBy: body.createdBy || {
-        id: request.user!.id,
-        name: request.user!.email.split('@')[0], // Use email prefix as name
-        avatar: request.user!.email.charAt(0).toUpperCase()
+        id: userId,
+        name: request.user.full_name || request.user.email.split('@')[0],
+        avatar: (request.user.full_name || request.user.email).charAt(0).toUpperCase()
       },
       order: body.order || 0,
     };
 
-    const task = await taskService.createTask(taskData, dbUser._id.toString());
+    const task = await taskService.createTask(taskData, userId);
 
     // === AUDIT LOGGING ===
     request.log.info({

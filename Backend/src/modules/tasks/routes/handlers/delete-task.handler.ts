@@ -7,7 +7,11 @@ export async function deleteTaskHandler(
   reply: FastifyReply
 ): Promise<void> {
   try {
-    const dbUser = await userService.getOrCreateUserFromSupabase(request.user!.id);
+    // Use standardized hydrated user from auth.plugin.ts - Author: Sanket
+    if (!request.user?.dbUser) {
+        return reply.code(401).send({ success: false, error: 'Unauthorized', message: 'Auth required' });
+    }
+    const dbUser = request.user.dbUser;
     const { id } = request.params;
 
     await taskService.deleteTask(id, dbUser._id.toString());

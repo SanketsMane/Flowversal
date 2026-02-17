@@ -1,14 +1,20 @@
 import mongoose from 'mongoose';
-import { supabaseAdmin } from '../../../core/config/supabase.config';
+import { eq } from 'drizzle-orm';
+import { neonDb } from '../../../core/database/neon.config';
+import { users } from '../../../core/database/schema/auth.schema';
 import { User } from '../../../shared/types/auth.types';
 import { decryptField, encryptField } from '../../../shared/utils/encryption.util';
 import { IUser, UserModel } from '../models/User.model';
+
 export interface CreateUserData {
-  supabaseId: string;
+  neonUserId: string;
   email: string;
   metadata?: Record<string, any>;
 }
+
 export interface UpdateUserData {
+  fullName?: string | null;
+  role?: string;
   email?: string;
   metadata?: Record<string, any>;
   onboardingCompleted?: boolean;
@@ -19,57 +25,60 @@ export interface UpdateUserData {
   techStack?: string[];
   automationGoal?: string;
 }
+
 export class UserService {
   /**
-   * Find user by Supabase ID
+   * Find user by Neon ID
    */
-  async findBySupabaseId(supabaseId: string): Promise<IUser | null> {
+  async findByNeonId(neonUserId: string): Promise<IUser | null> {
     if (mongoose.connection.readyState !== 1) {
        const { connectMongoDB } = require('../../../core/database/mongodb');
        await connectMongoDB();
     }
-    return UserModel.findOne({ supabaseId });
+    return UserModel.findOne({ neonUserId });
   }
+
   /**
    * Find user by email
    */
   async findByEmail(email: string): Promise<IUser | null> {
-    // Always encrypt emails for security and GDPR compliance
     const encryptedEmail = encryptField(email);
     return UserModel.findOne({ email: encryptedEmail });
   }
+
   /**
    * Find user by MongoDB ID
    */
   async findById(id: string): Promise<IUser | null> {
     return UserModel.findById(id);
   }
+
   /**
    * Get user model by MongoDB ID (alias for findById for clarity)
    */
   async getUserModel(id: string): Promise<IUser | null> {
     return this.findById(id);
   }
+
   /**
-   * Create a new user (sync from Supabase)
+   * Create a new user (Neon-linked)
    */
   async createUser(data: CreateUserData): Promise<IUser> {
-    // Check if user already exists
-    const existingUser = await this.findBySupabaseId(data.supabaseId);
-    if (existingUser) {
-      return existingUser;
-    }
-    // Always encrypt emails for security and GDPR compliance
+    const existingUser = await this.findByNeonId(data.neonUserId);
+    if (existingUser) return existingUser;
+
     const emailValue = encryptField(data.email);
     const user = new UserModel({
-      supabaseId: data.supabaseId,
+      neonUserId: data.neonUserId,
       email: emailValue,
       metadata: data.metadata || {},
+      supabaseId: `neon_${data.neonUserId}`, // Legacy compatibility
     });
     return user.save();
   }
+
   /**
-   * Update user
+   * Update user with sync to Neon PostgreSQL
    */
   async updateUser(userId: string, data: UpdateUserData): Promise<IUser | null> {
     if (mongoose.connection.readyState !== 1) {
@@ -77,12 +86,9 @@ export class UserService {
        await connectMongoDB();
     }
     const updateData: any = {};
-    if (data.email) {
-      updateData.email = encryptField(data.email);
-    }
-    if (data.metadata !== undefined) {
-      updateData.metadata = data.metadata;
-    }
+    if (data.email) updateData.email = encryptField(data.email);
+    if (data.metadata !== undefined) updateData.metadata = data.metadata;
+    
     // Onboarding fields
     if (data.onboardingCompleted !== undefined) updateData.onboardingCompleted = data.onboardingCompleted;
     if (data.organizationName !== undefined) updateData.organizationName = data.organizationName;
@@ -91,11 +97,38 @@ export class UserService {
     if (data.automationExperience !== undefined) updateData.automationExperience = data.automationExperience;
     if (data.techStack !== undefined) updateData.techStack = data.techStack;
     if (data.automationGoal !== undefined) updateData.automationGoal = data.automationGoal;
-    return UserModel.findByIdAndUpdate(userId, updateData, {
+    if (data.fullName !== undefined) updateData.fullName = data.fullName;
+    if (data.role !== undefined) updateData.role = data.role;
+
+    const mongoUser = await UserModel.findByIdAndUpdate(userId, updateData, {
       new: true,
       runValidators: true,
     });
+
+    // Sync to Neon PostgreSQL (Single Source of Truth)
+    if (mongoUser && mongoUser.neonUserId && neonDb) {
+        try {
+            await neonDb.update(users)
+                .set({
+                    onboardingCompleted: data.onboardingCompleted ?? undefined,
+                    organizationName: data.organizationName,
+                    organizationSize: data.organizationSize,
+                    referralSource: data.referralSource,
+                    automationExperience: data.automationExperience,
+                    automationGoal: data.automationGoal,
+                    techStack: data.techStack,
+                    fullName: data.fullName,
+                    role: data.role,
+                })
+                .where(eq(users.id, mongoUser.neonUserId));
+        } catch (err: any) {
+            console.error(`[UserService] Sync failed:`, err.message);
+        }
+    }
+
+    return mongoUser;
   }
+
   /**
    * Delete user
    */
@@ -103,171 +136,89 @@ export class UserService {
     const result = await UserModel.findByIdAndDelete(userId);
     return result !== null;
   }
+
   /**
-   * Get or create user from Supabase auth
-   * This syncs the user from Supabase to MongoDB
+   * Ensure user exists in both Neon and MongoDB, returning the MongoDB user.
+   * This is the single source of truth for loading a user into memory.
+   * Author: Sanket - Unifies identity across systems
    */
-    async getOrCreateUserFromSupabase(supabaseUserId: string, userData?: any): Promise<IUser> {
-    try {
-      // Ensure DB is connected
-      if (mongoose.connection.readyState !== 1) {
-          const { connectMongoDB } = require('../../../core/database/mongodb');
-          await connectMongoDB();
-      }
-      // Check if user exists in MongoDB
-      let user = await this.findBySupabaseId(supabaseUserId);
-      if (user) {
-        // 
-        return user;
-      }
-      // Try to create user using JWT data first (more reliable)
-      if (userData) {
-        try {
-          user = await this.createUser({
-            supabaseId: supabaseUserId,
-            email: userData.email || '',
-            metadata: {
-              name: userData.user_metadata?.name || userData.user_metadata?.full_name || '',
-              avatar: userData.user_metadata?.avatar_url || userData.user_metadata?.picture || '',
-              lastSyncedAt: new Date().toISOString(),
-            },
-          });
-          return user;
-        } catch (createError: any) {
-          // If duplicate key error, it means another request created the user in the meantime
-          if (createError.code === 11000) {
-            const existingUser = await this.findBySupabaseId(supabaseUserId);
-            if (existingUser) return existingUser;
-          }
-          console.warn(`[UserService] Failed to create user from JWT data, trying Supabase admin:`, createError);
-        }
-      }
-      // Fallback: Fetch user from Supabase admin API
-      try {
-        const { data: supabaseUser, error } = await supabaseAdmin.auth.admin.getUserById(
-          supabaseUserId
-        );
-        if (error || !supabaseUser) {
-          console.error(`[UserService] Failed to fetch user from Supabase:`, error);
-          throw new Error(`User not found in Supabase: ${error?.message || 'Unknown error'}`);
-        }
-        if (!supabaseUser.user) {
-          throw new Error('Supabase user data is missing');
-        }
-        // Create user in MongoDB
-        try {
-          user = await this.createUser({
-            supabaseId: supabaseUserId,
-            email: supabaseUser.user.email || '',
-            metadata: {
-              ...supabaseUser.user.user_metadata,
-              lastSyncedAt: new Date().toISOString(),
-            },
-          });
-        } catch (createError: any) {
-           // Handle race condition again
-           if (createError.code === 11000) {
-             const existingUser = await this.findBySupabaseId(supabaseUserId);
-             if (existingUser) return existingUser;
-           }
-           throw createError;
-        }
-        return user;
-      } catch (supabaseError: any) {
-        // Final check for race condition
-        if (supabaseError.code === 11000) {
-             const existingUser = await this.findBySupabaseId(supabaseUserId);
-             if (existingUser) return existingUser;
-        }
-        console.error(`[UserService] Supabase admin API failed:`, supabaseError);
-        throw new Error('Unable to create or retrieve user account. Please contact support.');
-      }
-    } catch (error: any) {
-      console.error(`[UserService] Error syncing user from Supabase to MongoDB:`, error);
-      throw error;
-    }
-  }
-  /**
-   * Get or create user from Neon Auth
-   * Author: Sanket
-   * Synchronizes users from Neon PostgreSQL to MongoDB with proper encryption
-   */
-  async getOrCreateUserFromNeon(neonUser: { id: string; email: string; fullName?: string | null }): Promise<IUser> {
-    // Ensure DB is connected before proceeding - Author: Sanket
+  async ensureUser(id: string, email: string, fullName?: string | null): Promise<IUser> {
     if (mongoose.connection.readyState !== 1) {
       const { connectMongoDB } = require('../../../core/database/mongodb');
       await connectMongoDB();
     }
 
-    // 1. Check if user exists by neonUserId
-    const existingUser = await UserModel.findOne({ neonUserId: neonUser.id });
-    if (existingUser) {
-      return existingUser;
+    // 1. Try to find user in MongoDB by Neon ID
+    let user = await UserModel.findOne({ neonUserId: id });
+    if (user) {
+      // Periodic sync from Neon (SSOT) if needed
+      return user;
     }
 
-    // 2. Check by email (migration scenario) - Author: Sanket
-    // Must encrypt email before searching MongoDB
-    const legacyUser = await this.findByEmail(neonUser.email);
-    if (legacyUser) {
-        // Link Neon ID to legacy user
-        legacyUser.neonUserId = neonUser.id;
-        await legacyUser.save();
-        return legacyUser;
+    // 2. Fallback: Find by email (for legacy users not yet linked)
+    const encryptedEmail = encryptField(email);
+    user = await UserModel.findOne({ email: encryptedEmail });
+    if (user) {
+      user.neonUserId = id;
+      await user.save();
+      return user;
     }
 
-    // 3. Create new user - Author: Sanket
-    // Ensure email is encrypted for storage
-    const encryptedEmail = encryptField(neonUser.email);
-    const newUser = new UserModel({
-      neonUserId: neonUser.id,
+    // 3. Create new user in MongoDB linked to Neon
+    user = new UserModel({
+      neonUserId: id,
       email: encryptedEmail,
-      supabaseId: `neon_${neonUser.id}`, // Maintain compatibility with older systems
+      supabaseId: `neon_${id}`, // Keep for legacy compat
       metadata: {
-          fullName: neonUser.fullName,
+          fullName: fullName,
           source: 'neon_auth',
       },
+      role: 'user',
       onboardingCompleted: false,
     });
-    return newUser.save();
+    
+    return user.save();
   }
+
+  /**
+   * Get or create user from Neon Auth (Deprecated - use ensureUser)
+   */
+  async getOrCreateUserFromNeon(neonUser: { id: string; email: string; fullName?: string | null }): Promise<IUser> {
+    return this.ensureUser(neonUser.id, neonUser.email, neonUser.fullName);
+  }
+
   /**
    * Convert IUser to User type
+   * Author: Sanket - Standardized ID mapping (id = MongoDB ID)
    */
   toUserType(user: IUser): User {
-    // Decrypt email (all emails are encrypted)
     const email = user.email ? decryptField(user.email) : '';
     return {
-      id: user._id.toString(),
+      id: user._id.toString(), // ALWAYS use MongoDB ID for internal logic
+      neonUserId: user.neonUserId,
       email,
+      full_name: user.metadata?.fullName || user.metadata?.full_name,
       created_at: user.createdAt.toISOString(),
-      updated_at: user.updatedAt.toISOString(),
-      // Include onboarding status
+      updated_at: user.updatedAt ? user.updatedAt.toISOString() : user.createdAt.toISOString(),
+      createdAt: user.createdAt.toISOString(),
+      updatedAt: user.updatedAt ? user.updatedAt.toISOString() : user.createdAt.toISOString(),
+      role: user.role,
       onboardingCompleted: user.onboardingCompleted,
     };
   }
-  /**
-   * Get user profile with additional data
-   */
+
   async getUserProfile(userId: string): Promise<IUser | null> {
     return this.findById(userId);
   }
-  /**
-   * List users with pagination
-   */
-  async listUsers(page: number = 1, limit: number = 20): Promise<{
-    users: IUser[];
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  }> {
+
+  async listUsers(page: number = 1, limit: number = 20): Promise<any> {
     const skip = (page - 1) * limit;
-    const [users, total] = await Promise.all([
+    const [usersList, total] = await Promise.all([
       UserModel.find().sort({ createdAt: -1 }).skip(skip).limit(limit),
       UserModel.countDocuments(),
     ]);
     return {
-      users,
+      users: usersList,
       total,
       page,
       limit,
@@ -275,4 +226,5 @@ export class UserService {
     };
   }
 }
+
 export const userService = new UserService();

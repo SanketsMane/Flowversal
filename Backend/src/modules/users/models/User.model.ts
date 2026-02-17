@@ -89,8 +89,7 @@ const UserSchema = new Schema<IUser>(
 );
 
 // Indexes for performance
-//UserSchema.index({ supabaseId: 1 });
-//UserSchema.index({ email: 1 });
+UserSchema.index({ neonUserId: 1 }); // Essential for new auth flow - Author: Sanket
 UserSchema.index({ createdAt: -1 });
 
 // Transform _id to id in JSON output

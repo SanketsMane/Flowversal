@@ -10,7 +10,11 @@ export async function detachWorkflowHandler(
 
 
   try {
-    const dbUser = await userService.getOrCreateUserFromSupabase(request.user!.id);
+    // Use standardized hydrated user from auth.plugin.ts - Author: Sanket
+    if (!request.user?.dbUser) {
+        return reply.code(401).send({ success: false, error: 'Unauthorized', message: 'Auth required' });
+    }
+    const dbUser = request.user.dbUser;
     const task = await taskWorkflowService.detachWorkflowFromTask(
       request.params.id,
       request.params.workflowId,

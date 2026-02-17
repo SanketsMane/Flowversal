@@ -11,9 +11,11 @@ export async function updateTaskHandler(
   reply: FastifyReply
 ): Promise<void> {
   try {
-    // Use cached dbUser if available (from auth middleware), otherwise fetch it
-    // This fixes BUG-TASK-003 (N+1 query problem)
-    const dbUser = request.user?.dbUser || await userService.getOrCreateUserFromSupabase(request.user!.id);
+    // Use standardized hydrated user from auth.plugin.ts - Author: Sanket
+    if (!request.user?.dbUser) {
+        return reply.code(401).send({ success: false, error: 'Unauthorized', message: 'Auth required' });
+    }
+    const dbUser = request.user.dbUser;
     const { id } = request.params;
     const body = request.body;
 

@@ -9,7 +9,8 @@ import { validatePasswordPolicy } from '../validators/password.validator';
 interface AuthBody {
   email: string;
   password: string;
-  fullName?: string;
+  fullName?: string | null;
+  role?: string;
 }
 
 const authRoutes: FastifyPluginAsync = async (fastify) => {
@@ -27,230 +28,150 @@ const authRoutes: FastifyPluginAsync = async (fastify) => {
   };
 
   // Sign up with email/password - With rate limiting
+  // Author: Sanket - Hardened & Unified
   fastify.post<{ Body: AuthBody }>(
     '/signup',
-    { 
-      config: { 
-        rateLimit: authRateLimitConfig 
-      } 
-    },
+    { config: { rateLimit: authRateLimitConfig } },
     async (request, reply) => {
-    const { email, password, fullName } = request.body || {};
-    
-    if (!email || !password) {
-      return reply.code(400).send({
-        success: false,
-        error: 'Bad Request',
-        message: 'Email and password are required',
-      });
-    }
-
-    const pwCheck = validatePasswordPolicy(password);
-    if (!pwCheck.valid) {
-      return reply.code(400).send({
-        success: false,
-        error: 'WeakPassword',
-        message: 'Password does not meet policy',
-        details: pwCheck.errors,
-      });
-    }
-
-    try {
-      // 1. Create user in Neon (Auth DB)
-      const authResponse = await neonAuthService.signUp(email, password, fullName);
-
-      // 2. Sync/Create user in Mongo (Main DB)
-      let mongoUser;
       try {
-        mongoUser = await userService.getOrCreateUserFromNeon(authResponse.user);
-      } catch (syncErr: any) {
-        fastify.log.error('Signup sync error', syncErr);
-        // We shouldn't fail the whole request if sync fails, but frontend might need Mongo ID.
-        // For now, loop back or alert.
-      }
-
-      // 3. Return response
-      return reply.send({
-        success: true,
-        message: 'Signup successful.',
-        user: {
-            ...authResponse.user,
-            _id: mongoUser?.id, // Return Mongo ID if available
-            role: mongoUser?.role || 'user',
-            onboardingCompleted: mongoUser?.onboardingCompleted || false,
-        },
-        accessToken: authResponse.session.access_token,
-        refreshToken: authResponse.session.refresh_token,
-      });
-
-    } catch (err: any) {
-      fastify.log.error('Signup error', err);
-      // Handle known errors
-      if (err.message === 'User already exists') {
-          return reply.code(409).send({
-              success: false,
-              error: 'UserExists',
-              message: 'User already exists',
-          });
-      }
-      return reply.code(500).send({
-        success: false,
-        error: 'InternalServerError',
-        message: 'Failed to sign up',
-      });
-    }
-  });
-
-  // Login with email/password - With rate limiting
-  fastify.post<{ Body: AuthBody }>(
-    '/login',
-    {
-      config: {
-        rateLimit: authRateLimitConfig
-      }
-    },
-    async (request, reply) => {
-    const { email, password } = request.body || {};
-    if (!email || !password) {
-      return reply.code(400).send({
-        success: false,
-        error: 'Bad Request',
-        message: 'Email and password are required',
-      });
-    }
-
-    try {
-      const authResponse = await neonAuthService.signIn(email, password);
-
-      // Sync user to Mongo (ensure it exists)
-      let mongoUser;
-        try {
-          mongoUser = await userService.getOrCreateUserFromNeon(authResponse.user);
-        } catch (syncErr: any) {
-          fastify.log.error('Login sync error', syncErr);
+        let { email, password, fullName } = request.body || {};
+        
+        if (!email || !password) {
+          return reply.code(400).send({ success: false, error: 'BadRequest', message: 'Email and password are required' });
         }
 
-      return reply.send({
-        success: true,
-        message: 'Login successful.',
-        user: {
+        // 1. Sanitize
+        email = email.trim().toLowerCase();
+        password = password.trim();
+
+        // 2. Validate Password Policy
+        const pwCheck = validatePasswordPolicy(password);
+        if (!pwCheck.valid) {
+          return reply.code(400).send({ success: false, error: 'WeakPassword', message: 'Password does not meet policy', details: pwCheck.errors });
+        }
+
+        // 3. Create user in Neon (Auth DB)
+        const authResponse = await neonAuthService.signUp(email, password, fullName || undefined);
+
+        // 4. Sync/Create user in Mongo (Main DB) - SSOT Enforcement
+        const mongoUser = await userService.ensureUser(authResponse.user.id, authResponse.user.email, authResponse.user.fullName);
+
+        return reply.send({
+          success: true,
+          message: 'Signup successful.',
+          user: {
+              ...authResponse.user,
+              _id: mongoUser.id,
+              role: mongoUser.role || authResponse.user.role || 'user',
+              onboardingCompleted: mongoUser.onboardingCompleted || false,
+          },
+          accessToken: authResponse.session.access_token,
+          refreshToken: authResponse.session.refresh_token,
+        });
+
+      } catch (err: any) {
+        fastify.log.error('Signup error', err);
+        if (err.message === 'User already exists') {
+            return reply.code(409).send({ success: false, error: 'UserExists', message: 'User already exists' });
+        }
+        return reply.code(500).send({ success: false, error: 'InternalServerError', message: 'Failed to sign up' });
+      }
+    }
+  );
+
+  // Login with email/password - With rate limiting
+  // Author: Sanket - Hardened & Unified
+  fastify.post<{ Body: AuthBody }>(
+    '/login',
+    { config: { rateLimit: authRateLimitConfig } },
+    async (request, reply) => {
+      try {
+        let { email, password } = request.body || {};
+        
+        if (!email || !password) {
+          return reply.code(400).send({ success: false, error: 'BadRequest', message: 'Email and password are required' });
+        }
+
+        // 1. Sanitize
+        email = email.trim().toLowerCase();
+        password = password.trim();
+
+        // 2. Authenticate against Neon
+        const authResponse = await neonAuthService.signIn(email, password);
+
+        // 3. Ensure user is synced to MongoDB immediately (SSOT)
+        const mongoUser = await userService.ensureUser(authResponse.user.id, authResponse.user.email, authResponse.user.fullName);
+
+        return reply.send({
+          success: true,
+          message: 'Login successful.',
+          user: {
             ...authResponse.user,
-            _id: mongoUser?.id,
-            role: mongoUser?.role || 'user',
-            onboardingCompleted: mongoUser?.onboardingCompleted || false,
-        },
-        accessToken: authResponse.session.access_token,
-        refreshToken: authResponse.session.refresh_token,
-      });
-
-    } catch (err: any) {
-      fastify.log.error('Login error', err);
-      if (err.message === 'Invalid credentials') {
-          return reply.code(401).send({
-            success: false,
-            error: 'InvalidCredentials',
-            message: 'Invalid email or password',
-          });
+            _id: mongoUser.id,
+            role: mongoUser.role || authResponse.user.role || 'user',
+            onboardingCompleted: mongoUser.onboardingCompleted || false,
+          },
+          accessToken: authResponse.session.access_token,
+          refreshToken: authResponse.session.refresh_token,
+        });
+      } catch (err: any) {
+        fastify.log.error('Login error', err);
+        return reply.code(401).send({ success: false, error: 'Unauthorized', message: err.message || 'Invalid credentials' });
       }
-      return reply.code(500).send({
-        success: false,
-        error: 'InternalServerError',
-        message: 'Failed to login',
-        debug: err.message,
-        stack: err.stack
-      });
     }
-  });
+  );
 
-  // Refresh access token
+  // Refresh access token - Author: Sanket
   fastify.post<{ Body: { refreshToken: string } }>('/refresh', async (request, reply) => {
-    const { refreshToken } = request.body || {};
-    if (!refreshToken) {
-      return reply.code(400).send({
-        success: false,
-        error: 'Bad Request',
-        message: 'Refresh token is required',
-      });
-    }
-
-      try {
-      const authResponse = await neonAuthService.refreshSession(refreshToken);
-
-      // Get or create user in Mongo to fetch onboarding status
-      let mongoUser;
-      try {
-        mongoUser = await userService.getOrCreateUserFromNeon(authResponse.user);
-      } catch (err) {
-        fastify.log.warn({ err }, 'Could not sync mongo user in /refresh');
+    try {
+      const { refreshToken } = request.body || {};
+      if (!refreshToken) {
+        return reply.code(400).send({ success: false, error: 'BadRequest', message: 'Refresh token is required' });
       }
+
+      const authResponse = await neonAuthService.refreshSession(refreshToken);
+      const mongoUser = await userService.ensureUser(authResponse.user.id, authResponse.user.email, authResponse.user.fullName);
 
       return reply.send({
         success: true,
         message: 'Session refreshed.',
         user: {
           ...authResponse.user,
-          _id: mongoUser?.id,
-          role: mongoUser?.role || 'user',
-          onboardingCompleted: mongoUser?.onboardingCompleted || false,
+          _id: mongoUser.id,
+          role: mongoUser.role || authResponse.user.role || 'user',
+          onboardingCompleted: mongoUser.onboardingCompleted || false,
         },
         accessToken: authResponse.session.access_token,
-        refreshToken: authResponse.session.refresh_token, // New refresh token (rotated)
+        refreshToken: authResponse.session.refresh_token,
       });
     } catch (err: any) {
       fastify.log.error('Refresh error', err);
-      return reply.code(401).send({
-        success: false,
-        error: 'InvalidRefreshToken',
-        message: 'Failed to refresh session',
-      });
+      return reply.code(401).send({ success: false, error: 'InvalidRefreshToken', message: 'Failed to refresh session' });
     }
   });
 
-  // Get current authenticated user (for session verification) - Author: Sanket
-  // Fixes BUG-007: Session forgery prevention
+  // Get current session data - Author: Sanket
+  // Leverages hydration from auth.plugin.ts preHandler
   fastify.get('/me', { preHandler: [fastify.authenticate] }, async (request, reply) => {
     try {
-      const userId = (request.user as any).id;
+      const user = request.user as any;
       
-      // Fetch fresh user data from Neon
-      const user = await neonAuthService.getUser(userId);
-      
-      if (!user) {
-        return reply.code(404).send({
-          success: false,
-          error: 'UserNotFound',
-          message: 'User not found',
-        });
-      }
-
-      // Also get Mongo user for additional fields
-      let mongoUser;
-      try {
-        mongoUser = await userService.getOrCreateUserFromNeon(user);
-      } catch (err) {
-        fastify.log.warn({ err }, 'Could not sync mongo user in /me');
-      }
-
       return reply.send({
         success: true,
         data: {
           id: user.id,
           email: user.email,
-          name: user.user_metadata?.name || user.email,
-          avatar: user.user_metadata?.avatar,
-          role: user.user_metadata?.role || 'user',
+          name: user.full_name || user.email,
+          role: user.role || 'user',
           createdAt: user.created_at,
-          onboardingCompleted: mongoUser?.onboardingCompleted || false,
-          _id: mongoUser?.id,
+          onboardingCompleted: user.onboardingCompleted || false,
+          // Support for legacy frontend fields
+          fullName: user.full_name,
         },
       });
     } catch (err: any) {
-      fastify.log.error('Error fetching user', err);
-      return reply.code(500).send({
-        success: false,
-        error: 'InternalServerError',
-        message: 'Failed to fetch user',
-      });
+      fastify.log.error('Error in /me', err);
+      return reply.code(500).send({ success: false, error: 'InternalServerError', message: 'Failed to fetch session metadata' });
     }
   });
 

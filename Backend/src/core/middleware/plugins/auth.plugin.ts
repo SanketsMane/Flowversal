@@ -2,7 +2,6 @@ import { FastifyInstance, FastifyPluginAsync, FastifyRequest } from 'fastify';
 import jwt from 'jsonwebtoken';
 import { User } from '../../../shared/types/auth.types';
 import { env } from '../../config/env';
-import { supabaseClient } from '../../config/supabase.config';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -83,58 +82,35 @@ const authPlugin: FastifyPluginAsync<AuthPluginOptions> = async (fastify, option
     }
 
     try {
-        // Verify token with Supabase for production/real tokens
-      const {
-        data: { user },
-        error,
-      } = await supabaseClient.auth.getUser(token);
-
-      if (error || !user) {
-          // Fallback: verify JWT locally using Supabase JWT secret
-          try {
+        // 1. ALWAYS try local JWT verification first - Author: Sanket
+        // This is faster and doesn't depend on external network/DNS lookups
+        try {
             const decoded: any = jwt.verify(token, env.JWT_SECRET);
-
-            const sub = decoded.sub || decoded.user_id || decoded.userId;
+            const sub = decoded.sub || decoded.user_id || decoded.userId || decoded.id;
             const email = decoded.email || decoded.user_metadata?.email;
-
-            if (!sub) {
-              throw new Error('JWT missing subject');
-            }
-
-            request.user = {
-              id: sub,
-              email: email || '',
-              created_at: decoded.created_at || decoded.iat ? new Date(decoded.iat * 1000).toISOString() : new Date().toISOString(),
-              updated_at: decoded.updated_at || decoded.exp ? new Date(decoded.exp * 1000).toISOString() : new Date().toISOString(),
-            };
-
-            // Continue to route handler
-            return;
-          } catch (jwtErr: any) {
             
-            // Add CORS headers to error response
-        const origin = request.headers.origin;
-        if (isDevelopment) {
-          reply.raw.setHeader('Access-Control-Allow-Origin', origin || '*');
-          reply.raw.setHeader('Access-Control-Allow-Credentials', 'true');
-          reply.raw.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-          reply.raw.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Request-ID');
+            if (sub) {
+                // Author: Sanket - Hydrate user from DB immediately to ensure correct ID mapping
+                // This prevents 500 errors in downstream handlers expecting MongoDB IDs.
+                const { userService } = require('../../../modules/users/services/user.service');
+                const dbUser = await userService.ensureUser(sub, email || '');
+                request.user = {
+                    ...userService.toUserType(dbUser),
+                    dbUser: dbUser // Ensure backward compatibility for handlers
+                };
+                return;
+            }
+        } catch (jwtErr: any) {
+            // Token verification failed or invalid payload
+            if (isDevelopment) console.error('[Auth] JWT verification failed:', jwtErr.message);
         }
-        return reply.code(401).send({
-          success: false,
-          error: 'Unauthorized',
-              message: `Invalid token`,
-        });
-          }
-      }
 
-        // Supabase verification successful
-      request.user = {
-        id: user.id,
-        email: user.email || '',
-        created_at: user.created_at,
-        updated_at: user.updated_at,
-      };
+        // Supabase Fallback Removed per Stabilization Plan - Author: Sanket
+        return reply.code(401).send({
+            success: false,
+            error: 'Unauthorized',
+            message: 'Invalid or expired session',
+        });
 
         // Continue to route handler
       } catch (err: any) {

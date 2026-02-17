@@ -1,6 +1,7 @@
 import websocket from '@fastify/websocket';
 import { FastifyPluginAsync } from 'fastify';
-import { supabaseClient } from '../../../core/config/supabase.config';
+import { env } from '../../../core/config/env';
+import jwt from 'jsonwebtoken';
 import { logger } from '../../../shared/utils/logger.util';
 import { WorkflowExecutionModel } from '../models/WorkflowExecution.model';
 
@@ -24,13 +25,14 @@ const workflowWebSocketRoutes: FastifyPluginAsync = async (fastify) => {
     let userId = (req as any).user?.id;
 
     // If no user from auth plugin, try to authenticate via token query parameter
+    // Now using unified local JWT verification - Author: Sanket
     if (!userId) {
       const token = (req.query as any)?.token;
       if (token) {
         try {
-          const { data: { user }, error } = await supabaseClient.auth.getUser(token);
-          if (!error && user) {
-            userId = user.id;
+          const decoded: any = jwt.verify(token, env.JWT_SECRET);
+          userId = decoded.sub || decoded.user_id || decoded.userId || decoded.id;
+          if (userId) {
             logger.debug('WebSocket authenticated via token query param', { executionId, userId });
           }
         } catch (err) {

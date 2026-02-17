@@ -14,7 +14,6 @@ const securityPlugin: FastifyPluginAsync = async (fastify) => {
         connectSrc: [
           "'self'",
           'https://api.github.com',
-          'https://*.supabase.co',
           'https://*.openai.com',
           'https://*.anthropic.com',
         ],

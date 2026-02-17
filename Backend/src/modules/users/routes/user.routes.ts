@@ -4,7 +4,8 @@ import { userService } from '../services/user.service';
 const userRoutes: FastifyPluginAsync = async (fastify) => {
   // Get current user profile
   fastify.get('/me', async (request, reply) => {
-    if (!request.user) {
+    // Standardized hydrated user from auth.plugin.ts - Author: Sanket
+    if (!request.user?.dbUser) {
       return reply.code(401).send({
         error: 'Unauthorized',
         message: 'User not authenticated',
@@ -12,17 +13,9 @@ const userRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     try {
-      // Get or create user from Neon Auth (consistent with login/signup) - Sanket
-      // Extract userId from Fastify-JWT payload
-      const userId = (request.user as any).id;
-      const user = await userService.getOrCreateUserFromNeon({ 
-        id: userId, 
-        email: (request.user as any).email 
-      });
-
       return reply.send({
         success: true,
-        data: userService.toUserType(user),
+        data: userService.toUserType(request.user.dbUser as any),
       });
     } catch (error: any) {
       fastify.log.error('Error fetching user profile:', error);
@@ -33,9 +26,9 @@ const userRoutes: FastifyPluginAsync = async (fastify) => {
     }
   });
 
-  // Get user by ID
+  // Get user by ID (Internal/Admin only logic)
   fastify.get<{ Params: { id: string } }>('/:id', async (request, reply) => {
-    if (!request.user) {
+    if (!request.user?.dbUser) {
       return reply.code(401).send({
         error: 'Unauthorized',
         message: 'User not authenticated',
@@ -74,7 +67,7 @@ const userRoutes: FastifyPluginAsync = async (fastify) => {
   });
 
   // Update current user profile
-  fastify.put<{ Body: { email?: string; metadata?: Record<string, any> } }>(
+  fastify.put<{ Body: { email?: string; fullName?: string; metadata?: Record<string, any> } }>(
     '/me',
     {
       schema: {
@@ -82,30 +75,27 @@ const userRoutes: FastifyPluginAsync = async (fastify) => {
           type: 'object',
           properties: {
             email: { type: 'string', format: 'email' },
+            fullName: { type: 'string' },
             metadata: { type: 'object' },
           },
         },
       },
     },
     async (request, reply) => {
-      if (!request.user) {
+      if (!request.user?.dbUser) {
         return reply.code(401).send({
           error: 'Unauthorized',
-          message: 'User not authenticated',
+          message: 'User authentication required',
         });
       }
 
       try {
-        // Get user from Neon (consistent with login) - Sanket
-        const userId = (request.user as any).id;
-        const dbUser = await userService.getOrCreateUserFromNeon({ 
-            id: userId, 
-            email: (request.user as any).email 
-        });
+        const dbUser = request.user.dbUser as any;
 
         // Update user
         const updatedUser = await userService.updateUser(dbUser._id.toString(), {
           email: request.body.email,
+          fullName: request.body.fullName,
           metadata: request.body.metadata,
         });
 
@@ -132,27 +122,15 @@ const userRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Delete current user account
   fastify.delete('/me', async (request, reply) => {
-    if (!request.user) {
+    if (!request.user?.dbUser) {
       return reply.code(401).send({
         error: 'Unauthorized',
-        message: 'User not authenticated',
+        message: 'User authentication required',
       });
     }
 
     try {
-      // Get user from Neon to ensure we delete the right one - Sanket
-      const userId = (request.user as any).id;
-      const dbUser = await userService.getOrCreateUserFromNeon({ 
-          id: userId, 
-          email: (request.user as any).email 
-      });
-
-      if (!dbUser) {
-        return reply.code(404).send({
-          error: 'Not Found',
-          message: 'User not found',
-        });
-      }
+      const dbUser = request.user.dbUser as any;
 
       await userService.deleteUser(dbUser._id.toString());
 
@@ -180,8 +158,7 @@ const userRoutes: FastifyPluginAsync = async (fastify) => {
       automationGoal: string;
     };
   }>('/me/onboarding', async (request, reply) => {
-    // Require authentication
-    if (!request.user) {
+    if (!request.user?.dbUser) {
       return reply.code(401).send({
         error: 'Unauthorized',
         message: 'Authentication required for onboarding',
@@ -189,12 +166,7 @@ const userRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     try {
-      // Get user from Neon (Critical Fix: Sync with login flow) - Sanket
-      const userId = (request.user as any).id;
-      let dbUser = await userService.getOrCreateUserFromNeon({ 
-          id: userId, 
-          email: (request.user as any).email 
-      });
+      const dbUser = request.user.dbUser as any;
 
       const updatedUser = await userService.updateUser(dbUser._id.toString(), {
         referralSource: request.body.referralSource,
@@ -218,27 +190,19 @@ const userRoutes: FastifyPluginAsync = async (fastify) => {
         data: userService.toUserType(updatedUser),
       });
     } catch (error: any) {
-      // BUG-FIX: Removed hardcoded filesystem logging - Sanket
-      // Use Fastify logger instead of writing to filesystem
       fastify.log.error({
         error: error.message,
         stack: error.stack,
         userId: request.user?.id,
-        supabaseId: request.user?.id,
       }, 'Error saving onboarding data');
       
       return reply.code(500).send({
         success: false,
         error: 'InternalServerError',
         message: 'Failed to save onboarding data',
-        // Only include details in development
-        ...(process.env.NODE_ENV === 'development' && { 
-          details: error instanceof Error ? error.message : String(error) 
-        }),
       });
     }
   });
 };
 
 export default userRoutes;
-

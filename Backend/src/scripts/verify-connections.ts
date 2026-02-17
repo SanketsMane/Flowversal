@@ -7,7 +7,6 @@
  */
 
 import { neon } from '@neondatabase/serverless';
-import { createClient } from '@supabase/supabase-js';
 import { config } from 'dotenv';
 import Redis from 'ioredis';
 import { connectMongoDB } from '../core/database/mongodb.js';
@@ -80,44 +79,6 @@ async function testPinecone(): Promise<ConnectionResult> {
   }
 }
 
-/**
- * Test Supabase connection
- */
-async function testSupabase(): Promise<ConnectionResult> {
-  const start = Date.now();
-  try {
-    const supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-    
-    // Test by querying a simple health check
-    const { error, data } = await supabase
-      .from('users')
-      .select('count')
-      .limit(1);
-    
-    if (error && error.message !== 'relation "public.users" does not exist') {
-      throw error;
-    }
-    
-    const latency = Date.now() - start;
-    console.log('✅ Supabase: Connected');
-    return {
-      service: 'Supabase',
-      status: 'success',
-      latency,
-      details: process.env.SUPABASE_URL
-    };
-  } catch (error: any) {
-    console.error('❌ Supabase: Failed -', error.message);
-    return {
-      service: 'Supabase',
-      status: 'failed',
-      error: error.message
-    };
-  }
-}
 
 /**
  * Test Neon PostgreSQL connection
@@ -201,7 +162,6 @@ async function verifyConnections() {
   // Run all tests
   results.push(await testMongoDB());
   results.push(await testPinecone());
-  results.push(await testSupabase());
   results.push(await testNeonPostgres());
   results.push(await testRedis());
   
@@ -232,7 +192,7 @@ async function verifyConnections() {
   console.log(`\n✓ ${successCount}/${totalCount} connections successful\n`);
   
   // Critical services check
-  const criticalServices = ['MongoDB Atlas', 'Neon PostgreSQL', 'Supabase'];
+  const criticalServices = ['MongoDB Atlas', 'Neon PostgreSQL'];
   const criticalFailures = results.filter(
     r => r.status === 'failed' && criticalServices.includes(r.service)
   );
