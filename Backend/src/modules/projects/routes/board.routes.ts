@@ -79,7 +79,10 @@ const boardRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       // === BUSINESS LOGIC VALIDATION ===
-      const dbUser = await userService.getOrCreateUserFromSupabase((request.user as any).id, request.user);
+      const dbUser = (request.user as any).dbUser;
+      if (!dbUser) {
+        return reply.code(401).send({ success: false, error: 'Unauthorized', message: 'User data not found' });
+      }
 
       // Verify project exists and belongs to user
       const projectExists = await boardService.validateProjectOwnership(projectId!, dbUser._id.toString());
@@ -171,7 +174,10 @@ const boardRoutes: FastifyPluginAsync = async (fastify) => {
 
 
     try {
-      const dbUser = await userService.getOrCreateUserFromSupabase((request.user as any).id, request.user);
+      const dbUser = (request.user as any).dbUser;
+      if (!dbUser) {
+        return reply.code(401).send({ success: false, error: 'Unauthorized', message: 'User data not found' });
+      }
       const query = request.query as ListBoardsQuery;
 
       const boards = await boardService.getBoards(dbUser._id.toString(), query.projectId);
@@ -198,7 +204,10 @@ const boardRoutes: FastifyPluginAsync = async (fastify) => {
 
 
     try {
-      const dbUser = await userService.getOrCreateUserFromSupabase((request.user as any).id, request.user);
+      const dbUser = (request.user as any).dbUser;
+      if (!dbUser) {
+        return reply.code(401).send({ success: false, error: 'Unauthorized', message: 'User data not found' });
+      }
       const { id } = request.params;
 
       const board = await boardService.getBoardById(id, dbUser._id.toString());
@@ -232,7 +241,10 @@ const boardRoutes: FastifyPluginAsync = async (fastify) => {
 
 
     try {
-      const dbUser = await userService.getOrCreateUserFromSupabase((request.user as any).id, request.user);
+      const dbUser = (request.user as any).dbUser;
+      if (!dbUser) {
+        return reply.code(401).send({ success: false, error: 'Unauthorized', message: 'User data not found' });
+      }
       const { id } = request.params;
       const updateData = request.body as UpdateBoardBody;
       
@@ -279,7 +291,10 @@ const boardRoutes: FastifyPluginAsync = async (fastify) => {
 
 
     try {
-      const dbUser = await userService.getOrCreateUserFromSupabase((request.user as any).id, request.user);
+      const dbUser = (request.user as any).dbUser;
+      if (!dbUser) {
+        return reply.code(401).send({ success: false, error: 'Unauthorized', message: 'User data not found' });
+      }
       const { id } = request.params;
 
       const result = await boardService.deleteBoard(id, dbUser._id.toString());

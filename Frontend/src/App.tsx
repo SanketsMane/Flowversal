@@ -612,7 +612,7 @@ function AppDomain() {
     return <AuthRequired />;
   }
   // Check onboarding status
-  if (auth.user && !auth.user.onboardingCompleted) {
+  if (auth.user && !auth.user.onboardingCompleted && auth.user.role !== 'admin') {
     return <Onboarding onComplete={() => {
       window.location.reload();
     }} />;

@@ -264,7 +264,8 @@ class AuthService {
           
           // ✅ Verify session is valid by fetching user from backend
           // This prevents localStorage tampering (changing role, etc.)
-          this.verifySessionAsync();
+          // We don't await here to not block constructor, but context will await it
+          this.verifySession();
         } else {
           this.clearSession();
         }
@@ -287,7 +288,7 @@ class AuthService {
    * This prevents localStorage tampering (e.g., changing role to admin)
    * Author: Sanket
    */
-  private async verifySessionAsync(): Promise<void> {
+  async verifySession(): Promise<User | null> {
     try {
       // Use direct path to avoid double-prefixing issue - api-client handles base URL
       // Change from 'auth/me' to '/auth/me' to ensure clean path
@@ -306,16 +307,19 @@ class AuthService {
             onboardingCompleted: response.data.onboardingCompleted,
           };
           this.saveSession(this.currentSession);
+          return this.currentSession.user;
         }
       } else {
         // Invalid session - clear it
         console.warn('[AuthService] Session verification failed - invalid session');
         this.clearSession();
       }
+      return null;
     } catch (error) {
       console.error('[AuthService] Session verification failed:', error);
       // If verification fails (network error, etc.), clear session for security
       this.clearSession();
+      return null;
     }
   }
   /**

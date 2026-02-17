@@ -14,7 +14,10 @@ export async function getFavoritesHandler(
   }
 
   try {
-    const dbUser = await userService.getOrCreateUserFromSupabase(request.user.id);
+    const dbUser = request.user.dbUser;
+    if (!dbUser) {
+      return reply.code(401).send({ success: false, error: 'Unauthorized', message: 'User data not found' });
+    }
     const userModel = await userService.getUserModel(dbUser._id.toString());
 
     if (!userModel) {

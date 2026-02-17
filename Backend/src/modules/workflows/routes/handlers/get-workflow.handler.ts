@@ -14,7 +14,10 @@ export async function getWorkflowHandler(
   }
 
   try {
-    const dbUser = await userService.getOrCreateUserFromSupabase(request.user.id);
+    const dbUser = request.user.dbUser;
+    if (!dbUser) {
+      return reply.code(401).send({ success: false, error: 'Unauthorized', message: 'User data not found' });
+    }
     const workflow = await workflowService.getWorkflowById(
       request.params.id,
       dbUser._id.toString()

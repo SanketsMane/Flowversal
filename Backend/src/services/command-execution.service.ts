@@ -123,7 +123,8 @@ export class CommandExecutionService {
     }
 
     try {
-      const dbUser = await userService.getOrCreateUserFromSupabase(userId);
+      const dbUser = await userService.findById(userId);
+      if (!dbUser) throw new Error('User not found');
       
       // If projectId is a name, try to find it
       let actualProjectId = projectId;
@@ -189,7 +190,8 @@ export class CommandExecutionService {
     const { workflowName, workflowId, input } = parameters;
 
     try {
-      const dbUser = await userService.getOrCreateUserFromSupabase(userId);
+      const dbUser = await userService.findById(userId);
+      if (!dbUser) throw new Error('User not found');
       let actualWorkflowId = workflowId;
 
       // If workflowName is provided, find workflow by name

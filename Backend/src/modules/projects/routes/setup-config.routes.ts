@@ -22,7 +22,10 @@ const setupConfigRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     try {
-      const dbUser = await userService.getOrCreateUserFromSupabase(request.user.id);
+      const dbUser = (request.user as any).dbUser;
+      if (!dbUser) {
+        return reply.code(401).send({ success: false, error: 'Unauthorized', message: 'User data not found' });
+      }
       const config = await setupConfigService.createOrUpdateSetupConfig({
         ...request.body,
         userId: dbUser._id.toString(),
@@ -53,7 +56,10 @@ const setupConfigRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       try {
-        const dbUser = await userService.getOrCreateUserFromSupabase(request.user.id);
+        const dbUser = (request.user as any).dbUser;
+      if (!dbUser) {
+        return reply.code(401).send({ success: false, error: 'Unauthorized', message: 'User data not found' });
+      }
         const config = await setupConfigService.getSetupConfig(
           request.params.entityType as 'template' | 'project' | 'board',
           request.params.entityId,
@@ -99,7 +105,10 @@ const setupConfigRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     try {
-      const dbUser = await userService.getOrCreateUserFromSupabase(request.user.id);
+      const dbUser = (request.user as any).dbUser;
+      if (!dbUser) {
+        return reply.code(401).send({ success: false, error: 'Unauthorized', message: 'User data not found' });
+      }
       const config = await setupConfigService.updateSetupConfig(
         request.params.id,
         dbUser._id.toString(),
@@ -138,7 +147,10 @@ const setupConfigRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       try {
-        const dbUser = await userService.getOrCreateUserFromSupabase(request.user.id);
+        const dbUser = (request.user as any).dbUser;
+      if (!dbUser) {
+        return reply.code(401).send({ success: false, error: 'Unauthorized', message: 'User data not found' });
+      }
         const workflow = await setupConfigService.applySetupConfigToWorkflow(
           request.params.workflowId,
           request.params.id,
@@ -170,7 +182,10 @@ const setupConfigRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     try {
-      const dbUser = await userService.getOrCreateUserFromSupabase(request.user.id);
+      const dbUser = (request.user as any).dbUser;
+      if (!dbUser) {
+        return reply.code(401).send({ success: false, error: 'Unauthorized', message: 'User data not found' });
+      }
       const deleted = await setupConfigService.deleteSetupConfig(
         request.params.id,
         dbUser._id.toString()

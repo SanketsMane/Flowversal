@@ -38,7 +38,7 @@ describe('Workflow API Integration Tests', () => {
       user_metadata: { name: 'Test User' }
     });
 
-    (userService.getOrCreateUserFromSupabase as any).mockResolvedValue({
+    (userService.findById as any).mockResolvedValue({
       _id: new mongoose.Types.ObjectId('65cc7f8d7f8d7f8d7f8d7f8d'),
       id: 'test-user-id',
       email: 'test@example.com'

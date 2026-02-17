@@ -39,8 +39,11 @@ export async function createWorkflowHandler(
       });
     }
 
-    // Get or create user from MongoDB
-    const dbUser = await userService.getOrCreateUserFromSupabase(request.user.id);
+    // Standardized hydrated user from auth.plugin.ts - Author: Sanket
+    const dbUser = request.user.dbUser;
+    if (!dbUser) {
+      return reply.code(401).send({ success: false, error: 'Unauthorized', message: 'User data not found' });
+    }
 
     const workflow = await workflowService.createWorkflow({
       ...workflowData,

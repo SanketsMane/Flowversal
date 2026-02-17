@@ -46,9 +46,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }
         }
         if (authService.isAuthenticated()) {
-          const currentUser = authService.getCurrentUser();
-          const currentToken = authService.getAccessToken();
-          setUser(currentUser);
+          // ✅ Verify session to get fresh user data (role, onboarding status)
+          // Author: Sanket - Fixes stale data race condition
+          const freshUser = await authService.verifySession();
+          if (freshUser) {
+            setUser(freshUser);
+          } else {
+            const currentUser = authService.getCurrentUser();
+            setUser(currentUser);
+          }
           // Refresh session if needed
           await authService.refreshSession();
         } else {

@@ -139,7 +139,7 @@ jest.mock('../../modules/tools/services/tool-ecosystem.service', () => ({
 
 jest.mock('../../modules/users/services/user.service', () => ({
   userService: {
-    getOrCreateUserFromSupabase: jest.fn().mockResolvedValue({
+    findById: jest.fn().mockResolvedValue({
       _id: 'test-user-id',
       id: 'test-user-id',
       email: 'test@example.com',

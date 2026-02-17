@@ -56,7 +56,10 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
         });
       }
       // === BUSINESS LOGIC VALIDATION ===
-      const dbUser = await userService.getOrCreateUserFromSupabase(request.user!.id, request.user);
+      const dbUser = (request.user as any).dbUser;
+      if (!dbUser) {
+        return reply.code(401).send({ success: false, error: 'Unauthorized', message: 'User data not found' });
+      }
       // Check for duplicate project names for this user
       const existingProject = await projectService.getProjectByNameAndUser(name.trim(), dbUser._id.toString());
       if (existingProject) {
@@ -123,7 +126,10 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
   // List projects
   fastify.get<{ Querystring: ListProjectsQuery }>('/', async (request, reply) => {
     try {
-      const dbUser = await userService.getOrCreateUserFromSupabase(request.user!.id, request.user);
+      const dbUser = (request.user as any).dbUser;
+      if (!dbUser) {
+        return reply.code(401).send({ success: false, error: 'Unauthorized', message: 'User data not found' });
+      }
       const query = request.query as ListProjectsQuery;
       const projects = await projectService.getProjects(dbUser._id.toString(), query.search);
       return reply.send({
@@ -144,7 +150,10 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
   // Get project by ID
   fastify.get<{ Params: { id: string } }>('/:id', async (request, reply) => {
     try {
-      const dbUser = await userService.getOrCreateUserFromSupabase(request.user!.id, request.user);
+      const dbUser = (request.user as any).dbUser;
+      if (!dbUser) {
+        return reply.code(401).send({ success: false, error: 'Unauthorized', message: 'User data not found' });
+      }
       const { id } = request.params;
       const project = await projectService.getProjectById(id, dbUser._id.toString());
       if (!project) {
@@ -171,7 +180,10 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
   // Update project
   fastify.put<{ Params: { id: string }; Body: UpdateProjectBody }>('/:id', async (request, reply) => {
     try {
-      const dbUser = await userService.getOrCreateUserFromSupabase(request.user!.id, request.user);
+      const dbUser = (request.user as any).dbUser;
+      if (!dbUser) {
+        return reply.code(401).send({ success: false, error: 'Unauthorized', message: 'User data not found' });
+      }
       const { id } = request.params;
       const updateData = request.body as UpdateProjectBody;
       
@@ -211,7 +223,10 @@ const projectRoutes: FastifyPluginAsync = async (fastify) => {
   // Delete project
   fastify.delete<{ Params: { id: string } }>('/:id', async (request, reply) => {
     try {
-      const dbUser = await userService.getOrCreateUserFromSupabase(request.user!.id, request.user);
+      const dbUser = (request.user as any).dbUser;
+      if (!dbUser) {
+        return reply.code(401).send({ success: false, error: 'Unauthorized', message: 'User data not found' });
+      }
       const { id } = request.params;
       const result = await projectService.deleteProject(id, dbUser._id.toString());
       return reply.send({
