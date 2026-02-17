@@ -1,4 +1,4 @@
-import { FastifyPluginAsync, FastifyRequest } from 'fastify';
+import { FastifyInstance, FastifyPluginAsync, FastifyRequest } from 'fastify';
 import jwt from 'jsonwebtoken';
 import { User } from '../../../shared/types/auth.types';
 import { env } from '../../config/env';
