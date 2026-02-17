@@ -164,7 +164,7 @@ export class UserService {
     user = await UserModel.findOne({ email: encryptedEmail });
     if (user) {
       user.neonUserId = id;
-      if (role) user.role = role;
+      if (role) user.role = role as 'user' | 'admin' | 'super_admin';
       await user.save();
       return user;
     }

@@ -16,7 +16,7 @@ export const scheduleTaskWorkflows = inngest.createFunction(
         hasWorkflow: true,
         'attachedWorkflows.schedule': { $exists: true, $ne: null },
       }).limit(100); // Process 100 tasks at a time
-    }) as ITask[];
+    }) as unknown as ITask[];
 
     const results = [];
 
