@@ -101,7 +101,8 @@ const TaskSchema = new Schema<ITask>(
     },
     status: {
       type: String,
-      default: 'To do',
+      // Author: Sanket — must match normalized value from handlers (statusMap → 'Todo')
+      default: 'Todo',
     },
     priority: {
       type: String,

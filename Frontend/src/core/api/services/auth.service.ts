@@ -283,39 +283,61 @@ class AuthService {
   }
 
   /**
-   * Verify session by fetching user data from backend - Fixes BUG-007
-   * This prevents localStorage tampering (e.g., changing role to admin)
-   * Author: Sanket
+   * Verify session by fetching user data from backend.
+   * If the access token is expired, attempt a refresh before giving up.
+   * Author: Sanket — Fixes aggressive session clearing on 15-min token expiry
    */
   private async verifySessionAsync(): Promise<void> {
     try {
-      // Use direct path to avoid double-prefixing issue - api-client handles base URL
-      // Change from 'auth/me' to '/auth/me' to ensure clean path
       const response = await api.get<any>('/auth/me');
+
       if (response.success && response.data) {
-        // Update session with verified user data from backend
+        // Update session with verified, backend-authoritative user data
         if (this.currentSession) {
-          // ✅ Trust backend role only - ignore localStorage role
           this.currentSession.user = {
             id: response.data.id,
             email: response.data.email,
             name: response.data.name || response.data.email,
             avatar: response.data.avatar,
-            role: response.data.role, // ✅ Backend is source of truth!
+            role: response.data.role, // Backend is the source of truth for role
             createdAt: response.data.createdAt,
             onboardingCompleted: response.data.onboardingCompleted,
           };
           this.saveSession(this.currentSession);
         }
-      } else {
-        // Invalid session - clear it
-        console.warn('[AuthService] Session verification failed - invalid session');
-        this.clearSession();
+        return;
       }
-    } catch (error) {
-      console.error('[AuthService] Session verification failed:', error);
-      // If verification fails (network error, etc.), clear session for security
+
+      // /auth/me failed — try refreshing the token before clearing the session.
+      // This handles the common case where the 15-min access token has expired.
+      if (this.currentSession?.refreshToken) {
+        const refreshed = await this.refreshSession();
+        if (refreshed) {
+          // Refresh succeeded — re-verify with the new token
+          const retryResponse = await api.get<any>('/auth/me');
+          if (retryResponse.success && retryResponse.data && this.currentSession) {
+            this.currentSession.user = {
+              id: retryResponse.data.id,
+              email: retryResponse.data.email,
+              name: retryResponse.data.name || retryResponse.data.email,
+              avatar: retryResponse.data.avatar,
+              role: retryResponse.data.role,
+              createdAt: retryResponse.data.createdAt,
+              onboardingCompleted: retryResponse.data.onboardingCompleted,
+            };
+            this.saveSession(this.currentSession);
+            return;
+          }
+        }
+      }
+
+      // Both verification and refresh failed — clear the session
+      console.warn('[AuthService] Session verification and refresh both failed — clearing session');
       this.clearSession();
+    } catch (error) {
+      console.error('[AuthService] Session verification error:', error);
+      // Network errors should not log the user out — keep the session
+      // Only clear on explicit auth failures (handled above via response.success check)
     }
   }
   /**

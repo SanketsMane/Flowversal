@@ -216,6 +216,7 @@ export async function getAuthHeaders(token?: string): Promise<HeadersInit> {
       const authToken = session?.accessToken || session?.access_token || session?.token;
       
       if (authToken) {
+        // console.log('[API Config] Found token in local storage');
         return {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${authToken}`,
@@ -230,6 +231,7 @@ export async function getAuthHeaders(token?: string): Promise<HeadersInit> {
     const { data, error } = await supabase.auth.getSession();
     if (!error && data.session?.access_token) {
       const supaToken = data.session.access_token;
+      // console.log('[API Config] Found token in Supabase session');
       return {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${supaToken}`,
@@ -240,6 +242,10 @@ export async function getAuthHeaders(token?: string): Promise<HeadersInit> {
   }
   // No token available
   console.warn('[API Config] No auth token available; requests will be unauthorized');
+  console.log('[API Config] Debug info:', { 
+    hasLocalStorage: !!localStorage.getItem('flowversal_auth_session'),
+    hasSupabase: !!supabase.auth.getSession() 
+  });
   return {
     'Content-Type': 'application/json',
   };

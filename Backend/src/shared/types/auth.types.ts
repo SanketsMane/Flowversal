@@ -4,6 +4,9 @@ export interface User {
   created_at?: string;
   updated_at?: string;
   onboardingCompleted?: boolean;
+  // Author: Sanket — dbUser is the MongoDB user object cached by auth middleware
+  // to avoid repeated DB lookups (fixes N+1 query pattern)
+  dbUser?: any;
 }
 
 export interface AuthContext {

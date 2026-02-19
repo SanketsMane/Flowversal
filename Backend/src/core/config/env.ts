@@ -210,13 +210,12 @@ export const env: EnvConfig = {
   CACHE_STALE_WHILE_REVALIDATE: getEnvNumber('CACHE_STALE_WHILE_REVALIDATE', 300),
 };
 // Validate critical environment variables in production
+// Author: Sanket — Supabase removed; Neon Auth is the active auth provider
 if (env.NODE_ENV === 'production') {
   const requiredVars = [
     'MONGODB_URI',
-    'PINECONE_API_KEY',
-    'SUPABASE_URL',
-    'SUPABASE_ANON_KEY',
-    'SUPABASE_SERVICE_ROLE_KEY',
+    'NEON_DATABASE_URL',
+    'JWT_SECRET',
   ];
   const missing = requiredVars.filter((key) => !process.env[key]);
   if (missing.length > 0) {
