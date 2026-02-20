@@ -115,7 +115,6 @@ class AuthService {
         accessToken,
         refreshToken,
         expiresAt,
-        expiresAt,
       };
       this.saveSession(session);
       return { success: true, user };
