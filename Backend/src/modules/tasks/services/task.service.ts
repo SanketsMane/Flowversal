@@ -121,7 +121,8 @@ export class TaskService {
       name: data.name,
       description: data.description || '',
       assignedTo: data.assignedTo || [],
-      status: data.status || 'To do',
+      // Author: Sanket — 'Todo' is the normalized canonical status value
+      status: data.status || 'Todo',
       priority: data.priority || 'Medium',
       labels: data.labels || [],
       dueDate: data.dueDate ? new Date(data.dueDate) : undefined,

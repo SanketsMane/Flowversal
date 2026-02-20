@@ -9,6 +9,8 @@ export interface User {
   role?: string;
   full_name?: string;
   onboardingCompleted?: boolean;
+  // Author: Sanket — dbUser is the MongoDB user object cached by auth middleware
+  // to avoid repeated DB lookups (fixes N+1 query pattern)
   dbUser?: any;
 }
 

@@ -6,6 +6,7 @@
 import { useAuth } from '@/core/auth/AuthContext';
 import { useTheme } from '@/core/theme/ThemeContext';
 // import { supabase } from '@/shared/lib/supabase'; // Removed redundant import
+import { ShiningText } from '@/components/ui/shining-text';
 import 'highlight.js/styles/atom-one-dark.css';
 import {
     Bot,
@@ -75,7 +76,9 @@ interface Message {
   isUser: boolean;
   timestamp: Date;
   workflowData?: any;
-  type?: 'text' | 'workflow' | 'error' | 'tool-config';
+  // imageUrl is set when the AI generates an image via DALL-E
+  imageUrl?: string;
+  type?: 'text' | 'workflow' | 'error' | 'tool-config' | 'image';
   tools?: SelectedTool[];
   configTool?: string;
   agentReasoning?: AgentReasoning;
@@ -93,6 +96,8 @@ export function Chat() {
   const [conversationId, setConversationId] = useState<string>('');
   const [useRealAI, setUseRealAI] = useState(true); // Use real AI by default
   const [lastRequestTime, setLastRequestTime] = useState<number>(0);
+  // Author: Sanket — tracks which message is actively streaming so we can show a blinking cursor
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   // Tool Configuration State
   const [emailConfigured, setEmailConfigured] = useState(false);
   const [configValues, setConfigValues] = useState<Record<string, string>>({});
@@ -205,41 +210,70 @@ export function Chat() {
   const removeTool = (type: string) => {
     setSelectedTools(prev => prev.filter(t => t.type !== type));
   };
+  /**
+   * Detect if the user is asking for image generation
+   * Author: Sanket — routes image requests to DALL-E instead of chat
+   */
+  const isImageRequest = (message: string): boolean => {
+    const lower = message.toLowerCase();
+    return [
+      'generate image', 'create image', 'draw', 'paint', 'illustrate',
+      'make an image', 'make a picture', 'show me an image', 'generate a picture',
+      'create a picture', 'image of', 'picture of', 'photo of',
+    ].some((kw) => lower.includes(kw));
+  };
+
   const callRealAI = async (userMessage: string) => {
     // Prevent duplicate calls if already processing
     if (isTyping) {
       console.warn('[Chat] Already processing a request, ignoring duplicate call');
       return;
     }
-    // Prevent rapid successive calls (minimum 500ms between requests)
+    // Throttle rapid successive calls (min 500ms between requests)
     const now = Date.now();
     if (now - lastRequestTime < 500) {
-      console.warn('[Chat] Request throttled - too soon after previous request');
+      console.warn('[Chat] Request throttled');
       return;
     }
     setLastRequestTime(now);
     setIsTyping(true);
+
     try {
       if (!isAuthenticated) {
         throw new Error('Please log in to use AI features');
       }
-      // Parse action intent
+
+      // --- Image generation path ---
+      if (isImageRequest(userMessage)) {
+        const imageResult = await chatService.generateImage(userMessage);
+        if (imageResult.success && imageResult.url) {
+          const aiMessage: Message = {
+            id: Date.now().toString(),
+            text: imageResult.revisedPrompt ? `*${imageResult.revisedPrompt}*` : 'Here is your generated image:',
+            imageUrl: imageResult.url,
+            isUser: false,
+            timestamp: new Date(),
+            type: 'image',
+          };
+          setMessages((prev) => [...prev, aiMessage]);
+        } else {
+          throw new Error(imageResult.error || 'Image generation failed');
+        }
+        setIsTyping(false);
+        return;
+      }
+
+      // --- Action intent check ---
       const intent = actionExecutorService.parseActionIntent(
         userMessage,
-        selectedTools.map(t => t.type)
+        selectedTools.map((t) => t.type)
       );
-      // Execute action if intent is actionable
       if (intent && intent.type !== 'query' && intent.confidence && intent.confidence > 0.6) {
-        const actionResult = await actionExecutorService.executeAction(
-          intent,
-          userMessage,
-          {
-            mode: selectedMode,
-            selectedTools: selectedTools.map(t => t.type),
-          }
-        );
+        const actionResult = await actionExecutorService.executeAction(intent, userMessage, {
+          mode: selectedMode,
+          selectedTools: selectedTools.map((t) => t.type),
+        });
         if (actionResult.success) {
-          // Handle successful action execution
           if (actionResult.actionType === 'workflow' && actionResult.workflowNode) {
             const aiMessage: Message = {
               id: Date.now().toString(),
@@ -250,88 +284,117 @@ export function Chat() {
               type: 'workflow',
               tools: selectedTools,
             };
-            setMessages(prev => [...prev, aiMessage]);
-            toast.success('Workflow generated successfully! Click to open in workflow builder.');
+            setMessages((prev) => [...prev, aiMessage]);
+            toast.success('Workflow generated successfully!');
             setIsTyping(false);
             return;
           } else if (actionResult.actionType === 'tool') {
-            // Tool executed, now get AI response with tool results
-            const toolResultText = actionResult.result 
-              ? `Tool "${intent.toolName}" executed successfully. Result: ${typeof actionResult.result === 'string' ? actionResult.result : JSON.stringify(actionResult.result, null, 2)}`
+            const toolResultText = actionResult.result
+              ? `Tool "${intent.toolName}" executed. Result: ${typeof actionResult.result === 'string' ? actionResult.result : JSON.stringify(actionResult.result, null, 2)}`
               : `Tool "${intent.toolName}" executed successfully.`;
-            // Continue with chat to get AI interpretation
             userMessage = `${userMessage}\n\n[Tool Result: ${toolResultText}]`;
           }
         } else if (actionResult.error) {
-          // Action failed, show error but continue with chat
           toast.error(`Action failed: ${actionResult.error}`);
           userMessage = `${userMessage}\n\n[Note: Action execution failed - ${actionResult.error}]`;
         }
       }
-      // Send chat message using chat service
-      const chatResponse = await chatService.sendMessage({
-        message: userMessage,
-        conversationId: conversationId || undefined,
-        mode: selectedMode,
-        tools: selectedTools.length > 0 ? selectedTools.map(t => t.type) : undefined,
-        model: selectedModel === 'Chat GPT' ? 'gpt4' : 
-               selectedModel === 'Gemini' ? 'gemini' : 
-               selectedModel === 'Flowversal' ? 'vllm' : 'claude',
-        temperature: 0.7,
-        maxTokens: 2000,
-        context: `You are Flowversal AI in ${selectedMode} mode. ${
-          selectedMode === 'agent' ? 'You have access to tools. ONLY use tools if explicitly necessary (e.g., browsing, searching). If the user asks to draft/write content (emails, code, essays) WITHOUT asking to save/send, DO NOT use tools. Just generate the text.' :
-          selectedMode === 'plan' ? 'Create detailed step-by-step plans.' :
-          selectedMode === 'debug' ? 'Help debug and troubleshoot issues.' :
-          selectedMode === 'ask' ? 'Answer questions about workflows.' :
-          'Automatically decide the best approach.'
-        } Always use Markdown. Use code blocks for code. For email drafts, ALWAYS wrap content in a code block with language 'email' (e.g., \`\`\`email). Include 'Subject: ...' as first line.`,
-      });
-      if (chatResponse.success && chatResponse.response) {
-        // Update conversation ID if provided
-        if (chatResponse.conversationId) {
-          setConversationId(chatResponse.conversationId);
-        }
-        const aiMessage: Message = {
-          id: Date.now().toString(),
-          text: chatResponse.response,
-          isUser: false,
-          timestamp: new Date(),
-          type: 'text',
-          tools: chatResponse.toolsUsed && chatResponse.toolsUsed.length > 0
-            ? selectedTools.filter(t => chatResponse.toolsUsed?.includes(t.type))
-            : undefined,
-        };
-        setMessages(prev => [...prev, aiMessage]);
-        // Show tool usage notification
-        if (chatResponse.toolsUsed && chatResponse.toolsUsed.length > 0) {
-          toast.success(`Used ${chatResponse.toolsUsed.length} tool(s): ${chatResponse.toolsUsed.join(', ')}`);
-        }
-        // Update conversation title if first message
-        if (activeConversationId && messages.length === 0) {
-          const title = userMessage.slice(0, 50) + (userMessage.length > 50 ? '...' : '');
-          handleRenameConversation(activeConversationId, title);
-        }
-      } else {
-        throw new Error(chatResponse.error || 'No response from AI');
-      }
-    } catch (error: any) {
-      console.error('[Chat] AI Error:', error);
-      // Don't set component error for API errors, just show in chat
-      const errorMessage: Message = {
-        id: Date.now().toString(),
-        text: `Error: ${error.message}. ${useRealAI ? 'Please check your connection and try again.' : 'Falling back to demo mode.'}`,
+
+      // --- Streaming chat path ---
+      // Create a placeholder AI message that will be filled token by token
+      const placeholderId = (Date.now() + 1).toString();
+      const placeholderMessage: Message = {
+        id: placeholderId,
+        text: '',
         isUser: false,
         timestamp: new Date(),
-        type: 'error'
+        type: 'text',
       };
-      setMessages(prev => [...prev, errorMessage]);
-      if (!useRealAI && !error.message.includes('log in')) {
-        setTimeout(() => simulateAIResponse(userMessage), 1000);
-      } else {
-        toast.error(`Chat error: ${error.message}`);
-      }
+      setMessages((prev) => [...prev, placeholderMessage]);
+      // Author: Sanket — mark this message as actively streaming so the cursor shows
+      setStreamingMessageId(placeholderId);
+
+      const systemContext = `You are Flowversal AI in ${selectedMode} mode. ${ 
+        selectedMode === 'agent'
+          ? 'You have access to tools. ONLY use tools if explicitly necessary. If the user asks to draft/write content WITHOUT asking to save/send, DO NOT use tools — just generate the text.'
+          : selectedMode === 'plan'
+          ? 'Create detailed step-by-step plans.'
+          : selectedMode === 'debug'
+          ? 'Help debug and troubleshoot issues.'
+          : selectedMode === 'ask'
+          ? 'Answer questions about workflows.'
+          : 'Automatically decide the best approach.'
+      } Always use Markdown. Use code blocks for code. For email drafts, wrap content in a code block with language 'email'. Include 'Subject: ...' as first line.
+IMPORTANT: Answer all questions directly and confidently from your knowledge. Do NOT say "I cannot browse the internet", "I don't have access to recent news", or "I can search for more information". Give clear, decisive answers even for opinion-based or ranking questions.`;
+
+      let streamedConversationId: string | undefined;
+
+      await chatService.streamMessage(
+        {
+          message: userMessage,
+          conversationId: conversationId || undefined,
+          mode: selectedMode,
+          tools: selectedTools.length > 0 ? selectedTools.map((t) => t.type) : undefined,
+          model:
+            selectedModel === 'Chat GPT' ? 'gpt4' :
+            selectedModel === 'Gemini' ? 'gemini' :
+            selectedModel === 'Flowversal' ? 'vllm' : 'claude',
+          temperature: 0.7,
+          maxTokens: 2000,
+          context: systemContext,
+        },
+        // onToken — append each token to the placeholder message
+        (token: string) => {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === placeholderId ? { ...msg, text: msg.text + token } : msg
+            )
+          );
+        },
+        // onDone
+        (convId?: string) => {
+          if (convId) streamedConversationId = convId;
+          if (streamedConversationId) setConversationId(streamedConversationId);
+          // Update conversation title on first message
+          if (activeConversationId && messages.length === 1) {
+            const title = userMessage.slice(0, 50) + (userMessage.length > 50 ? '...' : '');
+            handleRenameConversation(activeConversationId, title);
+          }
+          // Author: Sanket — clear streaming cursor when done
+          setStreamingMessageId(null);
+          setIsTyping(false);
+        },
+        // onError
+        (errorMsg: string) => {
+          // Replace placeholder with error message
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === placeholderId
+                ? { ...msg, text: `Error: ${errorMsg}`, type: 'error' }
+                : msg
+            )
+          );
+          // Author: Sanket — clear streaming cursor on error
+          setStreamingMessageId(null);
+          toast.error(`Chat error: ${errorMsg}`);
+          setIsTyping(false);
+        }
+      );
+    } catch (error: any) {
+      console.error('[Chat] AI Error:', error);
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        text: `Error: ${error.message}. Please check your connection and try again.`,
+        isUser: false,
+        timestamp: new Date(),
+        type: 'error',
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      toast.error(`Chat error: ${error.message}`);
+      setIsTyping(false);
     } finally {
+      // isTyping is set to false inside onDone/onError for streaming;
+      // this finally block handles unexpected exits
       setIsTyping(false);
     }
   };
@@ -410,11 +473,26 @@ export function Chat() {
       tools: selectedTools.length > 0 ? [...selectedTools] : undefined,
     };
     setMessages(prev => [...prev, userMessage]);
-    // Update conversation title if first message
-    if (activeConversationId && messages.length === 0) {
+
+    // Author: Sanket — auto-create a sidebar conversation on first send, like ChatGPT
+    // This ensures the chat appears in the sidebar the moment the user sends a message
+    let currentConversationId = activeConversationId;
+    if (!currentConversationId) {
+      const newConversation = {
+        id: Date.now().toString(),
+        title: inputValue.slice(0, 50) + (inputValue.length > 50 ? '...' : ''),
+        preview: inputValue.slice(0, 80),
+        timestamp: new Date(),
+      };
+      setConversations(prev => [newConversation, ...prev]);
+      setActiveConversationId(newConversation.id);
+      currentConversationId = newConversation.id;
+    } else if (messages.length === 0) {
+      // First message in an existing conversation — update its title
       const title = inputValue.slice(0, 50) + (inputValue.length > 50 ? '...' : '');
-      handleRenameConversation(activeConversationId, title);
+      handleRenameConversation(currentConversationId, title);
     }
+
     setInputValue('');
     if (useRealAI) {
       callRealAI(inputValue);
@@ -498,9 +576,10 @@ export function Chat() {
         onDeleteConversation={handleDeleteConversation}
         onRenameConversation={handleRenameConversation}
         onOpenTools={handleOpenTools}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
         onOpenPrompts={() => setShowPromptLibrary(true)}
         onOpenMemories={() => setShowMemories(true)}
-        isCollapsed={isSidebarCollapsed}
         selectedToolsCount={selectedTools.length}
       />
       {/* Main Chat Area */}
@@ -519,8 +598,14 @@ export function Chat() {
           )}
           {/* Messages Container */}
           {messages.length > 0 && (
-            <div className="flex-1 mb-6 space-y-6 overflow-y-auto max-h-[60vh] pr-4">
-              {messages.map((message) => (
+            <div className="flex-1 mb-6 space-y-6 overflow-y-auto pr-4">
+              {messages.map((message) => {
+                // Author: Sanket — skip rendering empty AI placeholder until first token arrives
+                // This prevents the empty white box that appears before streaming begins
+                if (!message.isUser && message.text.length === 0 && streamingMessageId !== message.id) {
+                  return null;
+                }
+                return (
                 <div
                   key={message.id}
                   className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
@@ -532,14 +617,6 @@ export function Chat() {
                         : `${bgCard} ${textPrimary} border ${borderColor}`
                     }`}
                   >
-                    {!message.isUser && (
-                      <div className="flex items-center gap-2 mb-2">
-                        <Sparkles className="w-4 h-4 text-[#00C6FF]" />
-                        <span className="text-sm text-[#00C6FF]">
-                          {message.type === 'workflow' ? 'Workflow Generated' : 'AI Assistant'}
-                        </span>
-                      </div>
-                    )}
                     {/* Show tools used if any */}
                     {message.tools && message.tools.length > 0 && (
                       <div className="flex flex-wrap gap-1 mb-2">
@@ -685,9 +762,42 @@ export function Chat() {
                         </div>
                       </div>
                     )}
+                    {/* Image message rendering — shown when AI generates an image via DALL-E */}
+                    {message.type === 'image' && message.imageUrl && (
+                      <div className="mb-3">
+                        <img
+                          src={message.imageUrl}
+                          alt="AI generated image"
+                          className="rounded-xl max-w-full max-h-96 object-contain border border-white/10 shadow-lg"
+                          loading="lazy"
+                        />
+                        <div className="flex gap-2 mt-2">
+                          <a
+                            href={message.imageUrl}
+                            download="flowversal-image.png"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#00C6FF]/20 hover:bg-[#00C6FF]/30 text-[#00C6FF] text-xs transition-colors"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            Download
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                    {/* Author: Sanket — user messages render as plain text; AI messages use ReactMarkdown.
+                        A blinking cursor is appended while this message is actively streaming. */}
+                    {message.isUser ? (
+                      <p className="text-sm leading-relaxed break-words whitespace-pre-wrap">{message.text}</p>
+                    ) : (
                     <div className={`prose ${theme === 'dark' ? 'prose-invert' : ''} max-w-none break-words`}>
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
+                      {/* Show 'Thinking...' state if streaming but no text yet */}
+                      {message.text.length === 0 && streamingMessageId === message.id ? (
+                        <ShiningText text="Flowversal is thinking..." />
+                      ) : (
+                        <>
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
                         rehypePlugins={[rehypeRaw, rehypeHighlight]}
                         components={{
                           code({node, inline, className, children, ...props}: any) {
@@ -774,7 +884,14 @@ export function Chat() {
                       >
                         {message.text}
                       </ReactMarkdown>
+                      {streamingMessageId === message.id && (
+                          // Author: Sanket — blinking cursor shown while streaming, disappears when done
+                          <span className="inline-block w-0.5 h-4 bg-current ml-0.5 align-middle animate-pulse" />
+                        )}
+                        </>
+                      )}
                     </div>
+                    )}
                     {/* Workflow Actions */}
                     {message.type === 'workflow' && message.workflowData && (
                       <div className="mt-4 flex gap-2 flex-wrap">
@@ -823,22 +940,14 @@ export function Chat() {
                     )}
                   </div>
                 </div>
-              ))}
-              {isTyping && (
-                <div className="flex justify-start">
-                  <div className={`${bgCard} rounded-2xl px-6 py-4 border ${borderColor}`}>
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-[#00C6FF] animate-pulse" />
-                      <span className={`text-sm ${textSecondary}`}>AI is typing...</span>
-                    </div>
-                  </div>
-                </div>
-              )}
+              );
+            })}
+
               <div ref={messagesEndRef} />
             </div>
           )}
           {/* Input Container */}
-          <div className="sticky bottom-4 max-w-4xl mx-auto w-full">
+          <div className="sticky bottom-4 max-w-4xl mx-auto w-full mt-auto">
             <div className={`${bgCard} border ${borderColor} rounded-3xl shadow-xl`}>
               {/* Attached Files */}
               {attachedFiles.length > 0 && (

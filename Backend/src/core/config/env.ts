@@ -203,7 +203,8 @@ export const env: EnvConfig = {
   NEON_DATABASE_URL: getEnvVar('NEON_DATABASE_URL', ''),
   JWT_EXPIRES_IN: getEnvVar('JWT_EXPIRES_IN', '7d'),
 };
-
+// Validate critical environment variables in production
+// Author: Sanket — Supabase removed; Neon Auth is the active auth provider
 if (env.NODE_ENV === 'production') {
   const requiredVars = [
     'MONGODB_URI',
